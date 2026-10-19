@@ -22,7 +22,11 @@
     {
       "matches": [
         "*://*.fiverr.com/*",
-        "https://fiverr.com/*"
+        "https://fiverr.com/*",
+        "*://*.upwork.com/*",
+        "https://upwork.com/*",
+        "*://*.linkedin.com/*",
+        "https://linkedin.com/*"
       ],
       "js": ["src/content.ts"],
       "run_at": "document_idle"
@@ -38,8 +42,11 @@
   ],
   "host_permissions": [
     "*://*.fiverr.com/*",
+    "*://*.upwork.com/*",
+    "*://*.linkedin.com/*",
     "*://*.chatgpt.com/*",
-    "*://*.openai.com/*"
+    "*://*.openai.com/*",
+    "http://localhost:3000/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

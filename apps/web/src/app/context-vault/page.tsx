@@ -140,6 +140,29 @@ export default function ContextVaultPage() {
   const [categoryFilter, setCategoryFilter] = useState<'All' | 'Budget' | 'Timeline' | 'Tech' | 'Scope'>('All');
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'proposed' | 'disputed'>('all');
 
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadLiveData() {
+      try {
+        const res = await fetch('/api/vault');
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && data.facts && data.facts.length > 0) {
+            setFacts(data.facts);
+          }
+        }
+      } catch (err) {
+        console.warn('Live vault fetch error:', err);
+      }
+    }
+    loadLiveData();
+    const timer = setInterval(loadLiveData, 4000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
+
   const filtered = facts.filter((f) => {
     const matchesSearch =
       f.fact.toLowerCase().includes(search.toLowerCase()) ||

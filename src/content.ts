@@ -14,8 +14,9 @@ import type {
   SenderRole,
 } from './types';
 import { generateDeterministicMessageId } from './utils/deduplication';
+import { getAdapterForUrl } from './adapters';
 
-console.log('[Memoreply] Fiverr content script initialized on:', window.location.href);
+console.log('[Memoreply] Multi-platform content script initialized on:', window.location.href);
 
 /**
  * Check if the current page is a Fiverr conversation or inbox page.
@@ -253,9 +254,31 @@ function extractMessages(): ExtractedMessage[] {
 }
 
 /**
- * Assemble complete conversation data.
+ * Assemble complete conversation data across supported platforms.
  */
 function extractCurrentConversation(): ConversationData {
+  const adapter = getAdapterForUrl(window.location.href);
+
+  if (adapter) {
+    const conversationId = adapter.extractConversationId();
+    const clientInfo = adapter.extractClientInfo();
+    const messages = adapter.extractMessages();
+    const status: ConversationData['status'] = messages.length > 0 ? 'active' : 'empty';
+
+    return {
+      platform: adapter.platform,
+      conversationId,
+      clientUsername: clientInfo.username,
+      clientDisplayName: clientInfo.displayName,
+      clientAvatarUrl: clientInfo.avatarUrl,
+      messages,
+      extractedAt: new Date().toISOString(),
+      url: window.location.href,
+      status,
+    };
+  }
+
+  // Fallback heuristic for generic Fiverr inbox
   const isInbox = isFiverrInboxPage();
   const conversationId = extractConversationId();
   const { username, displayName, avatarUrl } = extractClientInfo();
@@ -280,12 +303,23 @@ function extractCurrentConversation(): ConversationData {
 }
 
 /**
- * Insert a draft reply into Fiverr's message composer.
+ * Insert a draft reply into the active platform's message composer.
  * Safety rule: Focus and set text ONLY — never auto-submit.
  */
 function insertDraftIntoComposer(text: string): { success: boolean; message?: string; error?: string } {
   if (!text || text.trim().length === 0) {
     return { success: false, error: 'Empty draft text provided.' };
+  }
+
+  const adapter = getAdapterForUrl(window.location.href);
+  if (adapter) {
+    const success = adapter.insertDraft(text);
+    if (success) {
+      return {
+        success: true,
+        message: `Draft inserted into ${adapter.platform.toUpperCase()} composer! Review and send when ready.`,
+      };
+    }
   }
 
   // Selectors for Fiverr composer textarea and contenteditable elements
@@ -307,17 +341,16 @@ function insertDraftIntoComposer(text: string): { success: boolean; message?: st
   for (const selector of composerSelectors) {
     const el = document.querySelector<HTMLElement>(selector);
     if (el && el.offsetParent !== null) {
-      // Must be visible
       composer = el;
       break;
     }
   }
 
   if (!composer) {
-    console.warn('[Memoreply] Could not find Fiverr composer input on page.');
+    console.warn('[Memoreply] Could not find composer input on page.');
     return {
       success: false,
-      error: 'Could not find message composer on this Fiverr page. Please make sure the conversation is open.',
+      error: 'Could not find message composer on this page. Please make sure the conversation is open.',
     };
   }
 
@@ -325,7 +358,6 @@ function insertDraftIntoComposer(text: string): { success: boolean; message?: st
     composer.focus();
 
     if (composer instanceof HTMLTextAreaElement || composer instanceof HTMLInputElement) {
-      // Use standard prototype setter so React/Vue state detects the change
       const nativeSetter = Object.getOwnPropertyDescriptor(
         window.HTMLTextAreaElement.prototype,
         'value'
@@ -340,7 +372,6 @@ function insertDraftIntoComposer(text: string): { success: boolean; message?: st
       composer.dispatchEvent(new Event('input', { bubbles: true }));
       composer.dispatchEvent(new Event('change', { bubbles: true }));
     } else if (composer.getAttribute('contenteditable') === 'true') {
-      // Try execCommand for contenteditable
       const success = document.execCommand('insertText', false, text);
       if (!success) {
         composer.textContent = text;
@@ -354,7 +385,7 @@ function insertDraftIntoComposer(text: string): { success: boolean; message?: st
     console.log('[Memoreply] Draft inserted into composer successfully (not sent).');
     return {
       success: true,
-      message: 'Draft inserted into Fiverr composer! Review and send when ready.',
+      message: 'Draft inserted into composer! Review and send when ready.',
     };
   } catch (err) {
     console.error('[Memoreply] Error inserting draft:', err);

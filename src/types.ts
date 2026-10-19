@@ -13,8 +13,10 @@ export interface ExtractedMessage {
   isOwn: boolean;
 }
 
+export type SupportedPlatform = 'fiverr' | 'upwork' | 'linkedin';
+
 export interface ConversationData {
-  platform: 'fiverr';
+  platform: SupportedPlatform;
   conversationId: string | null;
   clientUsername: string | null;
   clientDisplayName: string | null;

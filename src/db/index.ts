@@ -6,8 +6,8 @@ import Dexie, { type EntityTable } from 'dexie';
 import type { SenderRole } from '../types';
 
 export interface ClientEntity {
-  id: string; // e.g. 'fiverr_alex_miller_dev'
-  platform: 'fiverr';
+  id: string; // e.g. 'fiverr_alex_miller_dev' or 'upwork_room_123'
+  platform: 'fiverr' | 'upwork' | 'linkedin';
   platformUserId: string;
   displayName: string;
   avatarUrl?: string | null;
@@ -21,7 +21,7 @@ export interface ClientEntity {
 export interface ConversationEntity {
   id: string; // e.g. 'conv_fiverr_alex_miller_dev'
   clientId: string;
-  platform: 'fiverr';
+  platform: 'fiverr' | 'upwork' | 'linkedin';
   platformConversationId: string;
   url: string;
   lastMessageAt: string;

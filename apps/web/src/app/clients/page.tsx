@@ -20,7 +20,7 @@ interface ClientItem {
   id: string;
   name: string;
   username: string;
-  platform: 'Fiverr' | 'Upwork';
+  platform: 'Fiverr' | 'Upwork' | 'LinkedIn';
   totalMessages: number;
   lastContact: string;
   budget?: string;
@@ -112,11 +112,36 @@ const CLIENT_DATA: ClientItem[] = [
 ];
 
 export default function ClientsPage() {
+  const [clients, setClients] = useState<ClientItem[]>(CLIENT_DATA as ClientItem[]);
   const [search, setSearch] = useState('');
-  const [platformFilter, setPlatformFilter] = useState<'All' | 'Fiverr' | 'Upwork'>('All');
+  const [platformFilter, setPlatformFilter] = useState<'All' | 'Fiverr' | 'Upwork' | 'LinkedIn'>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Pending Offer' | 'Delivered'>('All');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const filtered = CLIENT_DATA.filter((c) => {
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadLiveData() {
+      try {
+        const res = await fetch('/api/clients');
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && data.clients && data.clients.length > 0) {
+            setClients(data.clients);
+          }
+        }
+      } catch (err) {
+        console.warn('Live clients fetch error, using local state:', err);
+      }
+    }
+    loadLiveData();
+    const timer = setInterval(loadLiveData, 4000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const filtered = clients.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.username.toLowerCase().includes(search.toLowerCase()) ||
@@ -178,7 +203,7 @@ export default function ClientsPage() {
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
           {/* Platform Filter */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-0.5 rounded-md text-xs">
-            {(['All', 'Fiverr', 'Upwork'] as const).map((p) => (
+            {(['All', 'Fiverr', 'Upwork', 'LinkedIn'] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPlatformFilter(p)}

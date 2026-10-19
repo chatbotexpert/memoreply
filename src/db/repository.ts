@@ -13,6 +13,7 @@ import {
   type SellerKnowledgeEntity,
 } from './index';
 import type { ConversationData } from '../types';
+import { pushConversationToCloud } from '../sync/cloudSync';
 
 /**
  * Basic heuristic rule-based fact extractor from message text.
@@ -213,7 +214,13 @@ export async function saveExtractedConversation(conversationData: ConversationDa
     }
   }
 
-  // Counts
+  // 5. Cloud Auto-Sync: Asynchronously push encrypted payload to Next.js dashboard
+  try {
+    pushConversationToCloud(conversationData, client, heuristicFacts).catch((cloudErr) => {
+      console.warn('[Memoreply Cloud Auto-Sync] Background push error:', cloudErr);
+    });
+  } catch {}
+
   const totalClientMessages = await db.messages.where('clientId').equals(clientId).count();
   const factsCount = await db.clientFacts.where('clientId').equals(clientId).count();
 

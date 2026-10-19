@@ -15,7 +15,7 @@ interface ConversationItem {
   id: string;
   clientName: string;
   username: string;
-  platform: 'Fiverr';
+  platform: 'Fiverr' | 'Upwork' | 'LinkedIn';
   status: 'Active' | 'Completed' | 'Pending Offer';
   lastUpdated: string;
   messagesCount: number;
@@ -101,10 +101,38 @@ const CONVERSATION_THREADS: ConversationItem[] = [
 ];
 
 export default function ConversationsPage() {
+  const [threads, setThreads] = useState<ConversationItem[]>(CONVERSATION_THREADS);
   const [selectedThread, setSelectedThread] = useState<ConversationItem>(CONVERSATION_THREADS[0]);
   const [search, setSearch] = useState('');
 
-  const filtered = CONVERSATION_THREADS.filter(
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadLiveData() {
+      try {
+        const res = await fetch('/api/conversations');
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && data.conversations && data.conversations.length > 0) {
+            setThreads(data.conversations);
+            setSelectedThread((prev) => {
+              const matched = data.conversations.find((c: ConversationItem) => c.id === prev.id);
+              return matched || data.conversations[0];
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Live conversations fetch error:', err);
+      }
+    }
+    loadLiveData();
+    const timer = setInterval(loadLiveData, 4000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const filtered = threads.filter(
     (c) =>
       c.clientName.toLowerCase().includes(search.toLowerCase()) ||
       c.username.toLowerCase().includes(search.toLowerCase()) ||
@@ -120,7 +148,7 @@ export default function ConversationsPage() {
             Synced Conversations
           </h2>
           <p className="text-xs text-zinc-500 mt-1">
-            Deduplicated message streams extracted from visible Fiverr inbox threads.
+            Deduplicated message streams extracted across active Fiverr, Upwork, and LinkedIn threads.
           </p>
         </div>
 

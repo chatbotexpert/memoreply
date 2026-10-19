@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { saveLiveSyncData } from '@/lib/dataService';
 
 export interface SyncMessagePayload {
   messageId: string;
@@ -96,6 +97,9 @@ export async function POST(req: NextRequest) {
     console.log(
       `[Memoreply Cloud Sync] Received sync event from IP ${clientIp} for client "${clientName}". Messages: ${messagesCount}, Facts: ${factsCount}.`
     );
+
+    // Persist into live data service / PostgreSQL
+    await saveLiveSyncData(body);
 
     // 3. Return structured sync acknowledgement
     return NextResponse.json(
