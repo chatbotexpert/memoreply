@@ -304,6 +304,9 @@ export default function App() {
           }
           return prev;
         });
+      } else if (isMounted && !chrome?.runtime?.id) {
+        // Auto-load interactive demo thread on web preview (e.g. Vercel)
+        handleLoadMock();
       }
     });
 
