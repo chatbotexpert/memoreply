@@ -1205,10 +1205,10 @@ export default function App() {
                   {isGenerating ? (
                     <>
                       <span className="spinner" style={{ width: '13px', height: '13px' }} />
-                      Drafting response...
+                      Generating response...
                     </>
                   ) : (
-                    `Draft ${activeTone} Response`
+                    `Generate ${activeTone} Response`
                   )}
                 </button>
               </div>
@@ -1237,7 +1237,7 @@ export default function App() {
               {/* Draft Textarea */}
               <textarea
                 className="reply-editor"
-                placeholder="Draft response will appear here, or compose directly..."
+                placeholder="Generated response will appear here, or compose directly..."
                 value={draftText}
                 onChange={(e) => setDraftText(e.target.value)}
               />
