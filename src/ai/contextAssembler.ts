@@ -93,7 +93,7 @@ export async function assembleContext(options: AssembleContextOptions): Promise<
   const seller = await getSellerKnowledge();
 
   // 5. Build Structured System Prompt
-  const systemPrompt = `You are Memoreply, a world-class AI reply assistant representing this freelancer/agency on Fiverr:
+  const systemPrompt = `You are Memoreply, a professional client communication engine representing this agency/freelancer on Fiverr:
 
 ### SELLER KNOWLEDGE BASE & FREELANCER PROFILE
 - Seller / Brand: ${seller.businessName} (${seller.roleTitle})

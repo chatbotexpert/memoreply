@@ -56,9 +56,9 @@ const FACT_CATEGORIES: FactCategory[] = [
 ];
 
 const MODELS = [
-  { id: 'auto', label: 'ChatGPT Default (Auto Model)' },
-  { id: 'gpt-4o', label: 'GPT-4o (Most Capable)' },
-  { id: 'text-davinci-002-render-sha', label: 'GPT-3.5 Legacy' },
+  { id: 'auto', label: 'Balanced Stream (Auto Inference)' },
+  { id: 'gpt-4o', label: 'High-Precision Stream (Engine v4)' },
+  { id: 'text-davinci-002-render-sha', label: 'Deterministic Stream (Fast)' },
 ];
 
 // Realistic mock conversation for testing when not on a live Fiverr chat
@@ -1199,7 +1199,7 @@ export default function App() {
             ) : (
               <div className="warning-banner">
                 <div className="warning-text">
-                  Open a conversation on <strong>Fiverr Inbox</strong> to sync messages, or click <strong>Load Sample Conversation</strong> above to preview the assistant.
+                  Open a conversation on <strong>Fiverr Inbox</strong> to sync messages, or click <strong>Load Sample Conversation</strong> above to inspect the workspace ledger.
                 </div>
               </div>
             )}
@@ -1245,10 +1245,10 @@ export default function App() {
               )}
             </div>
 
-            {/* Smart Composer */}
+            {/* Response Composer */}
             <div className="card">
               <div className="card-header">
-                <span className="card-title">Smart Composer</span>
+                <span className="card-title">Response Composer</span>
                 <span className={`badge-pill ${authSession ? 'active' : 'missing'}`}>
                   {authSession ? 'Web Session Connected' : 'Local Directives'}
                 </span>
@@ -1297,14 +1297,14 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Direct Grab from ChatGPT Tab Button */}
+              {/* Direct Grab from Active Web Session Tab Button */}
               {authSession && (
                 <div style={{ marginBottom: '10px' }}>
                   <button
                     className="btn btn-secondary btn-full btn-sm"
                     onClick={handleFetchLatestChatGPTReply}
                     disabled={isFetchingFromTab}
-                    title="Pull the latest generated response from your open ChatGPT tab into this editor"
+                    title="Pull latest response stream from active web session into editor"
                   >
                     {isFetchingFromTab ? (
                       <>

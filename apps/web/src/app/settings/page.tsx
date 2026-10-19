@@ -260,7 +260,7 @@ export default function SettingsPage() {
               Global Seller Knowledge Base
             </h3>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Rules and guidelines configured here are referenced by smart reply composers.
+              Rules and guidelines configured here are referenced by the response composer engine.
             </p>
           </div>
         </div>

@@ -12,7 +12,6 @@ import {
   Filter,
   Shield,
   Layers,
-  Sparkles as _Sparkles, // avoid unused warning, we won't use sparkle
 } from 'lucide-react';
 
 interface MockClientThread {
@@ -182,7 +181,7 @@ export default function DashboardOverviewPage() {
         >
           <div className="flex items-center justify-between text-zinc-500">
             <span className="text-xs font-medium group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
-              Smart Proposals Compiled
+              Deterministic Proposals Compiled
             </span>
             <Layers className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors" />
           </div>
@@ -356,7 +355,7 @@ export default function DashboardOverviewPage() {
             </div>
 
             <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-              When clients mention new requirements that contradict previously confirmed terms (e.g. changing delivery from 7 days to 24 hours), the context engine automatically flags them as <span className="font-mono text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1 rounded">DISPUTED</span> so your smart composer never commits to impossible deadlines.
+              When clients mention new requirements that contradict previously confirmed terms (e.g. changing delivery from 7 days to 24 hours), the context engine automatically flags them as <span className="font-mono text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1 rounded">DISPUTED</span> so your response composer never commits to impossible deadlines.
             </p>
 
             <Link

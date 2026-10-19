@@ -13,7 +13,6 @@ import {
   ExternalLink,
   ChevronRight,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 
