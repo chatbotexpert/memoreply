@@ -1,0 +1,219 @@
+// ============================================================
+// Memoreply Cloud Backend — Database Architecture (PostgreSQL)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+// 1. Core User & Workspace Account
+// ------------------------------------------------------------
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  avatarUrl       String?
+  role            UserRole         @default(SELLER)
+  plan            SubscriptionPlan @default(FREE)
+  apiKey          String?          @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relationships
+  clients         Client[]
+  conversations   Conversation[]
+  sellerKnowledge SellerKnowledge?
+  syncLogs        SyncLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SELLER
+  AGENCY_ADMIN
+  TEAM_MEMBER
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+// ------------------------------------------------------------
+// 2. Client Profile Entity (Cross-Platform Memory)
+// ------------------------------------------------------------
+model Client {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform       PlatformType   @default(FIVERR)
+  platformUserId String         // e.g. wazeer1203
+  displayName    String         // e.g. Wazeer
+  avatarUrl      String?
+  notes          String?        @db.Text
+  totalMessages  Int            @default(0)
+  lastContactAt  DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relationships
+  conversations  Conversation[]
+  facts          ClientFact[]
+
+  @@unique([userId, platform, platformUserId])
+  @@index([userId, platform])
+  @@map("clients")
+}
+
+enum PlatformType {
+  FIVERR
+  UPWORK
+  LINKEDIN
+  DIRECT
+}
+
+// ------------------------------------------------------------
+// 3. Conversation Entity
+// ------------------------------------------------------------
+model Conversation {
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platform       PlatformType       @default(FIVERR)
+  conversationId String             // Platform specific thread ID
+  status         ConversationStatus @default(ACTIVE)
+  url            String?
+  lastMessageAt  DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  // Relationships
+  messages       Message[]
+
+  @@unique([userId, platform, conversationId])
+  @@index([clientId])
+  @@map("conversations")
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+  COMPLETED
+}
+
+// ------------------------------------------------------------
+// 4. Message Entity (Deduplicated Stream)
+// ------------------------------------------------------------
+model Message {
+  id                String       @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId         String       // Unique platform or deterministic hash
+  senderRole        SenderRole
+  senderName        String
+  text              String       @db.Text
+  timestamp         String       // Original platform timestamp string
+  sentAt            DateTime     @default(now())
+  deduplicationHash String
+
+  @@unique([conversationId, deduplicationHash])
+  @@index([conversationId, sentAt])
+  @@map("messages")
+}
+
+enum SenderRole {
+  CLIENT
+  SELLER
+  SYSTEM
+}
+
+// ------------------------------------------------------------
+// 5. Client Fact & Memory (Contradiction Flagging Support)
+// ------------------------------------------------------------
+model ClientFact {
+  id             String       @id @default(cuid())
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  category       FactCategory
+  fact           String       @db.Text
+  status         FactStatus   @default(PROPOSED)
+  conflictReason String?      @db.Text
+  source         FactSource   @default(EXTRACTED)
+  verifiedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([clientId, category])
+  @@index([clientId, status])
+  @@map("client_facts")
+}
+
+enum FactCategory {
+  BUDGET
+  TIMELINE
+  SCOPE
+  TECH_STACK
+  COMMUNICATION
+  PREFERENCE
+  OTHER
+}
+
+enum FactStatus {
+  PROPOSED
+  CONFIRMED
+  DISPUTED
+}
+
+enum FactSource {
+  EXTRACTED
+  MANUAL
+}
+
+// ------------------------------------------------------------
+// 6. Seller Knowledge Base & Business Guidelines
+// ------------------------------------------------------------
+model SellerKnowledge {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName       String   @default("HashTurn Digital")
+  roleTitle          String   @default("Senior Full-Stack Engineer & Extension Specialist")
+  professionalIntro  String?  @db.Text
+  servicesOffered    String[] // Array of strings (PostgreSQL native array)
+  coreSkills         String[]
+  pricingPolicy      String?  @db.Text
+  revisionPolicy     String?  @db.Text
+  communicationHours String?
+  customRules        String?  @db.Text
+  updatedAt          DateTime @updatedAt
+
+  @@map("seller_knowledge")
+}
+
+// ------------------------------------------------------------
+// 7. Sync Event Log (Extension to Cloud Audit)
+// ------------------------------------------------------------
+model SyncLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientIp       String?
+  userAgent      String?
+  syncedClients  Int      @default(0)
+  syncedMessages Int      @default(0)
+  syncedFacts    Int      @default(0)
+  status         String   @default("SUCCESS")
+  timestamp      DateTime @default(now())
+
+  @@index([userId, timestamp])
+  @@map("sync_logs")
+}
