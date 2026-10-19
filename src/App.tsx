@@ -231,16 +231,24 @@ export default function App() {
   const syncFromActiveTab = useCallback(async () => {
     setIsSyncing(true);
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.id || !tab.url) {
+      let targetTab: chrome.tabs.Tab | undefined;
+      const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (activeTab?.id && activeTab.url?.includes('fiverr.com')) {
+        targetTab = activeTab;
+      } else {
+        const fiverrTabs = await chrome.tabs.query({ url: '*://*.fiverr.com/*' });
+        targetTab = fiverrTabs.find((t) => t.active) || fiverrTabs[0] || activeTab;
+      }
+
+      if (!targetTab?.id || !targetTab.url) {
         setIsFiverrTab(false);
         setActiveTabUrl('');
         setIsSyncing(false);
         return;
       }
 
-      setActiveTabUrl(tab.url);
-      const isFiverr = tab.url.includes('fiverr.com');
+      setActiveTabUrl(targetTab.url);
+      const isFiverr = targetTab.url.includes('fiverr.com');
       setIsFiverrTab(isFiverr);
 
       if (!isFiverr) {
@@ -253,13 +261,13 @@ export default function App() {
 
       // Ping & Extract from active Fiverr tab
       chrome.tabs.sendMessage(
-        tab.id,
+        targetTab.id,
         { type: 'EXTRACT_CONVERSATION' },
         async (response) => {
           setIsSyncing(false);
           if (chrome.runtime.lastError) {
             console.warn('[Memoreply] Message error:', chrome.runtime.lastError.message);
-            showToast('Fiverr tab detected. Please reload the Fiverr page once to activate.', 'info');
+            showToast('Fiverr tab detected. Please reload (F5) the Fiverr page once to connect.', 'info');
             return;
           }
 
@@ -908,29 +916,105 @@ export default function App() {
     }
 
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.id) {
-        showToast('No active tab found.', 'error');
+      // 1. Locate the active Fiverr tab (handling side panel focus gracefully)
+      let targetTab: chrome.tabs.Tab | undefined;
+      const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (activeTab?.id && activeTab.url?.includes('fiverr.com')) {
+        targetTab = activeTab;
+      } else {
+        const fiverrTabs = await chrome.tabs.query({ url: '*://*.fiverr.com/*' });
+        targetTab = fiverrTabs.find((t) => t.active) || fiverrTabs[0] || activeTab;
+      }
+
+      if (!targetTab?.id) {
+        showToast('Please open the Fiverr conversation tab in your browser.', 'error');
         return;
       }
 
+      const targetTabId = targetTab.id;
+
+      // Direct DOM injection function (used as fallback via chrome.scripting)
+      const directInjectIntoComposer = (textToInsert: string): boolean => {
+        const composerSelectors = [
+          'textarea[placeholder*="message" i]',
+          'textarea[placeholder*="type" i]',
+          'textarea[placeholder*="reply" i]',
+          'textarea[name="message"]',
+          '[data-testid="chat-input"] textarea',
+          '[class*="chat-input"] textarea',
+          '[class*="composer"] textarea',
+          '[class*="message-box"] textarea',
+          '[role="textbox"][contenteditable="true"]',
+          '[contenteditable="true"]',
+          'textarea',
+        ];
+
+        let composer: HTMLElement | null = null;
+        for (const sel of composerSelectors) {
+          const el = document.querySelector<HTMLElement>(sel);
+          if (el && el.offsetParent !== null) {
+            composer = el;
+            break;
+          }
+        }
+
+        if (!composer) return false;
+
+        composer.focus();
+        if (composer instanceof HTMLTextAreaElement || composer instanceof HTMLInputElement) {
+          const nativeSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            'value'
+          )?.set;
+          if (nativeSetter) {
+            nativeSetter.call(composer, textToInsert);
+          } else {
+            composer.value = textToInsert;
+          }
+          composer.dispatchEvent(new Event('input', { bubbles: true }));
+          composer.dispatchEvent(new Event('change', { bubbles: true }));
+        } else if (composer.getAttribute('contenteditable') === 'true') {
+          document.execCommand('insertText', false, textToInsert);
+          composer.dispatchEvent(new InputEvent('input', { bubbles: true, data: textToInsert }));
+        }
+
+        composer.focus();
+        composer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return true;
+      };
+
+      // 2. Try sending message to content script first
       chrome.tabs.sendMessage(
-        tab.id,
+        targetTabId,
         {
           type: 'INSERT_DRAFT',
           payload: { text: draftText },
         },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            showToast('Please ensure you are on the Fiverr inbox tab.', 'error');
+        async (response) => {
+          if (chrome.runtime.lastError || !response?.success) {
+            // 3. Fallback: Direct DOM injection via chrome.scripting
+            try {
+              if (chrome.scripting?.executeScript) {
+                const results = await chrome.scripting.executeScript({
+                  target: { tabId: targetTabId },
+                  func: directInjectIntoComposer,
+                  args: [draftText],
+                });
+
+                if (results?.[0]?.result) {
+                  showToast('Draft inserted into Fiverr composer! Review and send.', 'success');
+                  return;
+                }
+              }
+            } catch (injectionErr) {
+              console.warn('[Memoreply] Scripting injection error:', injectionErr);
+            }
+
+            showToast('Please refresh (F5) the Fiverr page once to connect.', 'error');
             return;
           }
 
-          if (response?.success) {
-            showToast('Draft inserted into message composer. Review before sending.', 'success');
-          } else {
-            showToast(response?.error ?? 'Failed to insert draft into composer.', 'error');
-          }
+          showToast('Draft inserted into Fiverr composer! Review and send.', 'success');
         }
       );
     } catch (err) {
