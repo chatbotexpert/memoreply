@@ -24,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Overview', href: '/', icon: LayoutDashboard },
   { label: 'Clients', href: '/clients', icon: Users, count: 124 },
   { label: 'Conversations', href: '/conversations', icon: MessageSquare, count: 382 },
-  { label: 'Context Vault', href: '/memory', icon: Database, count: 1420 },
+  { label: 'Context Vault', href: '/context-vault', icon: Database, count: 1420 },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
