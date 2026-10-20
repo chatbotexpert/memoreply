@@ -330,15 +330,19 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
 
   // 1. In-Memory merge for immediate zero-latency reactive rendering
   if (clientData) {
+    const rawUsername = String(clientData.platformUserId || clientData.username || clientData.id || 'client');
+    const rawPlatform = String(clientData.platform || 'Fiverr');
+    const platform = (rawPlatform.charAt(0).toUpperCase() + rawPlatform.slice(1).toLowerCase()) as 'Fiverr' | 'Upwork' | 'LinkedIn';
+    const displayName = clientData.displayName || rawUsername;
+
     const existingIndex = (globalStore.__memoreply_clients || []).findIndex(
-      (c) => c.username.toLowerCase() === clientData.platformUserId.toLowerCase()
+      (c) => c.username.toLowerCase() === rawUsername.toLowerCase()
     );
 
-    const platform = (clientData.platform || 'Fiverr') as 'Fiverr' | 'Upwork' | 'LinkedIn';
     const formattedClient: LiveClient = {
-      id: clientData.id || `client_${clientData.platformUserId}`,
-      name: clientData.displayName || clientData.platformUserId,
-      username: clientData.platformUserId,
+      id: clientData.id || `client_${rawUsername}`,
+      name: displayName,
+      username: rawUsername,
       platform,
       totalMessages: convData?.messages?.length || 1,
       lastContact: 'Just now',
@@ -361,23 +365,27 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
   }
 
   if (convData && clientData) {
-    const platform = (convData.platform || clientData.platform || 'Fiverr') as 'Fiverr' | 'Upwork' | 'LinkedIn';
+    const rawUsername = String(clientData.platformUserId || clientData.username || clientData.id || 'client');
+    const rawPlatform = String(convData.platform || clientData.platform || 'Fiverr');
+    const platform = (rawPlatform.charAt(0).toUpperCase() + rawPlatform.slice(1).toLowerCase()) as 'Fiverr' | 'Upwork' | 'LinkedIn';
+    const displayName = clientData.displayName || rawUsername;
+
     const formattedMessages: LiveThreadMessage[] = (convData.messages || []).map((m: any) => ({
       id: m.messageId || `msg_${Date.now()}_${Math.random()}`,
       sender: m.senderRole === 'seller' ? 'seller' : 'client',
-      senderName: m.senderName || clientData.displayName,
+      senderName: m.senderName || displayName,
       text: m.text,
       timestamp: m.timestamp || 'Just now',
     }));
 
     const existingConvIndex = (globalStore.__memoreply_conversations || []).findIndex(
-      (c) => c.username.toLowerCase() === clientData.platformUserId.toLowerCase()
+      (c) => c.username.toLowerCase() === rawUsername.toLowerCase()
     );
 
     const formattedConv: LiveConversation = {
-      id: convData.conversationId || `conv_${clientData.platformUserId}`,
-      clientName: clientData.displayName || clientData.platformUserId,
-      username: clientData.platformUserId,
+      id: convData.conversationId || `conv_${rawUsername}`,
+      clientName: displayName,
+      username: rawUsername,
       platform,
       status: 'Active',
       lastUpdated: 'Just now',
@@ -393,16 +401,21 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
   }
 
   if (Array.isArray(factsData) && clientData) {
+    const rawUsername = String(clientData.platformUserId || clientData.username || clientData.id || 'client');
+    const displayName = clientData.displayName || rawUsername;
+    const rawPlatform = String(clientData.platform || 'Fiverr');
+    const platform = rawPlatform.charAt(0).toUpperCase() + rawPlatform.slice(1).toLowerCase();
+
     factsData.forEach((f: any) => {
       const liveFact: LiveFact = {
         id: `f_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        clientName: clientData.displayName || clientData.platformUserId,
-        username: clientData.platformUserId,
+        clientName: displayName,
+        username: rawUsername,
         category: (f.category?.charAt(0).toUpperCase() + f.category?.slice(1)) || 'Tech',
         fact: f.fact,
         status: f.status || 'proposed',
         conflictReason: f.conflictReason,
-        source: `${clientData.platform || 'Fiverr'} Chat` as any,
+        source: `${platform} Chat` as any,
         extractedAt: 'Just now',
       };
 
@@ -427,23 +440,27 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
 
       let clientRecord: any = null;
       if (clientData) {
+        const rawUsername = String(clientData.platformUserId || clientData.username || clientData.id || 'client');
+        const rawPlatform = String(clientData.platform || 'FIVERR').toUpperCase();
+        const displayName = clientData.displayName || rawUsername;
+
         clientRecord = await (prisma as any).client.upsert({
           where: {
             userId_platform_platformUserId: {
               userId: defaultUser.id,
-              platform: clientData.platform.toUpperCase(),
-              platformUserId: clientData.platformUserId,
+              platform: rawPlatform,
+              platformUserId: rawUsername,
             },
           },
           update: {
-            displayName: clientData.displayName,
+            displayName,
             lastContactAt: new Date(),
           },
           create: {
             userId: defaultUser.id,
-            platform: clientData.platform.toUpperCase(),
-            platformUserId: clientData.platformUserId,
-            displayName: clientData.displayName,
+            platform: rawPlatform,
+            platformUserId: rawUsername,
+            displayName,
             notes: clientData.notes,
           },
         });
