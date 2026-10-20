@@ -231,13 +231,23 @@ export default function App() {
   const syncFromActiveTab = useCallback(async () => {
     setIsSyncing(true);
     try {
-      let targetTab: chrome.tabs.Tab | undefined;
-      const allTabs = await chrome.tabs.query({});
-      targetTab = allTabs.find((t) => {
-        if (!t.url) return false;
-        const u = t.url.toLowerCase();
+      // 1. Prioritize active tab in last focused window
+      const [focusedTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      let targetTab: chrome.tabs.Tab | undefined = focusedTab;
+
+      const isMarketplaceUrl = (url?: string) => {
+        if (!url) return false;
+        const u = url.toLowerCase();
         return u.includes('fiverr.com') || u.includes('upwork.com') || u.includes('linkedin.com');
-      }) || (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+      };
+
+      if (!isMarketplaceUrl(targetTab?.url)) {
+        const allTabs = await chrome.tabs.query({});
+        const marketplaceTab = allTabs.find((t) => isMarketplaceUrl(t.url));
+        if (marketplaceTab) {
+          targetTab = marketplaceTab;
+        }
+      }
 
       if (!targetTab?.id || !targetTab.url) {
         setActivePlatform('unknown');
@@ -805,12 +815,20 @@ export default function App() {
     }
 
     try {
-      const allTabs = await chrome.tabs.query({});
-      const targetTab = allTabs.find((t) => {
-        if (!t.url) return false;
-        const u = t.url.toLowerCase();
+      // 1. Prioritize active tab in last focused window
+      const [focusedTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      let targetTab: chrome.tabs.Tab | undefined = focusedTab;
+
+      const isMarketplaceUrl = (url?: string) => {
+        if (!url) return false;
+        const u = url.toLowerCase();
         return u.includes('fiverr.com') || u.includes('upwork.com') || u.includes('linkedin.com');
-      });
+      };
+
+      if (!isMarketplaceUrl(targetTab?.url)) {
+        const allTabs = await chrome.tabs.query({});
+        targetTab = allTabs.find((t) => isMarketplaceUrl(t.url));
+      }
 
       if (!targetTab?.id) {
         showToast('Open a conversation on Fiverr, Upwork, or LinkedIn to insert this draft.', 'error');
@@ -818,6 +836,11 @@ export default function App() {
       }
 
       const targetTabId = targetTab.id;
+      const targetPlatformName = targetTab.url?.includes('upwork.com')
+        ? 'Upwork'
+        : targetTab.url?.includes('linkedin.com')
+        ? 'LinkedIn'
+        : 'Fiverr';
 
       // Direct DOM injection function (used as fallback via chrome.scripting)
       const directInjectIntoComposer = (textToInsert: string): boolean => {
@@ -888,7 +911,7 @@ export default function App() {
                 });
 
                 if (results?.[0]?.result) {
-                  showToast('Draft inserted into Fiverr composer! Review and send.', 'success');
+                  showToast(`Draft inserted into ${targetPlatformName} composer! Review and send.`, 'success');
                   return;
                 }
               }
@@ -896,11 +919,11 @@ export default function App() {
               console.warn('[Memoreply] Scripting injection error:', injectionErr);
             }
 
-            showToast('Please refresh (F5) the Fiverr page once to connect.', 'error');
+            showToast(`Please refresh (F5) the ${targetPlatformName} page once to connect.`, 'error');
             return;
           }
 
-          showToast('Draft inserted into Fiverr composer! Review and send.', 'success');
+          showToast(`Draft inserted into ${targetPlatformName} composer! Review and send.`, 'success');
         }
       );
     } catch (err) {
@@ -1076,7 +1099,7 @@ export default function App() {
             ) : (
               <div className="warning-banner">
                 <div className="warning-text">
-                  Open a conversation on <strong>Fiverr Inbox</strong> to sync messages, or click <strong>Load Sample Conversation</strong> above to inspect the workspace ledger.
+                  Open a conversation on <strong>Fiverr</strong>, <strong>Upwork</strong>, or <strong>LinkedIn</strong> to sync messages, or click <strong>Load Sample Thread</strong> above to inspect the workspace ledger.
                 </div>
               </div>
             )}
@@ -1116,7 +1139,7 @@ export default function App() {
                   </div>
                   <div className="empty-state-title">No conversation synced</div>
                   <div className="empty-state-desc">
-                    Click "Refresh" when an active Fiverr conversation is visible.
+                    Click "Refresh" when an active Fiverr, Upwork, or LinkedIn conversation is open.
                   </div>
                 </div>
               )}

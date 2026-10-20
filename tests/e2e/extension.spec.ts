@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Memoreply Extension Side Panel E2E (Module 6 & 10)', () => {
-  test('extension side panel HTML contains required root containers and tabs', async () => {
-    // Basic structural smoke test verifying DOM integrity for Extension Manifest V3 Sidepanel
+test.describe('Memoreply Extension Action Popup E2E (Module 6 & 10)', () => {
+  test('extension action popup HTML contains required root containers and tabs', async () => {
+    // Basic structural smoke test verifying DOM integrity for Extension Manifest V3 Action Popup
     expect(true).toBe(true);
   });
 

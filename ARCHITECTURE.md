@@ -21,7 +21,7 @@ graph TD
         SW["Chrome Extension Lifecycle & Message Router"]
     end
 
-    subgraph SidePanel ["Extension Side Panel (src/App.tsx)"]
+    subgraph ActionPopup ["Extension Action Popup (src/App.tsx)"]
         UI["React 19 + TypeScript UI"]
         CA["Context Assembler (src/ai/contextAssembler.ts)"]
         AI["OpenAI Provider (src/ai/openai.ts)"]

@@ -45,7 +45,7 @@ At HashTurn, your privacy, data security, and client confidentiality are our hig
 
 ## 4. Permissions & Compliance
 
-- `sidePanel`: Used to display the assistant interface alongside your messaging tabs.
+- `action`: Used to display the assistant interface in a compact popup window when clicking the toolbar icon.
 - `storage`: Used to persist local extension settings, theme preference, and session tokens securely in `chrome.storage.local`.
 - `scripting` & `tabs`: Used to detect active message threads and insert approved draft text into message composers.
 - `host_permissions`: Limited strictly to authorized messaging platforms (`*.fiverr.com`) and ChatGPT web backend services (`*.chatgpt.com`, `*.openai.com`).
