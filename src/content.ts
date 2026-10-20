@@ -19,6 +19,16 @@ import { getAdapterForUrl } from './adapters';
 console.log('[Memoreply] Multi-platform content script initialized on:', window.location.href);
 
 /**
+ * Check if current page matches any supported platform conversation room (Fiverr, Upwork, LinkedIn)
+ */
+function isConversationPage(): boolean {
+  const url = window.location.href;
+  const adapter = getAdapterForUrl(url);
+  if (adapter) return true;
+  return isFiverrInboxPage();
+}
+
+/**
  * Check if the current page is a Fiverr conversation or inbox page.
  */
 function isFiverrInboxPage(): boolean {
@@ -36,6 +46,11 @@ function isFiverrInboxPage(): boolean {
  */
 function extractConversationId(): string | null {
   const url = window.location.href;
+  const adapter = getAdapterForUrl(url);
+  if (adapter) {
+    const id = adapter.extractConversationId();
+    if (id) return id;
+  }
 
   // Patterns: /inbox/username or /inbox/conversationId
   const inboxMatch = url.match(/fiverr\.com\/inbox\/([^/?#]+)/i);
@@ -404,11 +419,12 @@ chrome.runtime.onMessage.addListener(
   ) => {
     switch (message.type) {
       case 'PING': {
+        const adapter = getAdapterForUrl(window.location.href);
         sendResponse({
           success: true,
           data: {
-            platform: 'fiverr',
-            isInbox: isFiverrInboxPage(),
+            platform: adapter ? adapter.platform : 'fiverr',
+            isInbox: isConversationPage(),
             url: window.location.href,
           },
         });
@@ -455,7 +471,7 @@ chrome.runtime.onMessage.addListener(
 let lastSyncSignature = '';
 
 function checkAndBroadcastConversation(): void {
-  if (!isFiverrInboxPage()) return;
+  if (!isConversationPage()) return;
 
   try {
     const data = extractCurrentConversation();
@@ -464,7 +480,7 @@ function checkAndBroadcastConversation(): void {
     if (signature !== lastSyncSignature && data.messages.length > 0) {
       lastSyncSignature = signature;
       console.log(
-        `[Memoreply] Auto-detected ${data.messages.length} messages for ${data.clientDisplayName ?? 'Client'}.`
+        `[Memoreply] Auto-detected ${data.messages.length} messages for ${data.clientDisplayName ?? 'Client'} (${data.platform}).`
       );
 
       // 1. Save directly into chrome.storage.local
@@ -495,7 +511,7 @@ setTimeout(checkAndBroadcastConversation, 2400);
 // 2. Continuous DOM observer for new incoming/outgoing messages
 let debounceTimer: number | null = null;
 const observer = new MutationObserver(() => {
-  if (!isFiverrInboxPage()) return;
+  if (!isConversationPage()) return;
   if (debounceTimer) window.clearTimeout(debounceTimer);
   debounceTimer = window.setTimeout(checkAndBroadcastConversation, 800);
 });

@@ -415,11 +415,22 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
   // 2. PostgreSQL Prisma persistence (safely executed if database is connected)
   try {
     if (process.env.DATABASE_URL && prisma) {
-      // Upsert client into Prisma PostgreSQL
+      const defaultUser = await (prisma as any).user.upsert({
+        where: { email: 'owner@memoreply.local' },
+        update: {},
+        create: {
+          email: 'owner@memoreply.local',
+          name: 'Workspace Owner',
+          apiKey: payload?.apiKey || 'memo_live_9f82d1b68536c045968186fcb699',
+        },
+      });
+
+      let clientRecord: any = null;
       if (clientData) {
-        await (prisma as any).client.upsert({
+        clientRecord = await (prisma as any).client.upsert({
           where: {
-            platform_platformUserId: {
+            userId_platform_platformUserId: {
+              userId: defaultUser.id,
               platform: clientData.platform.toUpperCase(),
               platformUserId: clientData.platformUserId,
             },
@@ -429,12 +440,79 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
             lastContactAt: new Date(),
           },
           create: {
+            userId: defaultUser.id,
             platform: clientData.platform.toUpperCase(),
             platformUserId: clientData.platformUserId,
             displayName: clientData.displayName,
             notes: clientData.notes,
           },
         });
+      }
+
+      if (convData && clientRecord) {
+        const convRecord = await (prisma as any).conversation.upsert({
+          where: {
+            userId_platform_conversationId: {
+              userId: defaultUser.id,
+              platform: clientData.platform.toUpperCase(),
+              conversationId: convData.conversationId || clientData.platformUserId,
+            },
+          },
+          update: {
+            lastMessageAt: new Date(),
+            url: convData.url,
+          },
+          create: {
+            userId: defaultUser.id,
+            clientId: clientRecord.id,
+            platform: clientData.platform.toUpperCase(),
+            conversationId: convData.conversationId || clientData.platformUserId,
+            url: convData.url,
+          },
+        });
+
+        if (Array.isArray(convData.messages)) {
+          for (const msg of convData.messages) {
+            const hash = msg.messageId || `${msg.senderRole}_${msg.text.slice(0, 32)}`;
+            await (prisma as any).message.upsert({
+              where: {
+                conversationId_deduplicationHash: {
+                  conversationId: convRecord.id,
+                  deduplicationHash: hash,
+                },
+              },
+              update: {},
+              create: {
+                conversationId: convRecord.id,
+                messageId: msg.messageId || `msg_${Date.now()}`,
+                senderRole: msg.senderRole === 'seller' ? 'SELLER' : 'CLIENT',
+                senderName: msg.senderName || clientData.displayName,
+                text: msg.text,
+                timestamp: msg.timestamp || new Date().toISOString(),
+                deduplicationHash: hash,
+              },
+            });
+          }
+        }
+      }
+
+      if (Array.isArray(factsData) && clientRecord) {
+        for (const f of factsData) {
+          const cat = f.category?.toUpperCase() || 'OTHER';
+          const validCats = ['BUDGET', 'TIMELINE', 'SCOPE', 'TECH_STACK', 'COMMUNICATION', 'PREFERENCE'];
+          const category = validCats.includes(cat) ? cat : 'OTHER';
+
+          await (prisma as any).clientFact.create({
+            data: {
+              clientId: clientRecord.id,
+              category,
+              fact: f.fact,
+              status: f.status === 'confirmed' ? 'CONFIRMED' : 'PROPOSED',
+              conflictReason: f.conflictReason,
+              source: 'EXTRACTED',
+            },
+          });
+        }
       }
     }
   } catch (dbErr) {
@@ -467,15 +545,90 @@ export async function fetchLiveClients(): Promise<LiveClient[]> {
         }));
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[Memoreply Data Service] Prisma clients fetch fallback:', err);
+  }
 
   return globalStore.__memoreply_clients || [];
 }
 
 export async function fetchLiveConversations(): Promise<LiveConversation[]> {
+  try {
+    if (process.env.DATABASE_URL && prisma) {
+      const dbConvs = await (prisma as any).conversation.findMany({
+        take: 50,
+        orderBy: { lastMessageAt: 'desc' },
+        include: {
+          client: true,
+          messages: {
+            take: 100,
+            orderBy: { sentAt: 'asc' },
+          },
+        },
+      });
+
+      if (dbConvs && dbConvs.length > 0) {
+        return dbConvs.map((c: any) => ({
+          id: c.id,
+          clientName: c.client?.displayName || c.clientId,
+          username: c.client?.platformUserId || c.clientId,
+          platform: (c.platform.charAt(0) + c.platform.slice(1).toLowerCase()) as any,
+          status: 'Active',
+          lastUpdated: new Date(c.lastMessageAt || c.updatedAt).toLocaleDateString(),
+          messagesCount: c.messages?.length || 0,
+          messages: (c.messages || []).map((m: any) => ({
+            id: m.id,
+            sender: m.senderRole === 'SELLER' ? 'seller' : 'client',
+            senderName: m.senderName || (m.senderRole === 'SELLER' ? 'Me' : c.client?.displayName || 'Client'),
+            text: m.text,
+            timestamp: m.timestamp || new Date(m.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          })),
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('[Memoreply Data Service] Prisma conversations fetch fallback:', err);
+  }
+
   return globalStore.__memoreply_conversations || [];
 }
 
 export async function fetchLiveVaultFacts(): Promise<LiveFact[]> {
+  try {
+    if (process.env.DATABASE_URL && prisma) {
+      const dbFacts = await (prisma as any).clientFact.findMany({
+        take: 100,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          client: true,
+        },
+      });
+
+      if (dbFacts && dbFacts.length > 0) {
+        return dbFacts.map((f: any) => {
+          let category: any = 'Tech';
+          if (f.category === 'BUDGET') category = 'Budget';
+          else if (f.category === 'TIMELINE') category = 'Timeline';
+          else if (f.category === 'SCOPE') category = 'Scope';
+          else if (f.category === 'COMMUNICATION') category = 'Communication';
+
+          return {
+            id: f.id,
+            clientName: f.client?.displayName || 'Client',
+            username: f.client?.platformUserId || 'user',
+            category,
+            fact: f.fact,
+            status: f.status.toLowerCase() as any,
+            conflictReason: f.conflictReason,
+            source: `${f.client?.platform ? (f.client.platform.charAt(0) + f.client.platform.slice(1).toLowerCase()) : 'Fiverr'} Chat` as any,
+            extractedAt: new Date(f.updatedAt).toLocaleDateString(),
+          };
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[Memoreply Data Service] Prisma facts fetch fallback:', err);
+  }
+
   return globalStore.__memoreply_facts || [];
 }

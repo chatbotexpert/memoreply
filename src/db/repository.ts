@@ -89,21 +89,26 @@ export async function saveExtractedConversation(conversationData: ConversationDa
   factsCount: number;
 }> {
   const now = new Date().toISOString();
+  const rawPlatform = conversationData.platform || 'fiverr';
+  const platform = (['fiverr', 'upwork', 'linkedin'].includes(rawPlatform.toLowerCase())
+    ? rawPlatform.toLowerCase()
+    : 'fiverr') as 'fiverr' | 'upwork' | 'linkedin';
+
   const username = conversationData.clientUsername ?? conversationData.conversationId ?? 'anonymous_client';
-  const clientId = `fiverr_${username}`;
-  const conversationId = `conv_fiverr_${conversationData.conversationId ?? username}`;
+  const clientId = `${platform}_${username}`;
+  const conversationId = `conv_${platform}_${conversationData.conversationId ?? username}`;
 
   // 1. Find or create Client
   let client = await db.clients.get(clientId);
   if (!client) {
     client = {
       id: clientId,
-      platform: 'fiverr',
+      platform,
       platformUserId: username,
       displayName: conversationData.clientDisplayName ?? username,
       avatarUrl: conversationData.clientAvatarUrl ?? null,
       notes: '',
-      tags: ['Fiverr Buyer'],
+      tags: [`${platform.charAt(0).toUpperCase() + platform.slice(1)} Client`],
       createdAt: now,
       updatedAt: now,
       lastContactAt: now,
@@ -128,7 +133,7 @@ export async function saveExtractedConversation(conversationData: ConversationDa
     conversation = {
       id: conversationId,
       clientId,
-      platform: 'fiverr',
+      platform,
       platformConversationId: conversationData.conversationId ?? username,
       url: conversationData.url,
       lastMessageAt: now,
