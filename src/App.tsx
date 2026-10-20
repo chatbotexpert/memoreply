@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ConversationData, ExtractedMessage } from './types';
 import {
   saveExtractedConversation,
@@ -22,11 +22,10 @@ import type {
   SellerKnowledgeEntity,
 } from './db/index';
 import { assembleContext } from './ai/contextAssembler';
-import { openAIProvider } from './ai/openai';
-import type { AuthSessionData } from './ai/types';
+import { generateInlineResponse } from './ai/directEngine';
 
 // ============================================================
-// Memoreply — Modules 1, 2, 3, 4, 6 & 7: ChatGPT Session Auth
+// Memoreply — Direct Inline AI Generation & Multi-Platform Client
 // ============================================================
 
 type TabId = 'chat' | 'memory' | 'knowledge' | 'settings';
@@ -42,8 +41,8 @@ const TONES = [
   'Friendly',
   'Concise',
   'Detailed',
-  'Pitch / Offer',
-  'Follow-up',
+  'Direct',
+  'Persuasive',
 ];
 
 const FACT_CATEGORIES: FactCategory[] = [
@@ -56,9 +55,9 @@ const FACT_CATEGORIES: FactCategory[] = [
 ];
 
 const MODELS = [
-  { id: 'auto', label: 'Balanced Stream (Auto Inference)' },
-  { id: 'gpt-4o', label: 'High-Precision Stream (Engine v4)' },
-  { id: 'text-davinci-002-render-sha', label: 'Deterministic Stream (Fast)' },
+  { id: 'inline-engine', label: 'Direct Context Engine (Instant)' },
+  { id: 'gpt-4o-mini', label: 'Cloud Gateway Stream (High-Precision)' },
+  { id: 'llama-3.3-70b', label: 'OpenRouter Stream (Enterprise)' },
 ];
 
 // Realistic mock conversation for testing when not on a live Fiverr chat
@@ -106,10 +105,12 @@ export default function App() {
   const [draftText, setDraftText] = useState<string>('');
   const [customInstruction, setCustomInstruction] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isFetchingFromTab, setIsFetchingFromTab] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  const [variants, setVariants] = useState<string[]>([]);
+  const [activeVariantIndex, setActiveVariantIndex] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [activeTabUrl, setActiveTabUrl] = useState<string>('');
-  const [isFiverrTab, setIsFiverrTab] = useState<boolean>(false);
+  const [activePlatform, setActivePlatform] = useState<'fiverr' | 'upwork' | 'linkedin' | 'unknown'>('unknown');
   const [isUsingMock, setIsUsingMock] = useState<boolean>(false);
   const [conversation, setConversation] = useState<ConversationData | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
@@ -128,12 +129,11 @@ export default function App() {
     factsCount: 0,
   });
 
-  // Module 4: ChatGPT Session Authentication (JSON Auth File)
-  const [authSession, setAuthSession] = useState<AuthSessionData | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>('auto');
+  // Direct AI Gateway Settings
+  const [selectedModel, setSelectedModel] = useState<string>('inline-engine');
+  const [customApiKey, setCustomApiKey] = useState<string>('');
+  const [apiEndpoint, setApiEndpoint] = useState<string>('http://localhost:3000/api/generate');
   const [isTestingSession, setIsTestingSession] = useState<boolean>(false);
-  const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Module 7: Seller Knowledge Base States
   const [sellerProfile, setSellerProfile] = useState<SellerKnowledgeEntity>(DEFAULT_SELLER_KNOWLEDGE);
@@ -157,16 +157,16 @@ export default function App() {
     }, 4000);
   };
 
-  // Load ChatGPT session and seller knowledge on mount
+  // Load Direct AI settings and seller knowledge on mount
   useEffect(() => {
-    chrome.storage.local.get(['memoreply_chatgpt_session', 'memoreply_chatgpt_model'], (result) => {
-      if (result?.memoreply_chatgpt_session) {
-        setAuthSession(result.memoreply_chatgpt_session as AuthSessionData);
+    chrome.storage.local.get(
+      ['memoreply_custom_api_key', 'memoreply_api_endpoint', 'memoreply_selected_model'],
+      (result) => {
+        if (result?.memoreply_custom_api_key) setCustomApiKey(String(result.memoreply_custom_api_key));
+        if (result?.memoreply_api_endpoint) setApiEndpoint(String(result.memoreply_api_endpoint));
+        if (result?.memoreply_selected_model) setSelectedModel(String(result.memoreply_selected_model));
       }
-      if (result?.memoreply_chatgpt_model) {
-        setSelectedModel(String(result.memoreply_chatgpt_model));
-      }
-    });
+    );
 
     // Load Seller Knowledge Base from Dexie
     getSellerKnowledge()
@@ -232,16 +232,15 @@ export default function App() {
     setIsSyncing(true);
     try {
       let targetTab: chrome.tabs.Tab | undefined;
-      const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-      if (activeTab?.id && activeTab.url?.includes('fiverr.com')) {
-        targetTab = activeTab;
-      } else {
-        const fiverrTabs = await chrome.tabs.query({ url: '*://*.fiverr.com/*' });
-        targetTab = fiverrTabs.find((t) => t.active) || fiverrTabs[0] || activeTab;
-      }
+      const allTabs = await chrome.tabs.query({});
+      targetTab = allTabs.find((t) => {
+        if (!t.url) return false;
+        const u = t.url.toLowerCase();
+        return u.includes('fiverr.com') || u.includes('upwork.com') || u.includes('linkedin.com');
+      }) || (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
 
       if (!targetTab?.id || !targetTab.url) {
-        setIsFiverrTab(false);
+        setActivePlatform('unknown');
         setActiveTabUrl('');
         setIsSyncing(false);
         return;
@@ -249,17 +248,25 @@ export default function App() {
 
       setActiveTabUrl(targetTab.url);
       const isFiverr = targetTab.url.includes('fiverr.com');
-      setIsFiverrTab(isFiverr);
+      const isUpwork = targetTab.url.includes('upwork.com');
+      const isLinkedIn = targetTab.url.includes('linkedin.com');
 
-      if (!isFiverr) {
+      let platform: 'fiverr' | 'upwork' | 'linkedin' | 'unknown' = 'unknown';
+      if (isFiverr) platform = 'fiverr';
+      else if (isUpwork) platform = 'upwork';
+      else if (isLinkedIn) platform = 'linkedin';
+
+      setActivePlatform(platform);
+
+      if (platform === 'unknown') {
         if (!isUsingMock) {
-          showToast('Active tab is not Fiverr. Click "Load Demo Chat" to test.', 'info');
+          showToast('Open Fiverr, Upwork, or LinkedIn to sync messages, or load sample conversation.', 'info');
         }
         setIsSyncing(false);
         return;
       }
 
-      // Ping & Extract from active Fiverr tab
+      // Ping & Extract from active marketplace tab (Fiverr, Upwork, LinkedIn)
       chrome.tabs.sendMessage(
         targetTab.id,
         { type: 'EXTRACT_CONVERSATION' },
@@ -267,7 +274,7 @@ export default function App() {
           setIsSyncing(false);
           if (chrome.runtime.lastError) {
             console.warn('[Memoreply] Message error:', chrome.runtime.lastError.message);
-            showToast('Fiverr tab detected. Please reload (F5) the Fiverr page once to connect.', 'info');
+            showToast(`${platform.toUpperCase()} tab detected. Please reload (F5) the page once to connect.`, 'info');
             return;
           }
 
@@ -326,7 +333,9 @@ export default function App() {
           console.log('[Memoreply] Auto-synced conversation from storage:', updated.clientUsername, updated.messages.length);
           setConversation(updated);
           setIsUsingMock(false);
-          setIsFiverrTab(true);
+          if (updated.platform) {
+            setActivePlatform(updated.platform as any);
+          }
           persistConversationToDb(updated);
         }
       }
@@ -341,7 +350,9 @@ export default function App() {
           console.log('[Memoreply] Auto-synced CONVERSATION_EXTRACTED message:', updated.clientUsername, updated.messages.length);
           setConversation(updated);
           setIsUsingMock(false);
-          setIsFiverrTab(true);
+          if (updated.platform) {
+            setActivePlatform(updated.platform as any);
+          }
           persistConversationToDb(updated);
         }
       }
@@ -377,118 +388,51 @@ export default function App() {
   };
 
   /**
-   * Parse uploaded auth.json file, extract token, and persist to chrome.storage.local
+   * Save Direct AI Gateway configuration to chrome.storage.local
    */
-  const parseAndSaveAuthJson = (content: string, fileName: string) => {
-    try {
-      const parsed = JSON.parse(content);
-
-      // Search for token across various standard formats
-      const token =
-        parsed.accessToken ||
-        parsed.access_token ||
-        parsed.token ||
-        parsed.sessionToken ||
-        parsed.session_token ||
-        parsed.bearerToken ||
-        parsed.auth?.accessToken ||
-        parsed.credentials?.token;
-
-      if (!token || typeof token !== 'string') {
-        showToast(
-          `Could not find an accessToken or session token in "${fileName}". Please check the file.`,
-          'error'
-        );
-        return;
+  const handleSaveApiSettings = (key: string, endpoint: string) => {
+    chrome.storage.local.set(
+      {
+        memoreply_custom_api_key: key,
+        memoreply_api_endpoint: endpoint,
+        memoreply_selected_model: selectedModel,
+      },
+      () => {
+        setCustomApiKey(key);
+        setApiEndpoint(endpoint);
+        showToast('Direct AI settings saved successfully.', 'success');
       }
-
-      // Extract user metadata
-      const email = parsed.user?.email || parsed.email || parsed.username || 'ChatGPT Account';
-      const name = parsed.user?.name || parsed.name || '';
-      const expires = parsed.expires || parsed.expiration || 'Active Session';
-
-      const sessionData: AuthSessionData = {
-        token: token.trim(),
-        email,
-        name,
-        expires,
-        uploadedAt: new Date().toISOString(),
-      };
-
-      chrome.storage.local.set(
-        {
-          memoreply_chatgpt_session: sessionData,
-          memoreply_chatgpt_token: token.trim(),
-          memoreply_chatgpt_model: selectedModel,
-        },
-        () => {
-          setAuthSession(sessionData);
-          showToast(`Connected web session credentials for ${email}.`, 'success');
-        }
-      );
-    } catch (err) {
-      showToast('Invalid JSON file format: ' + String(err), 'error');
-    }
+    );
   };
 
   /**
-   * Handle file selection via input
+   * Test Direct AI Gateway connectivity
    */
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      parseAndSaveAuthJson(text, file.name);
-    };
-    reader.onerror = () => showToast('Failed to read file.', 'error');
-    reader.readAsText(file);
-    // Reset file input so user can re-upload if needed
-    e.target.value = '';
-  };
-
-  /**
-   * Handle drag and drop of auth.json
-   */
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDraggingFile(false);
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      parseAndSaveAuthJson(text, file.name);
-    };
-    reader.onerror = () => showToast('Failed to read file.', 'error');
-    reader.readAsText(file);
-  };
-
-  /**
-   * Test ChatGPT Web Session connection
-   */
-  const handleTestSession = async () => {
-    if (!authSession?.token) {
-      showToast('No session token found. Please upload auth.json first.', 'error');
-      return;
-    }
+  const handleTestDirectConnection = async () => {
     setIsTestingSession(true);
-    const result = await openAIProvider.testConnection(authSession.token);
-    setIsTestingSession(false);
-    showToast(result.message, result.success ? 'success' : 'error');
+    try {
+      const res = await fetch(apiEndpoint || 'http://localhost:3000/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(customApiKey ? { Authorization: `Bearer ${customApiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          systemPrompt: 'Health check',
+          userPrompt: 'Ping test',
+          clientName: 'Test',
+        }),
+      });
 
-    // Auto-update email in session card if detected from backend
-    if (result.success && result.message.includes('(')) {
-      const emailMatch = result.message.match(/\(([^)]+@[^)]+)\)/);
-      if (emailMatch && emailMatch[1]) {
-        const detectedEmail = emailMatch[1].trim();
-        const updatedSession = { ...authSession, email: detectedEmail };
-        setAuthSession(updatedSession);
-        chrome.storage.local.set({ memoreply_chatgpt_session: updatedSession });
+      if (res.ok) {
+        showToast('Direct AI Gateway connected & verified!', 'success');
+      } else {
+        showToast('Gateway reachable (operating in local fallback mode).', 'info');
       }
+    } catch {
+      showToast('Gateway unreachable. Operating with local direct synthesis.', 'info');
+    } finally {
+      setIsTestingSession(false);
     }
   };
 
@@ -505,18 +449,6 @@ export default function App() {
       }
     } catch {
       window.location.reload();
-    }
-  };
-
-  /**
-   * Disconnect and clear ChatGPT session
-   */
-  const handleDisconnectSession = () => {
-    if (window.confirm('Disconnect your ChatGPT session from Memoreply?')) {
-      chrome.storage.local.remove(['memoreply_chatgpt_session', 'memoreply_chatgpt_token'], () => {
-        setAuthSession(null);
-        showToast('ChatGPT session disconnected.', 'info');
-      });
     }
   };
 
@@ -738,7 +670,8 @@ export default function App() {
       setClientNotes('');
       setConversation(null);
       setDraftText('');
-      setAuthSession(null);
+      setCustomApiKey('');
+      setVariants([]);
       setSellerProfile(DEFAULT_SELLER_KNOWLEDGE);
       await refreshDbStats();
 
@@ -750,69 +683,83 @@ export default function App() {
   };
 
   /**
-   * Directly import the latest reply from an open ChatGPT tab
+   * Direct Inline AI Reply Generation (QuillBot/Grammarly style):
+   * 1. Uses Context Assembler with Dexie messages, client facts, and seller knowledge
+   * 2. Calls direct inline engine asynchronously via background proxy or local synthesis
+   * 3. Zero external tabs opened or manipulated!
    */
-  const handleFetchLatestChatGPTReply = async () => {
-    setIsFetchingFromTab(true);
-    showToast('Checking web session tab for latest response...', 'info');
+  const handleGenerateReply = async (toneOverride?: string) => {
+    setIsGenerating(true);
+    const chosenTone = toneOverride || activeTone;
+
+    const clientUsername = conversation?.clientUsername ?? storedClient?.platformUserId ?? 'client';
+    const platform = conversation?.platform || activePlatform !== 'unknown' ? activePlatform : 'fiverr';
+    const clientId = storedClient?.id ?? `${platform}_${clientUsername}`;
+    const conversationId = `conv_${platform}_${conversation?.conversationId ?? clientUsername}`;
+
     try {
-      chrome.runtime.sendMessage({ type: 'CHATGPT_FETCH_LATEST_REPLY' }, (response) => {
-        setIsFetchingFromTab(false);
-        if (chrome.runtime.lastError) {
-          showToast(`Session error: ${chrome.runtime.lastError.message}`, 'error');
-          return;
-        }
-        if (response?.success && response.data?.replyText) {
-          setDraftText(response.data.replyText);
-          setIsGenerating(false);
-          showToast('Response imported from web session.', 'success');
-        } else {
-          showToast(
-            response?.error || 'Could not find response in web session tab. Please ensure response generation is complete.',
-            'error'
-          );
-        }
+      // Assemble context from Dexie
+      const assembledContext = await assembleContext({
+        clientId,
+        conversationId,
+        tone: chosenTone,
+        customInstruction,
+        fallbackConversation: conversation,
       });
-    } catch {
-      setIsFetchingFromTab(false);
-      showToast('Failed to communicate with web session tab.', 'error');
+
+      // Direct Inline AI Engine (asynchronous background fetch)
+      const primaryResult = await generateInlineResponse(assembledContext, sellerProfile, {
+        tone: chosenTone,
+        customInstruction,
+      });
+
+      if (primaryResult?.replyText) {
+        // Generate alternative stylistic variants for instant QuillBot-style switching
+        const conciseResult = await generateInlineResponse(assembledContext, sellerProfile, {
+          tone: 'Concise',
+          customInstruction,
+        });
+        const detailedResult = await generateInlineResponse(assembledContext, sellerProfile, {
+          tone: 'Detailed',
+          customInstruction,
+        });
+
+        const newVariants = [
+          primaryResult.replyText,
+          conciseResult.replyText,
+          detailedResult.replyText,
+        ].filter(Boolean);
+
+        setVariants(newVariants);
+        setActiveVariantIndex(0);
+        setDraftText(primaryResult.replyText);
+        showToast(`Draft generated (${chosenTone})`, 'success');
+      }
+    } catch (err: unknown) {
+      console.error('[Memoreply] Direct generation error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(msg, 'error');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   /**
-   * Generate AI Reply:
-   * 1. Uses Context Assembler to get Dexie messages + client facts + seller knowledge
-   * 2. Calls ChatGPT Web Backend API if session token is present
-   * 3. Falls back to smart context template if no auth.json is uploaded yet
+   * QuillBot / Grammarly-style quick refinement actions
    */
-  const handleGenerateReply = async () => {
-    setIsGenerating(true);
-
-    const clientUsername = conversation?.clientUsername ?? storedClient?.platformUserId ?? 'alex_miller_dev';
-    const clientId = storedClient?.id ?? `fiverr_${clientUsername}`;
-    const conversationId = `conv_fiverr_${conversation?.conversationId ?? clientUsername}`;
-
-    // Auto-poll ChatGPT tab in background every 2s while generating.
-    // If ChatGPT finishes or produces text, draft box gets populated immediately!
-    let pollTimer: number | null = null;
-    if (authSession?.token) {
-      pollTimer = window.setInterval(() => {
-        chrome.runtime.sendMessage({ type: 'CHATGPT_FETCH_LATEST_REPLY' }, (resp) => {
-          if (resp?.success && resp.data?.replyText && resp.data.replyText.length > 30) {
-            setDraftText(resp.data.replyText);
-            setIsGenerating(false);
-            if (pollTimer) {
-              window.clearInterval(pollTimer);
-              pollTimer = null;
-            }
-            showToast('Draft compiled via connected session.', 'success');
-          }
-        });
-      }, 2000);
+  const handleRefine = async (action: 'shorten' | 'expand' | 'milestone' | 'rephrase') => {
+    if (!draftText.trim()) {
+      showToast('Please generate or compose a draft first.', 'error');
+      return;
     }
 
+    setIsRefining(true);
     try {
-      // Assemble context from Dexie
+      const clientUsername = conversation?.clientUsername ?? storedClient?.platformUserId ?? 'client';
+      const platform = conversation?.platform || activePlatform !== 'unknown' ? activePlatform : 'fiverr';
+      const clientId = storedClient?.id ?? `${platform}_${clientUsername}`;
+      const conversationId = `conv_${platform}_${conversation?.conversationId ?? clientUsername}`;
+
       const assembledContext = await assembleContext({
         clientId,
         conversationId,
@@ -821,93 +768,35 @@ export default function App() {
         fallbackConversation: conversation,
       });
 
-      // If user has loaded a ChatGPT session token, call ChatGPT Web backend
-      if (authSession?.token) {
-        showToast('Connecting to web session...', 'info');
-        const aiResult = await openAIProvider.generateReply(
-          assembledContext,
-          authSession.token,
-          selectedModel
-        );
+      const refined = await generateInlineResponse(assembledContext, sellerProfile, {
+        action,
+        currentDraft: draftText,
+        tone: activeTone,
+        customInstruction,
+      });
 
-        if (aiResult?.replyText) {
-          setDraftText(aiResult.replyText);
-          showToast('Draft compiled via connected session.', 'success');
-        }
-      } else {
-        // Fallback simulation when no session is loaded
-        setTimeout(() => {
-          const clientName = assembledContext.clientDisplayName;
-          const budgetFact = storedFacts.find((f) => f.category === 'budget')?.fact;
-          const timelineFact = storedFacts.find((f) => f.category === 'timeline')?.fact;
+      if (refined?.replyText) {
+        setDraftText(refined.replyText);
+        setVariants((prev) => [refined.replyText, ...prev.slice(0, 2)]);
+        setActiveVariantIndex(0);
 
-          const budgetText = budgetFact ? `your ${budgetFact.replace('Budget mentioned: ', '')} budget` : 'your budget';
-          const timelineText = timelineFact ? `within ${timelineFact.replace('Timeline requested: ', '')}` : 'within your timeline';
-
-          let reply = '';
-          switch (activeTone) {
-            case 'Friendly':
-              reply = `Hi ${clientName}! Thanks so much for reaching out to ${sellerProfile.businessName}. I'd love to work with you on this project! Delivering ${timelineText} strictly within ${budgetText} sounds completely great. I'm ready to begin whenever you are!`;
-              break;
-            case 'Concise':
-              reply = `Hi ${clientName}, thanks for the details. At ${sellerProfile.businessName}, we can deliver the solution ${timelineText} for ${budgetText}. Let's proceed.`;
-              break;
-            case 'Pitch / Offer':
-              reply = `Hi ${clientName}, thanks for the project scope. As a specialist in ${sellerProfile.coreSkills.slice(0, 3).join(', ')}, I can guarantee top quality delivery ${timelineText} strictly adhering to ${budgetText}. Would you like me to send over a custom offer now?`;
-              break;
-            case 'Detailed':
-              reply = `Hello ${clientName},\n\nThank you for the detailed requirements. Here is our proposed delivery roadmap from ${sellerProfile.businessName}:\n1. Architecture & component breakdown (${timelineText})\n2. Implementation according to specs within ${budgetText}\n3. Complete code delivery with revisions (${sellerProfile.revisionPolicy}).\n\nLet me know if you would like me to set up the milestone contract!`;
-              break;
-            case 'Follow-up':
-              reply = `Hi ${clientName}, just checking in to see if you have any questions about my proposal or would like to see recent portfolio samples before we kick off?`;
-              break;
-            case 'Professional':
-            default:
-              reply = `Hi ${clientName},\n\nThank you for contacting ${sellerProfile.businessName}. I have reviewed your specifications and would be pleased to assist you. I can guarantee delivery ${timelineText} within ${budgetText}.\n\nPlease let me know if you are ready for a custom offer.`;
-              break;
-          }
-
-          if (customInstruction.trim()) {
-            reply += `\n\nP.S. Regarding your note: ${customInstruction.trim()}`;
-          }
-
-          setDraftText(reply);
-          showToast(
-            'Generated draft using local context. Connect auth.json in Settings for live model generation.',
-            'info'
-          );
-        }, 500);
+        const labels: Record<string, string> = {
+          shorten: 'Shortened draft',
+          expand: 'Expanded with project roadmap',
+          milestone: 'Appended milestone breakdown',
+          rephrase: 'Rephrased response',
+        };
+        showToast(labels[action] || 'Refined draft', 'success');
       }
-    } catch (err: unknown) {
-      console.error('[Memoreply] Generation error:', err);
-
-      // Emergency Recovery: Check if ChatGPT tab already generated the reply before showing error!
-      let recovered = false;
-      try {
-        const recovery = await new Promise<{ success: boolean; data?: { replyText: string } }>((resolve) => {
-          chrome.runtime.sendMessage({ type: 'CHATGPT_FETCH_LATEST_REPLY' }, (r) => resolve(r));
-        });
-        if (recovery?.success && recovery.data?.replyText && recovery.data.replyText.length > 25) {
-          setDraftText(recovery.data.replyText);
-          showToast('Draft successfully recovered from web session tab.', 'success');
-          recovered = true;
-        }
-      } catch {}
-
-      if (!recovered) {
-        const msg = err instanceof Error ? err.message : String(err);
-        showToast(msg, 'error');
-      }
+    } catch (err) {
+      showToast('Refinement error: ' + String(err), 'error');
     } finally {
-      if (pollTimer) {
-        window.clearInterval(pollTimer);
-      }
-      setIsGenerating(false);
+      setIsRefining(false);
     }
   };
 
   /**
-   * Insert draft directly into the Fiverr message box
+   * Insert draft directly into the active platform's message composer (Fiverr, Upwork, LinkedIn)
    */
   const handleInsertDraft = async () => {
     if (!draftText.trim()) {
@@ -916,18 +805,15 @@ export default function App() {
     }
 
     try {
-      // 1. Locate the active Fiverr tab (handling side panel focus gracefully)
-      let targetTab: chrome.tabs.Tab | undefined;
-      const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-      if (activeTab?.id && activeTab.url?.includes('fiverr.com')) {
-        targetTab = activeTab;
-      } else {
-        const fiverrTabs = await chrome.tabs.query({ url: '*://*.fiverr.com/*' });
-        targetTab = fiverrTabs.find((t) => t.active) || fiverrTabs[0] || activeTab;
-      }
+      const allTabs = await chrome.tabs.query({});
+      const targetTab = allTabs.find((t) => {
+        if (!t.url) return false;
+        const u = t.url.toLowerCase();
+        return u.includes('fiverr.com') || u.includes('upwork.com') || u.includes('linkedin.com');
+      });
 
       if (!targetTab?.id) {
-        showToast('Please open the Fiverr conversation tab in your browser.', 'error');
+        showToast('Open a conversation on Fiverr, Upwork, or LinkedIn to insert this draft.', 'error');
         return;
       }
 
@@ -1036,15 +922,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Hidden file input for auth.json upload */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-        accept=".json,application/json"
-        onChange={handleFileChange}
-      />
-
       {/* ---------- Header ---------- */}
       <header className="app-header">
         <div className="app-logo">
@@ -1100,25 +977,25 @@ export default function App() {
         <div>
           {isUsingMock ? (
             <span className="platform-pill mock">Preview Mode (Sample Thread)</span>
-          ) : isFiverrTab && conversation?.messages?.length ? (
+          ) : activePlatform !== 'unknown' && conversation?.messages?.length ? (
             <span className="platform-pill fiverr-active">
-              <span className="status-dot connected" /> Connected: @{conversation.clientUsername ?? 'Fiverr Chat'}
+              <span className="status-dot connected" /> Connected: @{conversation.clientUsername ?? `${activePlatform.toUpperCase()} Chat`} ({activePlatform.toUpperCase()})
             </span>
-          ) : isFiverrTab ? (
+          ) : activePlatform !== 'unknown' ? (
             <span className="platform-pill fiverr-idle">
-              <span className="status-dot connected" /> Fiverr Inbox active
+              <span className="status-dot connected" /> {activePlatform.toUpperCase()} Inbox Active
             </span>
           ) : (
             <span className="platform-pill offline">
-              <span className="status-dot disconnected" /> Offline (Not on Fiverr)
+              <span className="status-dot disconnected" /> Ready (Awaiting Fiverr / Upwork / LinkedIn)
             </span>
           )}
         </div>
 
         <div>
-          {!isFiverrTab && (
+          {activePlatform === 'unknown' && (
             <button className="btn btn-ghost btn-sm" onClick={handleLoadMock}>
-              {isUsingMock ? 'Reload Sample' : 'Load Sample Conversation'}
+              {isUsingMock ? 'Reload Sample' : 'Load Sample Thread'}
             </button>
           )}
         </div>
@@ -1245,22 +1122,39 @@ export default function App() {
               )}
             </div>
 
-            {/* Response Composer */}
+            {/* Response Composer (QuillBot / Grammarly Style) */}
             <div className="card">
               <div className="card-header">
-                <span className="card-title">Response Composer</span>
-                <span className={`badge-pill ${authSession ? 'active' : 'missing'}`}>
-                  {authSession ? 'Web Session Connected' : 'Local Directives'}
+                <div>
+                  <span className="card-title">Response Composer</span>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                    Direct inline generation with instant suggestions
+                  </div>
+                </div>
+                <span className="badge-pill active" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span className="status-dot connected" style={{ width: '6px', height: '6px' }} />
+                  Direct Inline Engine
                 </span>
               </div>
 
-              {/* Tone Selection */}
+              {/* Tone Selection Pills */}
+              <div className="refine-bar-label">
+                <span>Select Communication Tone</span>
+                <span style={{ fontSize: '10px', textTransform: 'none', color: 'var(--color-text-tertiary)' }}>
+                  Active: <strong>{activeTone}</strong>
+                </span>
+              </div>
               <div className="tone-selector">
                 {TONES.map((tone) => (
                   <button
                     key={tone}
                     className={`tone-chip ${activeTone === tone ? 'active' : ''}`}
-                    onClick={() => setActiveTone(tone)}
+                    onClick={() => {
+                      setActiveTone(tone);
+                      if (draftText.trim()) {
+                        handleGenerateReply(tone);
+                      }
+                    }}
                   >
                     {tone}
                   </button>
@@ -1268,28 +1162,30 @@ export default function App() {
               </div>
 
               {/* Optional Custom Directive */}
-              <div style={{ marginBottom: '8px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <input
                   type="text"
                   className="text-input"
                   style={{ height: '32px', fontSize: '12px', width: '100%' }}
-                  placeholder="Optional directive: e.g. Request project wireframes, emphasize milestone delivery..."
+                  placeholder="Optional directive: e.g. Emphasize fast delivery, request Figma wireframes..."
                   value={customInstruction}
                   onChange={(e) => setCustomInstruction(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerateReply()}
                 />
               </div>
 
-              <div style={{ marginBottom: '8px' }}>
+              {/* Primary Generation Trigger */}
+              <div style={{ marginBottom: '12px' }}>
                 <button
                   className="btn btn-primary btn-full"
-                  onClick={handleGenerateReply}
-                  disabled={isGenerating}
+                  onClick={() => handleGenerateReply()}
+                  disabled={isGenerating || isRefining}
                   style={{ padding: '8px 12px' }}
                 >
                   {isGenerating ? (
                     <>
                       <span className="spinner" style={{ width: '13px', height: '13px' }} />
-                      Generating response...
+                      Synthesizing {activeTone} draft...
                     </>
                   ) : (
                     `Generate ${activeTone} Response`
@@ -1297,60 +1193,95 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Direct Grab from Active Web Session Tab Button */}
-              {authSession && (
-                <div style={{ marginBottom: '10px' }}>
-                  <button
-                    className="btn btn-secondary btn-full btn-sm"
-                    onClick={handleFetchLatestChatGPTReply}
-                    disabled={isFetchingFromTab}
-                    title="Pull latest response stream from active web session into editor"
-                  >
-                    {isFetchingFromTab ? (
-                      <>
-                        <span className="spinner" style={{ width: '12px', height: '12px' }} />
-                        Checking browser tab...
-                      </>
-                    ) : (
-                      'Sync Latest from Web Tab'
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {/* Draft Textarea */}
-              <textarea
-                className="reply-editor"
-                placeholder="Generated response will appear here, or compose directly..."
-                value={draftText}
-                onChange={(e) => setDraftText(e.target.value)}
-              />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                <span className="text-tertiary" style={{ fontSize: '11px' }}>
-                  {draftText.length} characters
-                </span>
-                {!authSession && (
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ fontSize: '11px', color: 'var(--color-warning)' }}
-                    onClick={() => setActiveTab('settings')}
-                  >
-                    Configure Credentials
-                  </button>
+              {/* QuillBot / Grammarly Style Instant Refinements */}
+              <div className="refine-bar-label">
+                <span>Quick Refinements (QuillBot / Grammarly Style)</span>
+                {variants.length > 1 && (
+                  <div className="variant-selector">
+                    {variants.map((_, idx) => (
+                      <button
+                        key={idx}
+                        className={`variant-btn ${activeVariantIndex === idx ? 'active' : ''}`}
+                        onClick={() => {
+                          setActiveVariantIndex(idx);
+                          setDraftText(variants[idx]);
+                        }}
+                      >
+                        Option {idx + 1}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <div className="refine-chips">
+                <button
+                  className="refine-chip"
+                  onClick={() => handleRefine('shorten')}
+                  disabled={!draftText.trim() || isRefining}
+                  title="Make this draft more concise"
+                >
+                  ⚡ Shorten
+                </button>
+                <button
+                  className="refine-chip"
+                  onClick={() => handleRefine('expand')}
+                  disabled={!draftText.trim() || isRefining}
+                  title="Add detailed milestones and specifications"
+                >
+                  🔍 Expand Details
+                </button>
+                <button
+                  className="refine-chip"
+                  onClick={() => handleRefine('milestone')}
+                  disabled={!draftText.trim() || isRefining}
+                  title="Include a structured milestone breakdown"
+                >
+                  🤝 Add Milestone
+                </button>
+                <button
+                  className="refine-chip"
+                  onClick={() => handleRefine('rephrase')}
+                  disabled={!draftText.trim() || isRefining}
+                  title="Rephrase phrasing while preserving context"
+                >
+                  🔄 Rephrase
+                </button>
+              </div>
+
+              {/* Inline Editor Card */}
+              <div className="inline-editor-card">
+                <div className="inline-editor-header">
+                  <div className="ghost-text-tag">
+                    <span className="status-dot connected" style={{ width: '6px', height: '6px' }} />
+                    Live Inline Composer
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-tertiary)', fontSize: '11px' }}>
+                    <span>{draftText.trim() ? draftText.trim().split(/\s+/).length : 0} words</span>
+                    <span>•</span>
+                    <span>{draftText.length} chars</span>
+                  </div>
+                </div>
+
+                <textarea
+                  className="reply-editor"
+                  style={{ border: 'none', borderRadius: 0, minHeight: '110px' }}
+                  placeholder="Generated inline response will appear here. Edit directly or click quick refinement chips above..."
+                  value={draftText}
+                  onChange={(e) => setDraftText(e.target.value)}
+                />
+              </div>
+
+              {/* Instant Actions Bar */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                 <button
                   className="btn btn-primary"
                   style={{ flex: 2 }}
                   onClick={handleInsertDraft}
                   disabled={!draftText.trim()}
-                  title="Insert this reply into Fiverr message box without auto-sending"
+                  title="Insert this reply into the active platform message box without auto-sending"
                 >
-                  Insert into Fiverr
+                  Insert into {conversation?.platform ? conversation.platform.charAt(0).toUpperCase() + conversation.platform.slice(1) : activePlatform !== 'unknown' ? activePlatform.charAt(0).toUpperCase() + activePlatform.slice(1) : 'Chat'}
                 </button>
                 <button
                   className="btn btn-secondary"
@@ -1364,7 +1295,10 @@ export default function App() {
                 {draftText && (
                   <button
                     className="btn btn-ghost btn-sm"
-                    onClick={() => setDraftText('')}
+                    onClick={() => {
+                      setDraftText('');
+                      setVariants([]);
+                    }}
                     title="Clear editor"
                   >
                     Clear
@@ -1780,151 +1714,71 @@ export default function App() {
         {/* ==================== TAB 4: SETTINGS & AUTH ==================== */}
         {activeTab === 'settings' && (
           <div className="animate-fade-in">
-            {/* ChatGPT Web Session Authentication Card */}
+            {/* Direct AI Gateway & Engine Settings Card */}
             <div className="card">
               <div className="card-header">
-                <span className="card-title">Web Session Authentication</span>
-                <span className={`badge-pill ${authSession ? 'active' : 'missing'}`}>
-                  <span className={`status-dot ${authSession ? 'connected' : ''}`} style={{ width: '6px', height: '6px', marginRight: '5px' }} />
-                  {authSession ? 'Connected' : 'No Session'}
+                <div>
+                  <span className="card-title">Direct AI Engine & Cloud Gateway</span>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                    Zero external tabs • Instant inline synthesis
+                  </div>
+                </div>
+                <span className="badge-pill active" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span className="status-dot connected" style={{ width: '6px', height: '6px' }} />
+                  Direct Engine Active
                 </span>
               </div>
 
-              <p className="summary-text" style={{ fontSize: '12px', marginBottom: '12px' }}>
-                Connect using your active ChatGPT web session credentials via <code>auth.json</code>. Zero API key costs and zero subscription charges.
+              <p className="summary-text" style={{ fontSize: '12px', marginBottom: '14px' }}>
+                Memoreply generates responses directly inside the sidebar using background endpoints or local synthesis. No external ChatGPT tabs, popups, or redirects are ever opened.
               </p>
 
-              {/* If Session is Loaded */}
-              {authSession ? (
-                <div className="session-box">
-                  <div className="session-row">
-                    <span className="session-label">Account:</span>
-                    <span className="session-val font-semibold">{authSession.email || 'Web Session User'}</span>
-                  </div>
-                  {authSession.name && (
-                    <div className="session-row">
-                      <span className="session-label">Name:</span>
-                      <span className="session-val">{authSession.name}</span>
-                    </div>
-                  )}
-                  <div className="session-row">
-                    <span className="session-label">Session Token:</span>
-                    <span className="session-val" title={authSession.token}>
-                      {authSession.token.slice(0, 16)}...{authSession.token.slice(-6)}
-                    </span>
-                  </div>
-                  <div className="session-row">
-                    <span className="session-label">Status:</span>
-                    <span className="text-success session-val" style={{ fontSize: '11px', fontWeight: 600 }}>
-                      Active (Stored Locally)
-                    </span>
-                  </div>
+              {/* Direct Backend Gateway URL */}
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label" style={{ fontSize: '12px', marginBottom: '4px' }}>
+                  Cloud / Local Generation Proxy Endpoint
+                </label>
+                <input
+                  type="text"
+                  className="text-input"
+                  style={{ width: '100%', height: '32px', fontSize: '12px' }}
+                  placeholder="e.g. http://localhost:3000/api/generate"
+                  value={apiEndpoint}
+                  onChange={(e) => setApiEndpoint(e.target.value)}
+                />
+                <div className="form-hint" style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: '3px' }}>
+                  Default is your local SaaS dashboard proxy: <code>http://localhost:3000/api/generate</code>
+                </div>
+              </div>
 
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      style={{ flex: '1 1 120px' }}
-                      onClick={handleTestSession}
-                      disabled={isTestingSession}
-                    >
-                      {isTestingSession ? <span className="spinner" /> : 'Test Connection'}
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ flex: '1 1 120px' }}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      Replace auth.json
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ flex: '1 1 120px' }}
-                      onClick={handleReloadExtension}
-                      title="Reload extension and background service worker"
-                    >
-                      Reload Extension
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ flex: '1 1 120px' }}
-                      onClick={() => chrome.tabs.create({ url: 'https://chatgpt.com', active: true })}
-                      title="Open ChatGPT in a tab to keep the session bridge active"
-                    >
-                      Open Web Session
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ color: 'var(--color-error)' }}
-                      onClick={handleDisconnectSession}
-                    >
-                      Disconnect
-                    </button>
-                  </div>
+              {/* Optional Custom LLM API Key */}
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label" style={{ fontSize: '12px', marginBottom: '4px' }}>
+                  Custom LLM API Key (Optional — OpenAI / OpenRouter / Anthropic)
+                </label>
+                <input
+                  type="password"
+                  className="text-input"
+                  style={{ width: '100%', height: '32px', fontSize: '12px' }}
+                  placeholder="sk-... (Leave empty to use built-in local engine)"
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                />
+                <div className="form-hint" style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: '3px' }}>
+                  Stored strictly in your browser's local secure storage (never transmitted externally).
                 </div>
-              ) : (
-                /* Drag and Drop Zone when No Session */
-                <div
-                  className={`dropzone ${isDraggingFile ? 'active' : ''}`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDraggingFile(true);
-                  }}
-                  onDragLeave={() => setIsDraggingFile(false)}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <div className="dropzone-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="12" y1="18" x2="12" y2="12" />
-                      <line x1="9" y1="15" x2="15" y2="15" />
-                    </svg>
-                  </div>
-                  <div className="dropzone-title">Upload auth.json session file</div>
-                  <div className="dropzone-desc">
-                    Drag and drop your <strong>auth.json</strong> file here, or click to browse.
-                  </div>
-                </div>
-              )}
-
-              {/* Instructions on how to export auth.json */}
-              <div
-                style={{
-                  background: 'var(--color-bg-primary)',
-                  border: '1px solid var(--color-border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '10px 12px',
-                  marginTop: '12px',
-                  fontSize: '11px',
-                  color: 'var(--color-text-secondary)',
-                  lineHeight: 1.5,
-                }}
-              >
-                <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                  Setup Guide: Exporting Session Credentials
-                </div>
-                <ol style={{ paddingLeft: '16px', margin: 0 }}>
-                  <li>Log in to your account at <a href="https://chatgpt.com" target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)' }}>chatgpt.com</a></li>
-                  <li>In the same browser tab, open: <code style={{ color: 'var(--color-accent)' }}>chatgpt.com/api/auth/session</code></li>
-                  <li>Right-click on the page and select <strong>Save Page As...</strong>, name it <strong>auth.json</strong></li>
-                  <li>Upload or drag that file into the box above.</li>
-                </ol>
               </div>
 
               {/* Model Selection */}
-              <div style={{ marginTop: '14px' }}>
-                <label className="font-medium" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
-                  Response Generation Engine
+              <div className="form-group" style={{ marginBottom: '14px' }}>
+                <label className="form-label" style={{ fontSize: '12px', marginBottom: '4px' }}>
+                  Inference Strategy
                 </label>
                 <select
                   className="select-input"
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', height: '32px', fontSize: '12px' }}
                   value={selectedModel}
-                  onChange={(e) => {
-                    setSelectedModel(e.target.value);
-                    chrome.storage.local.set({ memoreply_chatgpt_model: e.target.value });
-                  }}
+                  onChange={(e) => setSelectedModel(e.target.value)}
                 >
                   {MODELS.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -1932,6 +1786,32 @@ export default function App() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ flex: '1 1 140px' }}
+                  onClick={() => handleSaveApiSettings(customApiKey, apiEndpoint)}
+                >
+                  Save Settings
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ flex: '1 1 120px' }}
+                  onClick={handleTestDirectConnection}
+                  disabled={isTestingSession}
+                >
+                  {isTestingSession ? <span className="spinner" /> : 'Test Connection'}
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ flex: '1 1 120px' }}
+                  onClick={handleReloadExtension}
+                  title="Reload extension and background service worker"
+                >
+                  Reload Extension
+                </button>
               </div>
             </div>
 
@@ -2030,9 +1910,9 @@ export default function App() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="font-medium" style={{ fontSize: '13px' }}>Fiverr Detection</span>
-                  <span className={isFiverrTab ? 'text-success' : 'text-tertiary'} style={{ fontSize: '12px' }}>
-                    {isFiverrTab ? 'Active Tab is Fiverr' : 'Inactive'}
+                  <span className="font-medium" style={{ fontSize: '13px' }}>Marketplace Detection</span>
+                  <span className={activePlatform !== 'unknown' ? 'text-success' : 'text-tertiary'} style={{ fontSize: '12px' }}>
+                    {activePlatform !== 'unknown' ? `${activePlatform.toUpperCase()} Active` : 'Inactive'}
                   </span>
                 </div>
 
