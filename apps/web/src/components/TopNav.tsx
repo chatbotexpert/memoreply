@@ -10,6 +10,30 @@ interface TopNavProps {
 
 export function TopNav({ title = 'Workspace Overview', onSyncTrigger }: TopNavProps) {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [activePlatformLabel, setActivePlatformLabel] = useState('Fiverr');
+
+  React.useEffect(() => {
+    try {
+      const savedId = localStorage.getItem('memoreply_active_workspace');
+      if (savedId?.includes('upwork')) setActivePlatformLabel('Upwork');
+      else if (savedId?.includes('linkedin')) setActivePlatformLabel('LinkedIn');
+      else if (savedId?.includes('all')) setActivePlatformLabel('All Platforms');
+    } catch {}
+
+    const handleWsChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        const p = customEvent.detail.platform;
+        if (p === 'upwork') setActivePlatformLabel('Upwork');
+        else if (p === 'linkedin') setActivePlatformLabel('LinkedIn');
+        else if (p === 'all') setActivePlatformLabel('All Platforms');
+        else setActivePlatformLabel('Fiverr');
+      }
+    };
+
+    window.addEventListener('memoreply_workspace_change', handleWsChange);
+    return () => window.removeEventListener('memoreply_workspace_change', handleWsChange);
+  }, []);
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -30,7 +54,7 @@ export function TopNav({ title = 'Workspace Overview', onSyncTrigger }: TopNavPr
         <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
           <span>Workspaces</span>
           <span>/</span>
-          <span>Fiverr</span>
+          <span className="text-zinc-800 dark:text-zinc-200 font-semibold">{activePlatformLabel}</span>
           <span>/</span>
         </div>
         <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">

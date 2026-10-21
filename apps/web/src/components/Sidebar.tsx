@@ -28,11 +28,107 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
+interface WorkspaceOption {
+  id: string;
+  name: string;
+  platform: 'fiverr' | 'upwork' | 'linkedin' | 'all';
+  status: 'active' | 'syncing' | 'connected';
+  badge: string;
+  description: string;
+  dotColor: string;
+}
+
+const WORKSPACES: WorkspaceOption[] = [
+  {
+    id: 'fiverr-prod',
+    name: 'Fiverr Production',
+    platform: 'fiverr',
+    status: 'active',
+    badge: 'Primary',
+    description: 'Inbox & Orders Mirror',
+    dotColor: 'bg-emerald-500',
+  },
+  {
+    id: 'upwork-main',
+    name: 'Upwork Workroom',
+    platform: 'upwork',
+    status: 'active',
+    badge: 'Live Sync',
+    description: 'Workrooms & Proposals Ledger',
+    dotColor: 'bg-emerald-500',
+  },
+  {
+    id: 'linkedin-main',
+    name: 'LinkedIn Messaging',
+    platform: 'linkedin',
+    status: 'active',
+    badge: 'Live Sync',
+    description: 'Direct Threads & InMail',
+    dotColor: 'bg-emerald-500',
+  },
+  {
+    id: 'all-marketplaces',
+    name: 'Unified Workspace (All)',
+    platform: 'all',
+    status: 'connected',
+    badge: 'Enterprise',
+    description: 'Cross-Platform Aggregate',
+    dotColor: 'bg-indigo-500',
+  },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] = React.useState<WorkspaceOption>(WORKSPACES[0]);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Load saved workspace on mount
+  React.useEffect(() => {
+    try {
+      const savedId = localStorage.getItem('memoreply_active_workspace');
+      if (savedId) {
+        const found = WORKSPACES.find((w) => w.id === savedId);
+        if (found) setSelectedWorkspace(found);
+      }
+    } catch {}
+  }, []);
+
+  // Close dropdown on outside click or escape
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const handleSelectWorkspace = (ws: WorkspaceOption) => {
+    setSelectedWorkspace(ws);
+    setIsOpen(false);
+    try {
+      localStorage.setItem('memoreply_active_workspace', ws.id);
+      window.dispatchEvent(new CustomEvent('memoreply_workspace_change', { detail: ws }));
+    } catch {}
+  };
 
   return (
-    <aside className="w-64 border-r border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950 flex flex-col justify-between shrink-0 h-screen sticky top-0 select-none">
+    <aside className="w-64 border-r border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950 flex flex-col justify-between shrink-0 h-screen sticky top-0 select-none z-30">
       {/* Top Section */}
       <div>
         {/* Workspace Brand Header */}
@@ -55,17 +151,87 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Workspace Switcher */}
-        <div className="px-3 py-3">
-          <button className="w-full px-2.5 py-1.5 rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 flex items-center justify-between text-left hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors shadow-2xs">
+        {/* Workspace Switcher Dropdown */}
+        <div className="px-3 py-3 relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsOpen((prev) => !prev)}
+            aria-expanded={isOpen}
+            className={`w-full px-2.5 py-1.5 rounded-md border text-left transition-all shadow-2xs flex items-center justify-between cursor-pointer ${
+              isOpen
+                ? 'border-zinc-400 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-850 ring-2 ring-zinc-400/20 dark:ring-zinc-600/20'
+                : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+            }`}
+          >
             <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className={`w-2 h-2 rounded-full ${selectedWorkspace.dotColor} shrink-0`} />
               <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                Fiverr Production
+                {selectedWorkspace.name}
               </span>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-150 ${
+                isOpen ? 'rotate-180 text-zinc-700 dark:text-zinc-200' : ''
+              }`}
+            />
           </button>
+
+          {/* Interactive Dropdown Menu */}
+          {isOpen && (
+            <div className="absolute top-[calc(100%-4px)] left-3 right-3 z-50 mt-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-2.5 py-1 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider font-mono border-b border-zinc-100 dark:border-zinc-800/80 mb-1">
+                Connected Workspaces
+              </div>
+
+              <div className="space-y-0.5 px-1 max-h-64 overflow-y-auto">
+                {WORKSPACES.map((ws) => {
+                  const isSelected = selectedWorkspace.id === ws.id;
+                  return (
+                    <button
+                      key={ws.id}
+                      onClick={() => handleSelectWorkspace(ws)}
+                      className={`w-full px-2 py-2 rounded-md text-left flex items-start justify-between transition-colors cursor-pointer ${
+                        isSelected
+                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium'
+                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-850'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 min-w-0">
+                        <span className={`w-2 h-2 rounded-full ${ws.dotColor} mt-1 shrink-0`} />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs truncate">{ws.name}</span>
+                            <span className="px-1 py-0.2 rounded text-[9px] font-mono bg-zinc-200/70 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                              {ws.badge}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                            {ws.description}
+                          </p>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <span className="text-emerald-500 font-bold shrink-0 ml-1 text-xs">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Quick Action */}
+              <div className="border-t border-zinc-100 dark:border-zinc-800 mt-1 pt-1 px-1">
+                <Link
+                  href="/settings"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between w-full px-2 py-1.5 rounded-md text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-[11px] transition-colors"
+                >
+                  <span>Connect / Manage Workspaces</span>
+                  <span className="text-[10px] font-mono text-zinc-400">Settings →</span>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Navigation Section */}
