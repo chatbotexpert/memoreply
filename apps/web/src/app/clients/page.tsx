@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import { useWorkspace, PlatformFilter } from '@/context/WorkspaceContext';
+
 interface ClientItem {
   id: string;
   name: string;
@@ -109,20 +111,61 @@ const CLIENT_DATA: ClientItem[] = [
     notes: 'Architecture audit for enterprise SaaS Chrome sidecar extension.',
     tags: ['Upwork Pro', 'Enterprise', 'Architecture'],
   },
+  {
+    id: 'upwork_samantha_b',
+    name: 'Samantha Blake',
+    username: 'samantha_growth',
+    platform: 'Upwork',
+    totalMessages: 27,
+    lastContact: '4d ago',
+    budget: '$2,200',
+    factsCount: 5,
+    status: 'Active',
+    notes: 'Full-funnel marketing CRM sync extension with PostgreSQL backend.',
+    tags: ['Next.js', 'Postgres', 'Upwork Enterprise'],
+  },
+  {
+    id: 'linkedin_sarah_j',
+    name: 'Sarah Jenkins',
+    username: 'sarah_jenkins_tech',
+    platform: 'LinkedIn',
+    totalMessages: 15,
+    lastContact: '1d ago',
+    budget: '$2,400',
+    factsCount: 6,
+    status: 'Pending Offer',
+    notes: 'Head of Product. Evaluating Memoreply workspace sidecar for their in-house sales team.',
+    tags: ['Enterprise SSO', 'Sales Tech', 'LinkedIn Pro'],
+  },
+  {
+    id: 'linkedin_patrick_m',
+    name: 'Patrick Murphy',
+    username: 'pmurphy_enterprise',
+    platform: 'LinkedIn',
+    totalMessages: 38,
+    lastContact: '2d ago',
+    budget: '$3,500',
+    factsCount: 9,
+    status: 'Active',
+    notes: 'Seeking custom integration for internal customer ledger with zero auto-sending policy.',
+    tags: ['Security Audit', 'Enterprise Contract', 'High Priority'],
+  },
 ];
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<ClientItem[]>(CLIENT_DATA as ClientItem[]);
   const [search, setSearch] = useState('');
-  const [platformFilter, setPlatformFilter] = useState<'All' | 'Fiverr' | 'Upwork' | 'LinkedIn'>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Pending Offer' | 'Delivered'>('All');
   const [isLoading, setIsLoading] = useState(false);
+  const { activePlatform, setPlatform, activeWorkspace } = useWorkspace();
 
   React.useEffect(() => {
     let mounted = true;
     async function loadLiveData() {
       try {
-        const res = await fetch('/api/clients');
+        setIsLoading(true);
+        const url = activePlatform !== 'all' ? `/api/clients?platform=${activePlatform}` : '/api/clients';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           if (mounted && data.clients && data.clients.length > 0) {
@@ -131,6 +174,8 @@ export default function ClientsPage() {
         }
       } catch (err) {
         console.warn('Live clients fetch error, using local state:', err);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     }
     loadLiveData();
@@ -139,17 +184,19 @@ export default function ClientsPage() {
       mounted = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [activePlatform]);
 
   const filtered = clients.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.username.toLowerCase().includes(search.toLowerCase()) ||
       c.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
-    const matchesPlatform = platformFilter === 'All' || c.platform === platformFilter;
+    const matchesPlatform = activePlatform === 'all' || c.platform.toLowerCase() === activePlatform.toLowerCase();
     const matchesStatus = statusFilter === 'All' || c.status === statusFilter;
     return matchesSearch && matchesPlatform && matchesStatus;
   });
+
+  const displayPlatform = activePlatform === 'all' ? 'All' : activePlatform.charAt(0).toUpperCase() + activePlatform.slice(1);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -206,10 +253,10 @@ export default function ClientsPage() {
             {(['All', 'Fiverr', 'Upwork', 'LinkedIn'] as const).map((p) => (
               <button
                 key={p}
-                onClick={() => setPlatformFilter(p)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  platformFilter === p
-                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs'
+                onClick={() => setPlatform(p.toLowerCase() as PlatformFilter)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                  displayPlatform === p
+                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold'
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
                 }`}
               >
@@ -289,7 +336,9 @@ export default function ClientsPage() {
                         className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${
                           client.platform === 'Fiverr'
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                            : 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                            : client.platform === 'Upwork'
+                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
                         }`}
                       >
                         {client.platform}

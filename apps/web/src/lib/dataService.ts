@@ -537,10 +537,14 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
   }
 }
 
-export async function fetchLiveClients(): Promise<LiveClient[]> {
+export async function fetchLiveClients(platform?: string): Promise<LiveClient[]> {
+  const normPlatform = platform && platform.toLowerCase() !== 'all' ? platform.toLowerCase() : null;
+
   try {
     if (process.env.DATABASE_URL && prisma) {
+      const whereClause = normPlatform ? { platform: normPlatform.toUpperCase() } : {};
       const dbClients = await (prisma as any).client.findMany({
+        where: whereClause,
         take: 50,
         orderBy: { lastContactAt: 'desc' },
         include: { _count: { select: { messages: true, facts: true } } },
@@ -566,13 +570,19 @@ export async function fetchLiveClients(): Promise<LiveClient[]> {
     console.warn('[Memoreply Data Service] Prisma clients fetch fallback:', err);
   }
 
-  return globalStore.__memoreply_clients || [];
+  const allClients = globalStore.__memoreply_clients || [];
+  if (!normPlatform) return allClients;
+  return allClients.filter((c) => c.platform.toLowerCase() === normPlatform);
 }
 
-export async function fetchLiveConversations(): Promise<LiveConversation[]> {
+export async function fetchLiveConversations(platform?: string): Promise<LiveConversation[]> {
+  const normPlatform = platform && platform.toLowerCase() !== 'all' ? platform.toLowerCase() : null;
+
   try {
     if (process.env.DATABASE_URL && prisma) {
+      const whereClause = normPlatform ? { platform: normPlatform.toUpperCase() } : {};
       const dbConvs = await (prisma as any).conversation.findMany({
+        where: whereClause,
         take: 50,
         orderBy: { lastMessageAt: 'desc' },
         include: {
@@ -607,13 +617,19 @@ export async function fetchLiveConversations(): Promise<LiveConversation[]> {
     console.warn('[Memoreply Data Service] Prisma conversations fetch fallback:', err);
   }
 
-  return globalStore.__memoreply_conversations || [];
+  const allConvs = globalStore.__memoreply_conversations || [];
+  if (!normPlatform) return allConvs;
+  return allConvs.filter((c) => c.platform.toLowerCase() === normPlatform);
 }
 
-export async function fetchLiveVaultFacts(): Promise<LiveFact[]> {
+export async function fetchLiveVaultFacts(platform?: string): Promise<LiveFact[]> {
+  const normPlatform = platform && platform.toLowerCase() !== 'all' ? platform.toLowerCase() : null;
+
   try {
     if (process.env.DATABASE_URL && prisma) {
+      const whereClause = normPlatform ? { client: { platform: normPlatform.toUpperCase() } } : {};
       const dbFacts = await (prisma as any).clientFact.findMany({
+        where: whereClause,
         take: 100,
         orderBy: { updatedAt: 'desc' },
         include: {
@@ -647,5 +663,7 @@ export async function fetchLiveVaultFacts(): Promise<LiveFact[]> {
     console.warn('[Memoreply Data Service] Prisma facts fetch fallback:', err);
   }
 
-  return globalStore.__memoreply_facts || [];
+  const allFacts = globalStore.__memoreply_facts || [];
+  if (!normPlatform) return allFacts;
+  return allFacts.filter((f) => f.source.toLowerCase().includes(normPlatform));
 }

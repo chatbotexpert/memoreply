@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { MessageSquare, Search, Filter, ShieldCheck, CheckCheck, Clock, ExternalLink } from 'lucide-react';
 
+import { useWorkspace } from '@/context/WorkspaceContext';
+
 interface ThreadMessage {
   id: string;
   sender: 'client' | 'seller';
@@ -81,6 +83,63 @@ const CONVERSATION_THREADS: ConversationItem[] = [
     ],
   },
   {
+    id: 'conv_david_k',
+    clientName: 'David Krause',
+    username: 'david_k_consulting',
+    platform: 'Upwork',
+    status: 'Active',
+    lastUpdated: '3h ago',
+    messagesCount: 3,
+    messages: [
+      {
+        id: 'msg_u1',
+        sender: 'client',
+        senderName: 'David Krause',
+        text: 'Hello Hassaan, we reviewed your Upwork profile regarding enterprise Chrome MV3 architectures. Are you available for a paid consultation?',
+        timestamp: '11:15 AM',
+      },
+      {
+        id: 'msg_u2',
+        sender: 'seller',
+        senderName: 'HashTurn Digital',
+        text: 'Hello David, thank you for reaching out. Yes, we are available to audit your browser architecture and establish high-throughput synchronization.',
+        timestamp: '11:25 AM',
+      },
+      {
+        id: 'msg_u3',
+        sender: 'client',
+        senderName: 'David Krause',
+        text: 'Perfect. I will create the Upwork milestone contract for $1,800 today.',
+        timestamp: '12:04 PM',
+      },
+    ],
+  },
+  {
+    id: 'conv_sarah_j',
+    clientName: 'Sarah Jenkins',
+    username: 'sarah_jenkins_tech',
+    platform: 'LinkedIn',
+    status: 'Pending Offer',
+    lastUpdated: '4h ago',
+    messagesCount: 2,
+    messages: [
+      {
+        id: 'msg_li1',
+        sender: 'client',
+        senderName: 'Sarah Jenkins',
+        text: 'Hi Hassaan, found your profile via your Chrome Extension portfolio. We are looking for someone to build a bespoke workspace side panel.',
+        timestamp: '9:30 AM',
+      },
+      {
+        id: 'msg_li2',
+        sender: 'seller',
+        senderName: 'HashTurn Digital',
+        text: 'Hi Sarah, glad to connect! We would love to discuss the side panel workflow requirements and milestone deliverables.',
+        timestamp: '9:45 AM',
+      },
+    ],
+  },
+  {
     id: 'conv_sophia_chen',
     clientName: 'Sophia Chen',
     username: 'sophia_ux',
@@ -102,22 +161,20 @@ const CONVERSATION_THREADS: ConversationItem[] = [
 
 export default function ConversationsPage() {
   const [threads, setThreads] = useState<ConversationItem[]>(CONVERSATION_THREADS);
-  const [selectedThread, setSelectedThread] = useState<ConversationItem>(CONVERSATION_THREADS[0]);
+  const [selectedThread, setSelectedThread] = useState<ConversationItem | null>(CONVERSATION_THREADS[0]);
   const [search, setSearch] = useState('');
+  const { activePlatform, activeWorkspace } = useWorkspace();
 
   React.useEffect(() => {
     let mounted = true;
     async function loadLiveData() {
       try {
-        const res = await fetch('/api/conversations');
+        const url = activePlatform !== 'all' ? `/api/conversations?platform=${activePlatform}` : '/api/conversations';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           if (mounted && data.conversations && data.conversations.length > 0) {
             setThreads(data.conversations);
-            setSelectedThread((prev) => {
-              const matched = data.conversations.find((c: ConversationItem) => c.id === prev.id);
-              return matched || data.conversations[0];
-            });
           }
         }
       } catch (err) {
@@ -130,25 +187,45 @@ export default function ConversationsPage() {
       mounted = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [activePlatform]);
 
-  const filtered = threads.filter(
-    (c) =>
+  const filtered = threads.filter((c) => {
+    const matchesSearch =
       c.clientName.toLowerCase().includes(search.toLowerCase()) ||
       c.username.toLowerCase().includes(search.toLowerCase()) ||
-      c.messages.some((m) => m.text.toLowerCase().includes(search.toLowerCase()))
-  );
+      c.messages.some((m) => m.text.toLowerCase().includes(search.toLowerCase()));
+    const matchesPlatform = activePlatform === 'all' || c.platform.toLowerCase() === activePlatform.toLowerCase();
+    return matchesSearch && matchesPlatform;
+  });
+
+  // Keep selectedThread in sync with filtered list
+  React.useEffect(() => {
+    if (filtered.length > 0) {
+      const stillInFiltered = filtered.find((t) => t.id === selectedThread?.id);
+      if (!stillInFiltered) {
+        setSelectedThread(filtered[0]);
+      }
+    } else {
+      setSelectedThread(null);
+    }
+  }, [filtered, selectedThread?.id]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <h2 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50 tracking-tight">
-            Synced Conversations
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50 tracking-tight">
+              Synced Conversations
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeWorkspace.dotColor}`} />
+              {activeWorkspace.name}
+            </span>
+          </div>
           <p className="text-xs text-zinc-500 mt-1">
-            Deduplicated message streams extracted across active Fiverr, Upwork, and LinkedIn threads.
+            Deduplicated message streams extracted across {activeWorkspace.name} threads.
           </p>
         </div>
 
@@ -180,107 +257,128 @@ export default function ConversationsPage() {
 
           {/* List */}
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80 overflow-y-auto flex-1">
-            {filtered.map((thread) => {
-              const isSelected = selectedThread.id === thread.id;
-              const lastMsg = thread.messages[thread.messages.length - 1];
+            {filtered.length === 0 ? (
+              <div className="p-8 text-center text-zinc-400 text-xs">
+                No active conversations found for {activeWorkspace.name}.
+              </div>
+            ) : (
+              filtered.map((thread) => {
+                const isSelected = selectedThread?.id === thread.id;
+                const lastMsg = thread.messages[thread.messages.length - 1];
 
-              return (
-                <button
-                  key={thread.id}
-                  onClick={() => setSelectedThread(thread)}
-                  className={`w-full p-4 text-left transition-colors flex items-start gap-3 ${
-                    isSelected
-                      ? 'bg-zinc-100/80 dark:bg-zinc-800/80'
-                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-850/50'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-semibold text-xs text-zinc-800 dark:text-zinc-200 shrink-0">
-                    {thread.clientName.charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                        {thread.clientName}
-                      </span>
-                      <span className="text-[10px] font-mono text-zinc-400 shrink-0">
-                        {thread.lastUpdated}
-                      </span>
+                return (
+                  <button
+                    key={thread.id}
+                    onClick={() => setSelectedThread(thread)}
+                    className={`w-full p-4 text-left transition-colors flex items-start gap-3 cursor-pointer ${
+                      isSelected
+                        ? 'bg-zinc-100/80 dark:bg-zinc-800/80'
+                        : 'hover:bg-zinc-50 dark:hover:bg-zinc-850/50'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-semibold text-xs text-zinc-800 dark:text-zinc-200 shrink-0">
+                      {thread.clientName.charAt(0)}
                     </div>
-                    <p className="text-[11px] font-mono text-zinc-400">@{thread.username}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-1">
-                      {lastMsg ? lastMsg.text : 'No messages'}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                          {thread.clientName}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-400 shrink-0">
+                          {thread.lastUpdated}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] font-mono text-zinc-400">@{thread.username}</span>
+                        <span className="px-1 py-0.2 rounded text-[9px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                          {thread.platform}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-1">
+                        {lastMsg ? lastMsg.text : 'No messages'}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
         {/* Right: Selected Thread Transcript (7 cols) */}
         <div className="lg:col-span-7 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 flex flex-col shadow-2xs overflow-hidden">
-          {/* Header */}
-          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-semibold text-xs text-zinc-800 dark:text-zinc-200">
-                {selectedThread.clientName.charAt(0)}
-              </div>
-              <div>
-                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                  {selectedThread.clientName} (@{selectedThread.username})
-                </h3>
-                <span className="text-[10px] text-zinc-400 font-mono">
-                  Platform: {selectedThread.platform} &bull; Thread ID: {selectedThread.id}
-                </span>
-              </div>
-            </div>
-
-            <span className="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
-              {selectedThread.status}
-            </span>
-          </div>
-
-          {/* Messages Stream */}
-          <div className="p-4 flex-1 space-y-4 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-950/30">
-            {selectedThread.messages.map((msg) => {
-              const isSeller = msg.sender === 'seller';
-
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${isSeller ? 'items-end' : 'items-start'}`}
-                >
-                  <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono mb-1 px-1">
-                    <span>{msg.senderName}</span>
-                    <span>&bull;</span>
-                    <span>{msg.timestamp}</span>
+          {selectedThread ? (
+            <>
+              {/* Header */}
+              <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-semibold text-xs text-zinc-800 dark:text-zinc-200">
+                    {selectedThread.clientName.charAt(0)}
                   </div>
-                  <div
-                    className={`max-w-[85%] rounded-lg px-3.5 py-2.5 text-xs leading-relaxed ${
-                      isSeller
-                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs'
-                        : 'bg-white text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border border-zinc-200/90 dark:border-zinc-700/80 shadow-2xs'
-                    }`}
-                  >
-                    {msg.text}
+                  <div>
+                    <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                      {selectedThread.clientName} (@{selectedThread.username})
+                    </h3>
+                    <span className="text-[10px] text-zinc-400 font-mono">
+                      Platform: {selectedThread.platform} &bull; Thread ID: {selectedThread.id}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Footer Bar */}
-          <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs bg-white dark:bg-zinc-900">
-            <span className="text-[11px] text-zinc-400 font-mono">
-              Synchronized from active Fiverr Chrome session
-            </span>
-            <button
-              onClick={() => alert(`Opening Chrome extension side panel to compose reply for ${selectedThread.clientName}`)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
-            >
-              <span>Compose with Context</span>
-            </button>
-          </div>
+                <span className="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+                  {selectedThread.status}
+                </span>
+              </div>
+
+              {/* Messages Stream */}
+              <div className="p-4 flex-1 space-y-4 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-950/30">
+                {selectedThread.messages.map((msg) => {
+                  const isSeller = msg.sender === 'seller';
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${isSeller ? 'items-end' : 'items-start'}`}
+                    >
+                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono mb-1 px-1">
+                        <span>{msg.senderName}</span>
+                        <span>&bull;</span>
+                        <span>{msg.timestamp}</span>
+                      </div>
+                      <div
+                        className={`max-w-[85%] rounded-lg px-3.5 py-2.5 text-xs leading-relaxed ${
+                          isSeller
+                            ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs'
+                            : 'bg-white text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border border-zinc-200/90 dark:border-zinc-700/80 shadow-2xs'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer Bar */}
+              <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs bg-white dark:bg-zinc-900">
+                <span className="text-[11px] text-zinc-400 font-mono">
+                  Synchronized from active {selectedThread.platform} session
+                </span>
+                <button
+                  onClick={() => alert(`Opening Chrome extension popup to compose reply for ${selectedThread.clientName}`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors cursor-pointer"
+                >
+                  <span>Compose with Context</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-zinc-400">
+              <MessageSquare className="w-8 h-8 stroke-1 text-zinc-300 dark:text-zinc-700 mb-2" />
+              <p className="text-xs font-medium">No conversation selected</p>
+              <p className="text-[11px] text-zinc-500 mt-1">Select a thread on the left to inspect its message history.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

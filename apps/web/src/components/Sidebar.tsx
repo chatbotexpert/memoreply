@@ -13,6 +13,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
+import { useWorkspace, WorkspaceOption } from '@/context/WorkspaceContext';
+
 interface NavItem {
   label: string;
   href: string;
@@ -20,79 +22,28 @@ interface NavItem {
   count?: number;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Overview', href: '/', icon: LayoutDashboard },
-  { label: 'Clients', href: '/clients', icon: Users, count: 124 },
-  { label: 'Conversations', href: '/conversations', icon: MessageSquare, count: 382 },
-  { label: 'Context Vault', href: '/context-vault', icon: Database, count: 1420 },
-  { label: 'Settings', href: '/settings', icon: Settings },
-];
-
-interface WorkspaceOption {
-  id: string;
-  name: string;
-  platform: 'fiverr' | 'upwork' | 'linkedin' | 'all';
-  status: 'active' | 'syncing' | 'connected';
-  badge: string;
-  description: string;
-  dotColor: string;
-}
-
-const WORKSPACES: WorkspaceOption[] = [
-  {
-    id: 'fiverr-prod',
-    name: 'Fiverr Production',
-    platform: 'fiverr',
-    status: 'active',
-    badge: 'Primary',
-    description: 'Inbox & Orders Mirror',
-    dotColor: 'bg-emerald-500',
-  },
-  {
-    id: 'upwork-main',
-    name: 'Upwork Workroom',
-    platform: 'upwork',
-    status: 'active',
-    badge: 'Live Sync',
-    description: 'Workrooms & Proposals Ledger',
-    dotColor: 'bg-emerald-500',
-  },
-  {
-    id: 'linkedin-main',
-    name: 'LinkedIn Messaging',
-    platform: 'linkedin',
-    status: 'active',
-    badge: 'Live Sync',
-    description: 'Direct Threads & InMail',
-    dotColor: 'bg-emerald-500',
-  },
-  {
-    id: 'all-marketplaces',
-    name: 'Unified Workspace (All)',
-    platform: 'all',
-    status: 'connected',
-    badge: 'Enterprise',
-    description: 'Cross-Platform Aggregate',
-    dotColor: 'bg-indigo-500',
-  },
-];
+const WORKSPACE_COUNTS = {
+  all: { clients: 198, conversations: 558, vault: 2130 },
+  fiverr: { clients: 124, conversations: 382, vault: 1420 },
+  upwork: { clients: 46, conversations: 112, vault: 480 },
+  linkedin: { clients: 28, conversations: 64, vault: 230 },
+};
 
 export function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState(false);
-  const [selectedWorkspace, setSelectedWorkspace] = React.useState<WorkspaceOption>(WORKSPACES[0]);
+  const { activeWorkspace, setWorkspace, workspaces } = useWorkspace();
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Load saved workspace on mount
-  React.useEffect(() => {
-    try {
-      const savedId = localStorage.getItem('memoreply_active_workspace');
-      if (savedId) {
-        const found = WORKSPACES.find((w) => w.id === savedId);
-        if (found) setSelectedWorkspace(found);
-      }
-    } catch {}
-  }, []);
+  const counts = WORKSPACE_COUNTS[activeWorkspace.platform] || WORKSPACE_COUNTS.all;
+
+  const navItems: NavItem[] = [
+    { label: 'Overview', href: '/', icon: LayoutDashboard },
+    { label: 'Clients', href: '/clients', icon: Users, count: counts.clients },
+    { label: 'Conversations', href: '/conversations', icon: MessageSquare, count: counts.conversations },
+    { label: 'Context Vault', href: '/context-vault', icon: Database, count: counts.vault },
+    { label: 'Settings', href: '/settings', icon: Settings },
+  ];
 
   // Close dropdown on outside click or escape
   React.useEffect(() => {
@@ -119,12 +70,8 @@ export function Sidebar() {
   }, [isOpen]);
 
   const handleSelectWorkspace = (ws: WorkspaceOption) => {
-    setSelectedWorkspace(ws);
+    setWorkspace(ws);
     setIsOpen(false);
-    try {
-      localStorage.setItem('memoreply_active_workspace', ws.id);
-      window.dispatchEvent(new CustomEvent('memoreply_workspace_change', { detail: ws }));
-    } catch {}
   };
 
   return (
@@ -163,9 +110,9 @@ export function Sidebar() {
             }`}
           >
             <div className="flex items-center gap-2 min-w-0">
-              <span className={`w-2 h-2 rounded-full ${selectedWorkspace.dotColor} shrink-0`} />
+              <span className={`w-2 h-2 rounded-full ${activeWorkspace.dotColor} shrink-0`} />
               <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                {selectedWorkspace.name}
+                {activeWorkspace.name}
               </span>
             </div>
             <ChevronDown
@@ -183,8 +130,8 @@ export function Sidebar() {
               </div>
 
               <div className="space-y-0.5 px-1 max-h-64 overflow-y-auto">
-                {WORKSPACES.map((ws) => {
-                  const isSelected = selectedWorkspace.id === ws.id;
+                {workspaces.map((ws) => {
+                  const isSelected = activeWorkspace.id === ws.id;
                   return (
                     <button
                       key={ws.id}
@@ -240,7 +187,7 @@ export function Sidebar() {
             Platform Views
           </div>
           <nav className="space-y-0.5">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
 

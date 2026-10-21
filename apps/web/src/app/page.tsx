@@ -14,11 +14,13 @@ import {
   Layers,
 } from 'lucide-react';
 
+import { useWorkspace } from '@/context/WorkspaceContext';
+
 interface MockClientThread {
   id: string;
   platformUserId: string;
   displayName: string;
-  platform: 'Fiverr';
+  platform: 'Fiverr' | 'Upwork' | 'LinkedIn';
   lastMessageSnippet: string;
   lastActive: string;
   status: 'Active' | 'Proposal Sent' | 'Completed';
@@ -55,6 +57,34 @@ const RECENT_CLIENTS: MockClientThread[] = [
     ],
   },
   {
+    id: 'upwork_david_k',
+    platformUserId: 'david_k_consulting',
+    displayName: 'David Krause',
+    platform: 'Upwork',
+    lastMessageSnippet: 'Hello Hassaan, we reviewed your Upwork profile regarding enterprise Chrome MV3 architectures. Are you available for a paid consultation?',
+    lastActive: '3h ago',
+    status: 'Active',
+    facts: [
+      { label: 'Architecture Audit', verified: true },
+      { label: 'Hourly: $85/hr', verified: true },
+      { label: 'Enterprise SaaS', verified: true },
+    ],
+  },
+  {
+    id: 'linkedin_sarah_j',
+    platformUserId: 'sarah_jenkins_tech',
+    displayName: 'Sarah Jenkins',
+    platform: 'LinkedIn',
+    lastMessageSnippet: 'Hi Hassaan, found your profile via your Chrome Extension portfolio. We are looking for someone to build a bespoke workspace side panel.',
+    lastActive: '4h ago',
+    status: 'Proposal Sent',
+    facts: [
+      { label: 'Sidecar Architecture', verified: true },
+      { label: 'SSO Integration', verified: true },
+      { label: 'Budget: $2,400', verified: true },
+    ],
+  },
+  {
     id: 'fiverr_sophia_design',
     platformUserId: 'sophia_ux',
     displayName: 'Sophia Chen',
@@ -84,24 +114,46 @@ const RECENT_CLIENTS: MockClientThread[] = [
 
 export default function DashboardOverviewPage() {
   const [filterQuery, setFilterQuery] = useState('');
+  const { activePlatform, activeWorkspace } = useWorkspace();
 
-  const filteredThreads = RECENT_CLIENTS.filter(
+  const platformFiltered = RECENT_CLIENTS.filter((c) => {
+    if (activePlatform === 'all') return true;
+    return c.platform.toLowerCase() === activePlatform.toLowerCase();
+  });
+
+  const filteredThreads = platformFiltered.filter(
     (c) =>
       c.displayName.toLowerCase().includes(filterQuery.toLowerCase()) ||
       c.platformUserId.toLowerCase().includes(filterQuery.toLowerCase()) ||
       c.facts.some((f) => f.label.toLowerCase().includes(filterQuery.toLowerCase()))
   );
 
+  // Platform-scaled dynamic metrics
+  const statsMap = {
+    all: { clients: '198', convs: '558', facts: '2,130', proposals: '1,245' },
+    fiverr: { clients: '124', convs: '382', facts: '1,420', proposals: '890' },
+    upwork: { clients: '46', convs: '112', facts: '480', proposals: '260' },
+    linkedin: { clients: '28', convs: '64', facts: '230', proposals: '95' },
+  };
+
+  const currentStats = statsMap[activePlatform] || statsMap.all;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <h2 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50 tracking-tight">
-            Workspace Intelligence
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50 tracking-tight">
+              Workspace Intelligence
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeWorkspace.dotColor}`} />
+              {activeWorkspace.name}
+            </span>
+          </div>
           <p className="text-xs text-zinc-500 mt-1">
-            Real-time synchronization mirror for Fiverr client communications, memory facts, and seller policies.
+            Real-time synchronization mirror for {activeWorkspace.name} client communications, memory facts, and policies.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -127,7 +179,7 @@ export default function DashboardOverviewPage() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight font-mono">
-              124
+              {currentStats.clients}
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">+14 this week</span>
           </div>
@@ -147,7 +199,7 @@ export default function DashboardOverviewPage() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight font-mono">
-              382
+              {currentStats.convs}
             </span>
             <span className="text-xs text-zinc-500 font-mono">threads</span>
           </div>
@@ -167,7 +219,7 @@ export default function DashboardOverviewPage() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight font-mono">
-              1,420
+              {currentStats.facts}
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">0 conflicts</span>
           </div>
@@ -187,11 +239,11 @@ export default function DashboardOverviewPage() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight font-mono">
-              890
+              {currentStats.proposals}
             </span>
             <span className="text-xs text-zinc-500 font-mono">&lt; 45s avg</span>
           </div>
-          <p className="text-[11px] text-zinc-400 mt-1">Inserted directly into Fiverr</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Inserted directly into {activeWorkspace.name}</p>
         </Link>
       </div>
 
@@ -207,7 +259,7 @@ export default function DashboardOverviewPage() {
                   Recent Synced Conversations
                 </h3>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Synchronized from active Fiverr inbox sessions via Chrome Extension.
+                  Synchronized from active {activeWorkspace.name} sessions via Chrome Extension.
                 </p>
               </div>
 

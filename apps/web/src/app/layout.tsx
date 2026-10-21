@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   description: 'Enterprise cloud dashboard for Memoreply client communications and persistent memory.',
 };
 
+import { WorkspaceProvider } from '@/context/WorkspaceContext';
+
 export default function RootLayout({
   children,
 }: {
@@ -22,13 +24,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className={`${inter.className} min-h-full flex bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100`}>
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-          <TopNav />
-          <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto">
-            {children}
-          </main>
-        </div>
+        <WorkspaceProvider>
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+            <TopNav />
+            <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto">
+              {children}
+            </main>
+          </div>
+        </WorkspaceProvider>
       </body>
     </html>
   );

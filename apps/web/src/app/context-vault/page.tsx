@@ -18,6 +18,8 @@ import {
   X,
 } from 'lucide-react';
 
+import { useWorkspace } from '@/context/WorkspaceContext';
+
 interface StoredFact {
   id: string;
   clientName: string;
@@ -26,7 +28,7 @@ interface StoredFact {
   fact: string;
   status: 'confirmed' | 'proposed' | 'disputed';
   conflictReason?: string;
-  source: 'Fiverr Chat' | 'Upwork Chat' | 'Seller Policy';
+  source: 'Fiverr Chat' | 'Upwork Chat' | 'LinkedIn Chat' | 'Seller Policy';
   extractedAt: string;
 }
 
@@ -81,6 +83,46 @@ const INITIAL_FACTS: StoredFact[] = [
     status: 'confirmed',
     source: 'Fiverr Chat',
     extractedAt: '2h ago',
+  },
+  {
+    id: 'f_upwork_1',
+    clientName: 'David Krause',
+    username: 'david_k_consulting',
+    category: 'Budget',
+    fact: 'Fixed order price agreed at $1,800.00 USD for enterprise architecture audit milestone.',
+    status: 'confirmed',
+    source: 'Upwork Chat',
+    extractedAt: '3h ago',
+  },
+  {
+    id: 'f_upwork_2',
+    clientName: 'David Krause',
+    username: 'david_k_consulting',
+    category: 'Tech',
+    fact: 'Deliverable requires Dexie.js schema optimization and MV3 service worker lifecycle resilience.',
+    status: 'confirmed',
+    source: 'Upwork Chat',
+    extractedAt: '3h ago',
+  },
+  {
+    id: 'f_linkedin_1',
+    clientName: 'Sarah Jenkins',
+    username: 'sarah_jenkins_tech',
+    category: 'Budget',
+    fact: 'Budget ceiling is $2,400.00 USD with milestone delivery schedule on LinkedIn.',
+    status: 'proposed',
+    source: 'LinkedIn Chat',
+    extractedAt: '4h ago',
+  },
+  {
+    id: 'f_linkedin_2',
+    clientName: 'Sarah Jenkins',
+    username: 'sarah_jenkins_tech',
+    category: 'Scope',
+    fact: 'Project requires internal CRM background synchronization and zero automated message submission.',
+    status: 'confirmed',
+    source: 'LinkedIn Chat',
+    extractedAt: '4h ago',
   },
   {
     id: 'f_6',
@@ -139,12 +181,14 @@ export default function ContextVaultPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | 'Budget' | 'Timeline' | 'Tech' | 'Scope'>('All');
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'proposed' | 'disputed'>('all');
+  const { activePlatform, activeWorkspace } = useWorkspace();
 
   React.useEffect(() => {
     let mounted = true;
     async function loadLiveData() {
       try {
-        const res = await fetch('/api/vault');
+        const url = activePlatform !== 'all' ? `/api/vault?platform=${activePlatform}` : '/api/vault';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           if (mounted && data.facts && data.facts.length > 0) {
@@ -161,7 +205,7 @@ export default function ContextVaultPage() {
       mounted = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [activePlatform]);
 
   const filtered = facts.filter((f) => {
     const matchesSearch =
@@ -170,10 +214,17 @@ export default function ContextVaultPage() {
       f.username.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter === 'All' || f.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || f.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesPlatform =
+      activePlatform === 'all' ||
+      f.source.toLowerCase().includes(activePlatform.toLowerCase()) ||
+      f.source === 'Seller Policy';
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesPlatform;
   });
 
-  const disputesCount = facts.filter((f) => f.status === 'disputed').length;
+  const disputesCount = filtered.filter((f) => f.status === 'disputed').length;
+  const budgetCount = filtered.filter((f) => f.category === 'Budget').length;
+  const techCount = filtered.filter((f) => f.category === 'Tech').length;
 
   const handleResolveDispute = (id: string, newStatus: 'confirmed' | 'proposed') => {
     setFacts((prev) =>
@@ -194,19 +245,20 @@ export default function ContextVaultPage() {
             <h2 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50 tracking-tight">
               Context Vault & Memory Ledger
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-              1,420 Verified Points
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeWorkspace.dotColor}`} />
+              {activeWorkspace.name}
             </span>
           </div>
           <p className="text-xs text-zinc-500 mt-1">
-            Real-time fact repository and contradiction engine extracting budgets, timelines, and constraints.
+            Real-time fact repository and contradiction engine extracting budgets, timelines, and constraints for {activeWorkspace.name}.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => alert('Synchronizing memory vault with PostgreSQL ledger...')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors shadow-2xs cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-zinc-400" />
             <span>Re-Index Memory</span>
@@ -218,19 +270,19 @@ export default function ContextVaultPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-2xs">
           <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Total Synced Facts</div>
-          <div className="text-lg font-semibold font-mono text-zinc-900 dark:text-zinc-100 mt-1">1,420</div>
-          <div className="text-[10px] text-zinc-400 mt-0.5">Across 124 clients</div>
+          <div className="text-lg font-semibold font-mono text-zinc-900 dark:text-zinc-100 mt-1">{filtered.length}</div>
+          <div className="text-[10px] text-zinc-400 mt-0.5">{activeWorkspace.name}</div>
         </div>
 
         <div className="p-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-2xs">
           <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Budget Points</div>
-          <div className="text-lg font-semibold font-mono text-emerald-500 mt-1">384</div>
+          <div className="text-lg font-semibold font-mono text-emerald-500 mt-1">{budgetCount}</div>
           <div className="text-[10px] text-zinc-400 mt-0.5">Fixed & hourly rates</div>
         </div>
 
         <div className="p-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-2xs">
           <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Tech Specifications</div>
-          <div className="text-lg font-semibold font-mono text-blue-500 mt-1">642</div>
+          <div className="text-lg font-semibold font-mono text-blue-500 mt-1">{techCount}</div>
           <div className="text-[10px] text-zinc-400 mt-0.5">Frameworks & APIs</div>
         </div>
 
