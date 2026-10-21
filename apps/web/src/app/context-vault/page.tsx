@@ -398,7 +398,7 @@ export default function ContextVaultPage() {
                 filtered.map((item) => (
                   <tr
                     key={item.id}
-                    className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors ${
+                    className={`hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors ${
                       item.status === 'disputed' ? 'bg-amber-500/5' : ''
                     }`}
                   >

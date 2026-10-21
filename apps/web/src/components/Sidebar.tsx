@@ -105,7 +105,7 @@ export function Sidebar() {
             aria-expanded={isOpen}
             className={`w-full px-2.5 py-1.5 rounded-md border text-left transition-all shadow-2xs flex items-center justify-between cursor-pointer ${
               isOpen
-                ? 'border-zinc-400 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-850 ring-2 ring-zinc-400/20 dark:ring-zinc-600/20'
+                ? 'border-zinc-400 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 ring-2 ring-zinc-400/20 dark:ring-zinc-600/20'
                 : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
             }`}
           >
@@ -139,7 +139,7 @@ export function Sidebar() {
                       className={`w-full px-2 py-2 rounded-md text-left flex items-start justify-between transition-colors cursor-pointer ${
                         isSelected
                           ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium'
-                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-850'
+                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                       }`}
                     >
                       <div className="flex items-start gap-2 min-w-0">
@@ -171,7 +171,7 @@ export function Sidebar() {
                 <Link
                   href="/settings"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between w-full px-2 py-1.5 rounded-md text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-[11px] transition-colors"
+                  className="flex items-center justify-between w-full px-2 py-1.5 rounded-md text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[11px] transition-colors"
                 >
                   <span>Connect / Manage Workspaces</span>
                   <span className="text-[10px] font-mono text-zinc-400">Settings →</span>

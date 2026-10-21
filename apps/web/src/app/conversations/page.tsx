@@ -272,8 +272,8 @@ export default function ConversationsPage() {
                     onClick={() => setSelectedThread(thread)}
                     className={`w-full p-4 text-left transition-colors flex items-start gap-3 cursor-pointer ${
                       isSelected
-                        ? 'bg-zinc-100/80 dark:bg-zinc-800/80'
-                        : 'hover:bg-zinc-50 dark:hover:bg-zinc-850/50'
+                        ? 'bg-zinc-200/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium'
+                        : 'hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300'
                     }`}
                   >
                     <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-semibold text-xs text-zinc-800 dark:text-zinc-200 shrink-0">

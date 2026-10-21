@@ -282,7 +282,7 @@ export default function DashboardOverviewPage() {
               {filteredThreads.map((thread) => (
                 <div
                   key={thread.id}
-                  className="p-4 hover:bg-zinc-50/80 dark:hover:bg-zinc-850/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="p-4 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1.5 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -412,7 +412,7 @@ export default function DashboardOverviewPage() {
 
             <Link
               href="/context-vault"
-              className="p-2.5 rounded bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-[11px] flex items-center justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group"
+              className="p-2.5 rounded bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 text-[11px] flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group"
             >
               <span className="text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-200">
                 Active Contradictions:

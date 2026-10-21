@@ -64,7 +64,7 @@ export function TopNav({ title = 'Workspace Overview', onSyncTrigger }: TopNavPr
         <button
           onClick={handleManualSync}
           disabled={isSyncing}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors shadow-2xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-2xs cursor-pointer"
           title="Trigger cloud handshake and refresh local mirror"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -87,7 +87,7 @@ export function TopNav({ title = 'Workspace Overview', onSyncTrigger }: TopNavPr
           href="https://github.com/chatbotexpert/memoreply"
           target="_blank"
           rel="noreferrer"
-          className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
+          className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           title="View GitHub Repository"
         >
           <ExternalLink className="w-3.5 h-3.5" />

@@ -311,7 +311,7 @@ export default function ClientsPage() {
                 filtered.map((client) => (
                   <tr
                     key={client.id}
-                    className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors group"
+                    className="hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors group"
                   >
                     {/* Identity */}
                     <td className="py-3 px-4 whitespace-nowrap">
