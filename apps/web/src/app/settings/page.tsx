@@ -14,9 +14,13 @@ import {
   User,
   Sliders,
   CheckCircle2,
+  Globe,
+  Radio,
 } from 'lucide-react';
+import { useWorkspace } from '@/context/WorkspaceContext';
 
 export default function SettingsPage() {
+  const { activeWorkspace, setWorkspace, workspaces } = useWorkspace();
   const [apiKey, setApiKey] = useState('memo_live_9f82d1b68536c045968186fcb699');
   const [copiedKey, setCopiedKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -130,7 +134,73 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Section 2: API Keys & Extension Pairing Gateway */}
+      {/* Section 2: Platform Workspaces & Live Adapters */}
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xs space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-zinc-500" />
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                Connected Workspaces & Platform Adapters
+              </h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Manage live browser DOM injection adapters for your freelance marketplaces.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+            3 Connected Adapters
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {workspaces.map((ws) => {
+            const isSelected = activeWorkspace.id === ws.id;
+            return (
+              <div
+                key={ws.id}
+                onClick={() => setWorkspace(ws)}
+                className={`p-3.5 rounded-lg border transition-all cursor-pointer flex items-start justify-between ${
+                  isSelected
+                    ? 'border-zinc-400 bg-zinc-50/80 dark:border-zinc-600 dark:bg-zinc-800/80 ring-1 ring-zinc-400/30'
+                    : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900'
+                }`}
+              >
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${ws.dotColor} shrink-0`} />
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                      {ws.name}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                      {ws.badge}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 line-clamp-1">{ws.description}</p>
+                  <div className="flex items-center gap-2 pt-1 text-[10px] font-mono text-zinc-400">
+                    <span>Adapter: Active</span>
+                    <span>&bull;</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">SHA-256 Synced</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className={`px-2 py-1 rounded text-[11px] font-medium transition-colors shrink-0 ml-2 ${
+                    isSelected
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                >
+                  {isSelected ? 'Active' : 'Switch'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Section 3: API Keys & Extension Pairing Gateway */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xs space-y-4">
         <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
           <div className="flex items-center gap-2">
