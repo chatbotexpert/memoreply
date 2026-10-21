@@ -20,6 +20,19 @@ interface GeneratePayload {
   currentDraft?: string;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Api-Key',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: GeneratePayload = await req.json();
@@ -82,13 +95,16 @@ export async function POST(req: NextRequest) {
           const data = await res.json();
           const replyText = data.choices?.[0]?.message?.content?.trim();
           if (replyText) {
-            return NextResponse.json({
-              success: true,
-              replyText,
-              model,
-              tone,
-              source: 'api',
-            });
+            return NextResponse.json(
+              {
+                success: true,
+                replyText,
+                model,
+                tone,
+                source: 'api',
+              },
+              { headers: corsHeaders }
+            );
           }
         }
       } catch (apiErr) {
@@ -142,18 +158,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      replyText: reply,
-      tone,
-      model: 'context-engine-v2',
-      source: 'deterministic',
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        replyText: reply,
+        tone,
+        model: 'context-engine-v2',
+        source: 'deterministic',
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error('[Generate API] Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to generate inline response' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

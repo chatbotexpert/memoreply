@@ -22,7 +22,7 @@ export interface QueuedSyncPayload {
   retryCount: number;
 }
 
-const DEFAULT_SYNC_ENDPOINT = 'http://localhost:3000/api/sync';
+const DEFAULT_SYNC_ENDPOINT = 'https://memoreply-cfy8.vercel.app/api/sync';
 const DEFAULT_API_TOKEN = 'memo_live_9f82d1b68536c045968186fcb699';
 const STORAGE_QUEUE_KEY = 'memoreply_offline_sync_queue';
 const MAX_RETRIES = 5;
@@ -135,8 +135,11 @@ export async function pushConversationToCloud(
     // Transmit to Cloud Endpoint
     const response = await fetch(settings.syncEndpoint, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
       headers: {
         'Content-Type': 'application/json',
+        Accept: 'application/json',
         Authorization: `Bearer ${settings.apiToken}`,
       },
       body: JSON.stringify(payload),
@@ -224,8 +227,11 @@ export async function flushOfflineSyncQueue(): Promise<{ processed: number; rema
         try {
           const res = await fetch(settings.syncEndpoint, {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: {
               'Content-Type': 'application/json',
+              Accept: 'application/json',
               Authorization: `Bearer ${settings.apiToken}`,
             },
             body: JSON.stringify(item.payload),

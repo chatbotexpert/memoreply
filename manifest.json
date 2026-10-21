@@ -48,7 +48,10 @@
     "*://*.linkedin.com/*",
     "*://*.chatgpt.com/*",
     "*://*.openai.com/*",
-    "http://localhost:3000/*"
+    "https://*.vercel.app/*",
+    "https://memoreply-cfy8.vercel.app/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

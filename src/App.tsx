@@ -132,7 +132,7 @@ export default function App() {
   // Direct AI Gateway Settings
   const [selectedModel, setSelectedModel] = useState<string>('inline-engine');
   const [customApiKey, setCustomApiKey] = useState<string>('');
-  const [apiEndpoint, setApiEndpoint] = useState<string>('http://localhost:3000/api/generate');
+  const [apiEndpoint, setApiEndpoint] = useState<string>('https://memoreply-cfy8.vercel.app/api/generate');
   const [isTestingSession, setIsTestingSession] = useState<boolean>(false);
 
   // Module 7: Seller Knowledge Base States
@@ -420,12 +420,29 @@ export default function App() {
    */
   const handleTestDirectConnection = async () => {
     setIsTestingSession(true);
+    let targetUrl = (apiEndpoint || 'https://memoreply-cfy8.vercel.app/api/generate').trim();
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      targetUrl = 'https://' + targetUrl;
+    }
+    // Automatically append /api/generate if host root was entered
+    if (!targetUrl.endsWith('/api/generate') && !targetUrl.includes('/api/')) {
+      targetUrl = targetUrl.replace(/\/+$/, '') + '/api/generate';
+    }
+
     try {
-      const res = await fetch(apiEndpoint || 'http://localhost:3000/api/generate', {
+      const res = await fetch(targetUrl, {
         method: 'POST',
+        mode: 'cors',
+        credentials: 'omit',
         headers: {
           'Content-Type': 'application/json',
-          ...(customApiKey ? { Authorization: `Bearer ${customApiKey}` } : {}),
+          Accept: 'application/json',
+          ...(customApiKey
+            ? {
+                Authorization: `Bearer ${customApiKey}`,
+                'X-Api-Key': customApiKey,
+              }
+            : {}),
         },
         body: JSON.stringify({
           systemPrompt: 'Health check',
@@ -437,9 +454,12 @@ export default function App() {
       if (res.ok) {
         showToast('Direct AI Gateway connected & verified!', 'success');
       } else {
-        showToast('Gateway reachable (operating in local fallback mode).', 'info');
+        const errorText = await res.text().catch(() => '');
+        console.warn('[Direct Gateway] Non-200 response:', res.status, errorText);
+        showToast(`Gateway reachable (${res.status} ${res.statusText || 'OK'}).`, 'info');
       }
-    } catch {
+    } catch (err: unknown) {
+      console.error('[Direct Gateway] Connection test failed:', err);
       showToast('Gateway unreachable. Operating with local direct synthesis.', 'info');
     } finally {
       setIsTestingSession(false);

@@ -15,7 +15,7 @@ export interface InlineRefineOptions {
   clientName?: string;
 }
 
-const DEFAULT_PROXY_ENDPOINT = 'http://localhost:3000/api/generate';
+const DEFAULT_PROXY_ENDPOINT = 'https://memoreply-cfy8.vercel.app/api/generate';
 
 /**
  * Fetch an AI response directly via backend proxy or direct API without external tabs.
@@ -45,15 +45,27 @@ export async function generateInlineResponse(
     );
   });
 
-  const endpoint = storage.memoreply_api_endpoint || DEFAULT_PROXY_ENDPOINT;
+  let endpoint = (storage.memoreply_api_endpoint || DEFAULT_PROXY_ENDPOINT).trim();
+  if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+    endpoint = 'https://' + endpoint;
+  }
+  if (!endpoint.endsWith('/api/generate') && !endpoint.includes('/api/')) {
+    endpoint = endpoint.replace(/\/+$/, '') + '/api/generate';
+  }
 
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
       headers: {
         'Content-Type': 'application/json',
+        Accept: 'application/json',
         ...(storage.memoreply_custom_api_key
-          ? { Authorization: `Bearer ${storage.memoreply_custom_api_key}` }
+          ? {
+              Authorization: `Bearer ${storage.memoreply_custom_api_key}`,
+              'X-Api-Key': storage.memoreply_custom_api_key,
+            }
           : {}),
       },
       body: JSON.stringify({

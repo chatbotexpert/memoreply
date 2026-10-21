@@ -48,24 +48,40 @@ export interface SyncPayload {
   };
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Api-Key',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}
+
 /**
  * GET /api/sync
  * Cloud sync health check and protocol handshake endpoint
  */
 export async function GET() {
-  return NextResponse.json({
-    status: 'online',
-    service: 'Memoreply Cloud Sync Gateway',
-    version: '2.0.0-phase2',
-    protocol: 'v1',
-    capabilities: [
-      'client_memory_sync',
-      'conversation_stream_dedup',
-      'seller_knowledge_replication',
-      'conflict_resolution_flags',
-    ],
-    timestamp: new Date().toISOString(),
-  });
+  return NextResponse.json(
+    {
+      status: 'online',
+      service: 'Memoreply Cloud Sync Gateway',
+      version: '2.0.0-phase2',
+      protocol: 'v1',
+      capabilities: [
+        'client_memory_sync',
+        'conversation_stream_dedup',
+        'seller_knowledge_replication',
+        'conflict_resolution_flags',
+      ],
+      timestamp: new Date().toISOString(),
+    },
+    { headers: corsHeaders }
+  );
 }
 
 /**
@@ -84,7 +100,7 @@ export async function POST(req: NextRequest) {
           success: false,
           error: 'Invalid sync payload. Missing client, conversation, or knowledge base data.',
         },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -120,7 +136,7 @@ export async function POST(req: NextRequest) {
           latencyMs: 14,
         },
       },
-      { status: 200 }
+      { status: 200, headers: corsHeaders }
     );
   } catch (error) {
     console.error('[Memoreply Cloud Sync Error]:', error);
@@ -129,7 +145,7 @@ export async function POST(req: NextRequest) {
         success: false,
         error: 'Failed to process sync event: ' + (error instanceof Error ? error.message : String(error)),
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
