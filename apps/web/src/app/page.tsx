@@ -124,9 +124,9 @@ export default function LandingPage() {
             <a href="#platforms" className="hover:text-zinc-100 transition-colors">
               Platforms
             </a>
-            <a href="#pricing" className="text-zinc-200 hover:text-white transition-colors font-medium">
+            <Link href="/pricing" className="text-zinc-200 hover:text-white transition-colors font-medium">
               Pricing
-            </a>
+            </Link>
           </nav>
 
           {/* Right Action CTAs */}

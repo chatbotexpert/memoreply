@@ -9,12 +9,15 @@ import { TopNav } from '@/components/TopNav';
 
 export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLandingPage = pathname === '/';
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isPublicPage =
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/pricing';
 
   return (
     <AuthProvider>
-      {isLandingPage || isAuthPage ? (
+      {isPublicPage ? (
         <div className="w-full min-h-screen bg-zinc-950 text-zinc-100">{children}</div>
       ) : (
         <WorkspaceProvider>
