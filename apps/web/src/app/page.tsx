@@ -73,6 +73,7 @@ export default function LandingPage() {
   const [isCopied, setIsCopied] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [activePlatformTab, setActivePlatformTab] = useState<'fiverr' | 'upwork' | 'linkedin'>('fiverr');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   const handleCopyDemo = () => {
     navigator.clipboard.writeText(GUARD_TEMPLATES[selectedRule].response);
@@ -110,7 +111,7 @@ export default function LandingPage() {
           </Link>
 
           {/* Nav Links */}
-          <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-zinc-400">
+          <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-zinc-400">
             <a href="#features" className="hover:text-zinc-100 transition-colors">
               Core Modules
             </a>
@@ -121,7 +122,10 @@ export default function LandingPage() {
               Why Memoreply
             </a>
             <a href="#platforms" className="hover:text-zinc-100 transition-colors">
-              Supported Platforms
+              Platforms
+            </a>
+            <a href="#pricing" className="text-zinc-200 hover:text-white transition-colors font-medium">
+              Pricing
             </a>
           </nav>
 
@@ -136,9 +140,9 @@ export default function LandingPage() {
 
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
+              className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
-              <span>Get Started / Buy Access</span>
+              <span>Get Started</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
@@ -175,16 +179,16 @@ export default function LandingPage() {
                 href="/signup"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-lg transition-all shadow-md group cursor-pointer"
               >
-                <span>Get Started / Buy Access</span>
+                <span>Get Started</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
 
-              <Link
-                href="/login"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 hover:border-zinc-700 rounded-lg transition-all shadow-2xs cursor-pointer"
+              <a
+                href="#pricing"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 hover:border-zinc-700 rounded-lg transition-all shadow-2xs cursor-pointer"
               >
-                <span>Sign In to Workspace</span>
-              </Link>
+                <span>View Pricing & Plans</span>
+              </a>
             </div>
 
             {/* Architecture Highlights Pill Row */}
@@ -668,6 +672,258 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* PRICING SECTION (Instantly.ai / Vercel Enterprise Style) */}
+        <section id="pricing" className="py-24 border-t border-zinc-900 bg-zinc-950/70 relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
+                Transparent B2B Pricing
+              </span>
+              <h2 className="mt-3 text-3xl sm:text-5xl font-bold tracking-tight text-white">
+                Predictable, scalable plans for high-growth sellers
+              </h2>
+              <p className="mt-4 text-sm sm:text-base text-zinc-400">
+                Every tier includes full client memory extraction, cross-platform adapters, and the contradiction protection shield.
+              </p>
+
+              {/* Monthly vs Annual Toggle */}
+              <div className="mt-8 inline-flex items-center p-1 rounded-lg bg-zinc-900 border border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle('monthly')}
+                  className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    billingCycle === 'monthly'
+                      ? 'bg-white text-zinc-950 shadow-xs font-semibold'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Monthly billing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle('yearly')}
+                  className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer flex items-center gap-2 ${
+                    billingCycle === 'yearly'
+                      ? 'bg-white text-zinc-950 shadow-xs font-semibold'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <span>Yearly billing</span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800/80">
+                    Save 20%
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3 Pricing Tier Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
+              {/* Card 1: Freelancer */}
+              <div className="p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">Freelancer</h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-400 border border-zinc-750">
+                      Solo Seller
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-400">
+                    Perfect for independent freelancers managing high-volume client orders.
+                  </p>
+
+                  <div className="mt-6 flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white font-mono">
+                      {billingCycle === 'yearly' ? '$23' : '$29'}
+                    </span>
+                    <span className="text-xs text-zinc-400">/ month</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 font-mono block mt-1">
+                    {billingCycle === 'yearly' ? 'Billed annually ($276/yr)' : 'Billed monthly'}
+                  </span>
+
+                  <div className="mt-6 pt-6 border-t border-zinc-850 space-y-3 text-xs text-zinc-300">
+                    <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">
+                      Features Included:
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span><strong>1 Extension Seat</strong> (Personal Chrome MV3)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Unlimited client context extraction</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Fiverr, Upwork & LinkedIn adapters</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Contradiction Engine & Scope Shield</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Local IndexedDB + cloud mirror</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-zinc-850">
+                  <Link
+                    href="/signup?plan=Freelancer"
+                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
+                  >
+                    <span>Get Started</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Card 2: Agency Pro (Highlighted / Instantly style) */}
+              <div className="p-8 rounded-2xl bg-zinc-900 border-2 border-indigo-500/80 shadow-2xl relative flex flex-col justify-between">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500 text-white shadow-md">
+                  Most Popular &bull; Agency Choice
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">Agency Pro</h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-400 border border-indigo-800">
+                      5 Team Seats
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-400">
+                    For growing agency teams and studios managing multiple marketplace accounts.
+                  </p>
+
+                  <div className="mt-6 flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white font-mono">
+                      {billingCycle === 'yearly' ? '$63' : '$79'}
+                    </span>
+                    <span className="text-xs text-zinc-400">/ month</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 font-mono block mt-1">
+                    {billingCycle === 'yearly' ? 'Billed annually ($756/yr)' : 'Billed monthly'}
+                  </span>
+
+                  <div className="mt-6 pt-6 border-t border-zinc-800 space-y-3 text-xs text-zinc-300">
+                    <div className="text-[11px] font-mono text-indigo-400 uppercase tracking-wider font-semibold">
+                      Everything in Freelancer, plus:
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span><strong>5 Concurrent Extension Seats</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Shared Team Memory Mirror & sync pool</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Centralized agency management dashboard</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Cross-seat contradiction alerts</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Priority WebSocket Cloud Gateway</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-zinc-800">
+                  <Link
+                    href="/signup?plan=Agency%20Pro"
+                    className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md group"
+                  >
+                    <span>Get Started</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Card 3: Enterprise */}
+              <div className="p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">Enterprise Agency</h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-400 border border-zinc-750">
+                      20 Seats
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-400">
+                    For enterprise studios requiring custom integrations and dedicated mirrors.
+                  </p>
+
+                  <div className="mt-6 flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white font-mono">
+                      {billingCycle === 'yearly' ? '$159' : '$199'}
+                    </span>
+                    <span className="text-xs text-zinc-400">/ month</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 font-mono block mt-1">
+                    {billingCycle === 'yearly' ? 'Billed annually ($1,908/yr)' : 'Billed monthly'}
+                  </span>
+
+                  <div className="mt-6 pt-6 border-t border-zinc-850 space-y-3 text-xs text-zinc-300">
+                    <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">
+                      Everything in Agency Pro, plus:
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span><strong>20 Concurrent Team Seats</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Custom CRM Webhooks & streaming</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Dedicated PostgreSQL database mirror</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Dedicated onboarding & 24/7 priority SLA</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-zinc-850">
+                  <Link
+                    href="/signup?plan=Enterprise"
+                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
+                  >
+                    <span>Get Started</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Trust Badges Row */}
+            <div className="mt-14 pt-8 border-t border-zinc-900 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-mono text-zinc-400">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>14-Day Money Back Guarantee</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>Instant License Key Provisioning</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                <span>Cancel Anytime with 1-Click</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-zinc-400" />
+                <span>100% Client-Side Private Encryption</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA BANNER */}
         <section className="py-20 border-t border-zinc-900 relative">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -749,6 +1005,11 @@ export default function LandingPage() {
                   <Link href="/context-vault" className="hover:text-zinc-300 transition-colors">
                     Context Vault Ledger
                   </Link>
+                </li>
+                <li>
+                  <a href="#pricing" className="hover:text-zinc-300 transition-colors text-white font-medium">
+                    Pricing & Plans
+                  </a>
                 </li>
                 <li>
                   <Link href="/settings" className="hover:text-zinc-300 transition-colors">

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ShieldCheck,
   ArrowRight,
@@ -70,7 +70,10 @@ const PLANS: PlanOption[] = [
   },
 ];
 
-export default function SignUpPage() {
+function SignUpForm() {
+  const searchParams = useSearchParams();
+  const planQuery = searchParams.get('plan');
+
   const [selectedPlan, setSelectedPlan] = useState<SaaSPlan>('Agency Pro');
   const [name, setName] = useState('');
   const [agencyName, setAgencyName] = useState('');
@@ -81,6 +84,17 @@ export default function SignUpPage() {
 
   const { signup } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (planQuery) {
+      const match = PLANS.find(
+        (p) => p.id.toLowerCase() === planQuery.toLowerCase()
+      );
+      if (match) {
+        setSelectedPlan(match.id);
+      }
+    }
+  }, [planQuery]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,5 +340,19 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono text-xs">
+          Loading workspace provisioning...
+        </div>
+      }
+    >
+      <SignUpForm />
+    </Suspense>
   );
 }
