@@ -81,9 +81,11 @@ export function Sidebar() {
         {/* Workspace Brand Header */}
         <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
-            <div className="w-7 h-7 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center tracking-tight shadow-xs font-mono">
-              M
-            </div>
+            <img
+              src="/logo.png"
+              alt="Memoreply"
+              className="w-7 h-7 rounded-md object-contain shadow-xs shrink-0"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 tracking-tight">

@@ -968,7 +968,7 @@ export default function App() {
       {/* ---------- Header ---------- */}
       <header className="app-header">
         <div className="app-logo">
-          <div className="app-logo-icon">M</div>
+          <img src="/icons/icon-48.png" alt="Memoreply" style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'contain' }} />
           <div>
             <div className="app-logo-text">Memoreply</div>
           </div>

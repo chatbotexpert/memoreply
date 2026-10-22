@@ -69,9 +69,11 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo & Brand */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-950 font-mono font-bold text-sm flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-              M
-            </div>
+            <img
+              src="/logo.png"
+              alt="Memoreply"
+              className="w-8 h-8 rounded-lg object-contain shadow-xs group-hover:scale-105 transition-transform shrink-0"
+            />
             <div className="flex items-center gap-2">
               <span className="font-semibold text-base tracking-tight text-white">
                 Memoreply
@@ -678,10 +680,12 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
             {/* Col 1: Brand & Tagline */}
             <div className="space-y-3 md:col-span-1">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-zinc-100 text-zinc-950 font-mono font-bold text-xs flex items-center justify-center">
-                  M
-                </div>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/logo.png"
+                  alt="Memoreply"
+                  className="w-6 h-6 rounded object-contain shrink-0"
+                />
                 <span className="font-semibold text-sm text-white tracking-tight">Memoreply</span>
               </div>
               <p className="text-zinc-400 text-xs">
@@ -816,9 +820,11 @@ export default function LandingPage() {
             </button>
 
             <div>
-              <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-950 font-mono font-bold text-sm flex items-center justify-center mb-3">
-                M
-              </div>
+              <img
+                src="/logo.png"
+                alt="Memoreply"
+                className="w-10 h-10 rounded-lg object-contain mb-3 shrink-0"
+              />
               <h3 className="text-base font-semibold text-white">Install Memoreply Extension</h3>
               <p className="text-xs text-zinc-400 mt-1">
                 Manifest V3 certified companion for Chrome, Brave, and Edge.
