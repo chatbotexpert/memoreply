@@ -82,12 +82,12 @@ export function Sidebar() {
         <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
             <div className="w-7 h-7 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center tracking-tight shadow-xs font-mono">
-              C
+              M
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 tracking-tight">
-                  Contexly
+                  Memoreply
                 </span>
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                   Cloud

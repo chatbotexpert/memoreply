@@ -70,11 +70,11 @@ export default function LandingPage() {
           {/* Logo & Brand */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-950 font-mono font-bold text-sm flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-              C
+              M
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-base tracking-tight text-white">
-                Contexly
+                Memoreply
               </span>
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800/90 text-zinc-400 border border-zinc-700/60">
                 by HashTurn
@@ -91,7 +91,7 @@ export default function LandingPage() {
               Deterministic Engine
             </a>
             <a href="#comparison" className="hover:text-zinc-100 transition-colors">
-              Why Contexly
+              Why Memoreply
             </a>
             <a href="#platforms" className="hover:text-zinc-100 transition-colors">
               Supported Platforms
@@ -140,7 +140,7 @@ export default function LandingPage() {
 
             {/* Sub-headline / Value Proposition */}
             <p className="mt-6 text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-              Never forget a budget cap, deadline agreement, or deliverable scope. Contexly extracts persistent memory directly from client messaging threads across <span className="text-zinc-200 font-medium">Fiverr</span>, <span className="text-zinc-200 font-medium">Upwork</span>, and <span className="text-zinc-200 font-medium">LinkedIn</span> to compose bulletproof, context-verified responses in 1-click.
+              Never forget a budget cap, deadline agreement, or deliverable scope. Memoreply extracts persistent memory directly from client messaging threads across <span className="text-zinc-200 font-medium">Fiverr</span>, <span className="text-zinc-200 font-medium">Upwork</span>, and <span className="text-zinc-200 font-medium">LinkedIn</span> to compose bulletproof, context-verified responses in 1-click.
             </p>
 
             {/* Hero CTAs */}
@@ -194,7 +194,7 @@ export default function LandingPage() {
                   <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
                 </div>
                 <span className="ml-2 font-mono text-[11px] text-zinc-500">
-                  contexly://engine/session/active-thread
+                  memoreply://engine/session/active-thread
                 </span>
               </div>
 
@@ -375,7 +375,7 @@ export default function LandingPage() {
                 Engineered for High-Stakes Client Communication
               </h2>
               <p className="mt-4 text-sm sm:text-base text-zinc-400">
-                Generic chatbots hallucinate timelines and forget past agreements. Contexly combines deterministic context retention with inline execution.
+                Generic chatbots hallucinate timelines and forget past agreements. Memoreply combines deterministic context retention with inline execution.
               </p>
             </div>
 
@@ -389,7 +389,7 @@ export default function LandingPage() {
                   Persistent Client Memory
                 </h3>
                 <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
-                  Never dig through 200 past messages to recall what was agreed. Contexly continuously parses client threads into verified facts—budget caps, milestone definitions, revision clauses, and technical stacks—stored deterministically in local IndexedDB with PostgreSQL cloud replication.
+                  Never dig through 200 past messages to recall what was agreed. Memoreply continuously parses client threads into verified facts—budget caps, milestone definitions, revision clauses, and technical stacks—stored deterministically in local IndexedDB with PostgreSQL cloud replication.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2 text-[11px] font-mono text-zinc-400">
                   <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">Deterministic Extraction</span>
@@ -407,7 +407,7 @@ export default function LandingPage() {
                   Contradiction Engine
                 </h3>
                 <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
-                  Clients often casually tighten deadlines or expand scope midway through a project. Contexly compares every incoming sentence against historical facts, flagging conflicting statements as <span className="font-mono text-amber-300">DISPUTED</span> before you hit send. Protect yourself from impossible commitments.
+                  Clients often casually tighten deadlines or expand scope midway through a project. Memoreply compares every incoming sentence against historical facts, flagging conflicting statements as <span className="font-mono text-amber-300">DISPUTED</span> before you hit send. Protect yourself from impossible commitments.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2 text-[11px] font-mono text-zinc-400">
                   <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">Real-Time Fact Auditing</span>
@@ -463,7 +463,7 @@ export default function LandingPage() {
                 Execution Workflow
               </span>
               <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                How Contexly Operates in Real Time
+                How Memoreply Operates in Real Time
               </h2>
               <p className="mt-4 text-sm sm:text-base text-zinc-400">
                 A seamless 4-step pipeline that turns messy platform chat threads into verified communication ledgers.
@@ -503,7 +503,7 @@ export default function LandingPage() {
                 <span className="text-xs font-mono text-zinc-500 block">STEP 04</span>
                 <h4 className="text-base font-semibold text-white">Cloud Sync Mirror</h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Deduplicated messages and client ledgers silently sync to your Contexly Cloud Dashboard for team oversight, backup, and historical tracking.
+                  Deduplicated messages and client ledgers silently sync to your Memoreply Cloud Dashboard for team oversight, backup, and historical tracking.
                 </p>
               </div>
             </div>
@@ -518,10 +518,10 @@ export default function LandingPage() {
                 Architectural Comparison
               </span>
               <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                Traditional AI Chatbots vs. Contexly
+                Traditional AI Chatbots vs. Memoreply
               </h2>
               <p className="mt-4 text-sm sm:text-base text-zinc-400">
-                Why client-facing professionals replace copy-pasting into ChatGPT tabs with Contexly.
+                Why client-facing professionals replace copy-pasting into ChatGPT tabs with Memoreply.
               </p>
             </div>
 
@@ -531,7 +531,7 @@ export default function LandingPage() {
                   <tr className="bg-zinc-900 border-b border-zinc-800 text-zinc-300 font-mono">
                     <th className="p-4 font-semibold">Capability</th>
                     <th className="p-4 font-semibold text-zinc-500">ChatGPT / Claude Tabs</th>
-                    <th className="p-4 font-semibold text-white bg-zinc-850 border-l border-zinc-700">Contexly Context Engine</th>
+                    <th className="p-4 font-semibold text-white bg-zinc-850 border-l border-zinc-700">Memoreply Context Engine</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-850">
@@ -587,7 +587,7 @@ export default function LandingPage() {
                 Seamless Cross-Platform Adapters
               </h2>
               <p className="mt-4 text-sm text-zinc-400">
-                Contexly isolates DOM selectors so you operate with full speed regardless of platform UI changes.
+                Memoreply isolates DOM selectors so you operate with full speed regardless of platform UI changes.
               </p>
             </div>
 
@@ -680,9 +680,9 @@ export default function LandingPage() {
             <div className="space-y-3 md:col-span-1">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded bg-zinc-100 text-zinc-950 font-mono font-bold text-xs flex items-center justify-center">
-                  C
+                  M
                 </div>
-                <span className="font-semibold text-sm text-white tracking-tight">Contexly</span>
+                <span className="font-semibold text-sm text-white tracking-tight">Memoreply</span>
               </div>
               <p className="text-zinc-400 text-xs">
                 AI replies that remember.
@@ -793,7 +793,7 @@ export default function LandingPage() {
           {/* Bottom Bar */}
           <div className="pt-8 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-[11px] text-zinc-500">
-              &copy; 2026 Contexly. Engineered by HashTurn Digital. All rights reserved.
+              &copy; 2026 Memoreply. Engineered by HashTurn Digital. All rights reserved.
             </p>
 
             <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-400">
@@ -817,9 +817,9 @@ export default function LandingPage() {
 
             <div>
               <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-950 font-mono font-bold text-sm flex items-center justify-center mb-3">
-                C
+                M
               </div>
-              <h3 className="text-base font-semibold text-white">Install Contexly Extension</h3>
+              <h3 className="text-base font-semibold text-white">Install Memoreply Extension</h3>
               <p className="text-xs text-zinc-400 mt-1">
                 Manifest V3 certified companion for Chrome, Brave, and Edge.
               </p>
