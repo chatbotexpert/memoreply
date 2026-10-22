@@ -28,29 +28,54 @@ import {
   X,
 } from 'lucide-react';
 
-type ToneType = 'Professional' | 'Milestone' | 'Concise' | 'Friendly' | 'Direct';
+type GuardRule = 'Timeline Shield' | 'Split Milestone' | 'Scope Defense' | 'TOS Protection';
 
-const DEMO_RESPONSES: Record<ToneType, string> = {
-  Professional:
-    "Hi Alex,\n\nThank you for reaching out. Per our agreed project scope, delivering the complete React 19 extension requires 7 business days to ensure full QA and Dexie DB schema integrity. We can deliver the core UI prototype by Thursday, with full completion adhering to the $500 milestone budget.\n\nLet me know if you would like me to structure this into two milestone checkpoints.",
-  Milestone:
-    "Hi Alex,\n\nTo accommodate your Thursday target while protecting codebase stability, here is the suggested milestone structure:\n\n• Milestone 1 (Thursday): Core side panel UI + DOM extractor ($250)\n• Milestone 2 (Monday): IndexedDB sync + background service worker ($250)\n\nTotal Budget: $500 (locked). Ready to initiate the contract when you confirm!",
-  Concise:
-    "Hi Alex, reviewed the request. Thursday is feasible for the prototype, but full release requires our agreed 7-day sprint at $500. Can deliver Milestone 1 by Thursday if confirmed today.",
-  Friendly:
-    "Hi Alex! Great to hear from you. We would love to accelerate this for you! To keep our $500 budget intact without skipping QA testing, I can deliver the functional UI side panel this Thursday, and the full backend sync right after. How does that sound?",
-  Direct:
-    "Alex, full delivery by Thursday conflicts with the 7-day scope agreed earlier. I can provide the UI prototype Thursday and complete all requirements by Monday within the $500 budget. Let me know how to proceed.",
+interface GuardItem {
+  title: string;
+  badge: string;
+  ruleExplanation: string;
+  response: string;
+}
+
+const GUARD_TEMPLATES: Record<GuardRule, GuardItem> = {
+  'Timeline Shield': {
+    title: 'Enforce Agreed 7-Day Sprint',
+    badge: 'Scope Protected',
+    ruleExplanation: 'Rejects 48-hour rush without contract adjustment, citing Dexie DB QA requirements.',
+    response:
+      "Hi Alex,\n\nThank you for reaching out. Per our agreed project scope, delivering the complete React 19 extension requires 7 business days to ensure full QA and Dexie DB schema integrity. We can deliver the core UI prototype by Thursday, with full completion adhering to the $500 milestone budget.\n\nLet me know if you would like me to structure this into two milestone checkpoints.",
+  },
+  'Split Milestone': {
+    title: 'Structure Milestone Checkpoints',
+    badge: 'Milestone Locked',
+    ruleExplanation: 'Divides deliverables into two $250 verified checkpoints to safeguard the client target.',
+    response:
+      "Hi Alex,\n\nTo accommodate your Thursday target while protecting codebase stability, here is the suggested milestone structure:\n\n• Milestone 1 (Thursday): Core side panel UI + DOM extractor ($250)\n• Milestone 2 (Monday): IndexedDB sync + background service worker ($250)\n\nTotal Budget: $500 (locked). Ready to initiate the contract when you confirm!",
+  },
+  'Scope Defense': {
+    title: 'Firm Scope & Budget Lock',
+    badge: 'Budget Fixed ($500)',
+    ruleExplanation: 'Reaffirms confirmed $500 fixed cap and prevents unpaid scope creep.',
+    response:
+      "Hi Alex,\n\nReviewed the request. Delivering the full production extension by Thursday conflicts with our verified 7-day engineering scope at the agreed $500 budget. I can provide the UI prototype Thursday and complete all requirements by Monday. Let me know how to proceed.",
+  },
+  'TOS Protection': {
+    title: 'Platform Compliance Guard',
+    badge: 'TOS Guarded',
+    ruleExplanation: 'Ensures all communications & payment milestones remain strictly on Fiverr/Upwork.',
+    response:
+      "Hi Alex,\n\nPlease note all deliverables and milestone releases will be handled strictly through Fiverr in compliance with Terms of Service. Looking forward to completing Milestone 1 per our verified scope!",
+  },
 };
 
 export default function LandingPage() {
-  const [selectedTone, setSelectedTone] = useState<ToneType>('Professional');
+  const [selectedRule, setSelectedRule] = useState<GuardRule>('Timeline Shield');
   const [isCopied, setIsCopied] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [activePlatformTab, setActivePlatformTab] = useState<'fiverr' | 'upwork' | 'linkedin'>('fiverr');
 
   const handleCopyDemo = () => {
-    navigator.clipboard.writeText(DEMO_RESPONSES[selectedTone]);
+    navigator.clipboard.writeText(GUARD_TEMPLATES[selectedRule].response);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -137,7 +162,7 @@ export default function LandingPage() {
 
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.08]">
-              AI replies that <span className="text-zinc-400 underline decoration-zinc-800 underline-offset-8">remember</span>.
+              Replies that <span className="text-zinc-400 underline decoration-zinc-800 underline-offset-8">remember</span>.
             </h1>
 
             {/* Sub-headline / Value Proposition */}
@@ -168,7 +193,7 @@ export default function LandingPage() {
             <div className="mt-12 pt-8 border-t border-zinc-850/80 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-mono text-zinc-500">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Zero ChatGPT Tab Handoffs</span>
+                <span>Zero Lost Thread Context</span>
               </div>
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-zinc-400" />
@@ -301,43 +326,48 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Column 3: QuillBot-Style Inline Composer (4 cols) */}
+              {/* Column 3: Policy & Scope Guard (4 cols) */}
               <div className="lg:col-span-4 bg-zinc-950 rounded-lg border border-zinc-800/80 p-4 flex flex-col justify-between space-y-4">
                 <div>
                   <div className="flex items-center justify-between pb-3 border-b border-zinc-850">
                     <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-                      <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
-                      <span>Inline Response Composer</span>
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Policy & Scope Guard</span>
                     </div>
-                    <span className="text-[10px] font-mono text-zinc-400">
-                      QuillBot-Style
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/60">
+                      {GUARD_TEMPLATES[selectedRule].badge}
                     </span>
                   </div>
 
-                  {/* Interactive Tone Switchers */}
+                  {/* Interactive Guard Rule Selectors */}
                   <div className="mt-3">
-                    <span className="text-[10px] font-mono text-zinc-500 block mb-1.5">Select Synthesizer Tone:</span>
-                    <div className="grid grid-cols-3 gap-1.5 text-[11px]">
-                      {(['Professional', 'Milestone', 'Concise', 'Friendly', 'Direct'] as ToneType[]).map((tone) => (
+                    <span className="text-[10px] font-mono text-zinc-500 block mb-1.5">Enforce Verified Guard:</span>
+                    <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                      {(Object.keys(GUARD_TEMPLATES) as GuardRule[]).map((rule) => (
                         <button
-                          key={tone}
-                          onClick={() => setSelectedTone(tone)}
-                          className={`px-2 py-1 rounded text-center font-medium transition-all cursor-pointer ${
-                            selectedTone === tone
+                          key={rule}
+                          onClick={() => setSelectedRule(rule)}
+                          className={`px-2.5 py-1.5 rounded text-left font-medium transition-all cursor-pointer truncate ${
+                            selectedRule === rule
                               ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
                               : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850 border border-zinc-800'
                           }`}
                         >
-                          {tone}
+                          {rule}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Synthesized Response Output Box */}
+                  {/* Guard Rule Explanation */}
+                  <div className="mt-2.5 px-2.5 py-1.5 rounded bg-zinc-900/60 border border-zinc-850 text-[10px] font-mono text-zinc-400 flex items-center justify-between">
+                    <span className="truncate">{GUARD_TEMPLATES[selectedRule].ruleExplanation}</span>
+                  </div>
+
+                  {/* Guarded Milestone Response Box */}
                   <div className="mt-3 relative">
                     <div className="p-3 rounded-lg bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-200 leading-relaxed font-sans min-h-[140px] whitespace-pre-wrap">
-                      {DEMO_RESPONSES[selectedTone]}
+                      {GUARD_TEMPLATES[selectedRule].response}
                     </div>
                     <button
                       onClick={handleCopyDemo}
@@ -353,11 +383,12 @@ export default function LandingPage() {
                 <div className="pt-2 border-t border-zinc-850 flex items-center gap-2">
                   <button
                     onClick={() => {
-                      alert('In Chrome, this injects the drafted response directly into the active Fiverr / Upwork textarea with zero clipboard pasting!');
+                      alert('In Chrome, this injects the verified milestone terms directly into the active Fiverr / Upwork textarea with zero clipboard pasting!');
                     }}
                     className="w-full py-2 px-3 rounded-md bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
                   >
-                    <span>Insert into Fiverr Composer</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Insert Verified Terms into Fiverr</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -377,7 +408,7 @@ export default function LandingPage() {
                 Engineered for High-Stakes Client Communication
               </h2>
               <p className="mt-4 text-sm sm:text-base text-zinc-400">
-                Generic chatbots hallucinate timelines and forget past agreements. Memoreply combines deterministic context retention with inline execution.
+                Unstructured client messaging leads to forgotten agreements and scope disputes. Memoreply combines deterministic context retention with inline rule enforcement.
               </p>
             </div>
 
@@ -418,20 +449,20 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Feature 3: QuillBot-Style Inline Response Composer */}
+              {/* Feature 3: Seller Rules & Scope Protection Guard */}
               <div className="p-8 rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all group relative overflow-hidden">
                 <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white mb-6 group-hover:scale-105 transition-transform">
-                  <SlidersHorizontal className="w-5 h-5 text-indigo-400" />
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-white tracking-tight">
-                  QuillBot-Style Inline Composer
+                  Seller Rules & Scope Protection Guard
                 </h3>
                 <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
-                  Generate, rephrase, expand, or structure milestone offers right inside your platform messaging window. Tune tones from Professional to Direct, enforce minimum project rules, and insert the formatted text with a single keystroke.
+                  Enforce minimum pricing thresholds, revision limits, and contract milestones directly inside your platform messaging window. Pre-built safeguards prevent accidental scope creep, off-platform communication penalties, and unfeasible delivery deadlines.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2 text-[11px] font-mono text-zinc-400">
-                  <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">Multi-Tone Synthesis</span>
-                  <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">Milestone Breakdown</span>
+                  <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">Milestone Structuring</span>
+                  <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">TOS Violation Shield</span>
                   <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">1-Click Native Paste</span>
                 </div>
               </div>
@@ -445,7 +476,7 @@ export default function LandingPage() {
                   Cross-Platform Adapters
                 </h3>
                 <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
-                  Built-in DOM adapters handle the distinct interface quirks of Fiverr, Upwork, and LinkedIn. It reads active message elements, injects replies seamlessly, and transmits background sync payloads without ever opening an external ChatGPT tab.
+                  Built-in DOM adapters handle the distinct interface quirks of Fiverr, Upwork, and LinkedIn. It reads active message elements, injects replies seamlessly, and transmits background sync payloads without ever opening external notepad tabs or losing track of context.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2 text-[11px] font-mono text-zinc-400">
                   <span className="px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700/60">Fiverr Inbox & Orders</span>
@@ -494,9 +525,9 @@ export default function LandingPage() {
               {/* Step 3 */}
               <div className="p-6 rounded-lg bg-zinc-900/40 border border-zinc-800/80 relative space-y-3">
                 <span className="text-xs font-mono text-zinc-500 block">STEP 03</span>
-                <h4 className="text-base font-semibold text-white">Inline Synthesis</h4>
+                <h4 className="text-base font-semibold text-white">Context-Grounded Response</h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  The QuillBot-style composer drafts human, milestone-ready responses right inside the native message box with zero external browser tabs.
+                  Assemble verified milestone breakdowns and contract-grounded replies right inside the native message box with zero manual copy-pasting.
                 </p>
               </div>
 
@@ -520,10 +551,10 @@ export default function LandingPage() {
                 Architectural Comparison
               </span>
               <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                Traditional AI Chatbots vs. Memoreply
+                Scattered Chat Notes vs. Memoreply
               </h2>
               <p className="mt-4 text-sm sm:text-base text-zinc-400">
-                Why client-facing professionals replace copy-pasting into ChatGPT tabs with Memoreply.
+                Why client-facing professionals replace lost message threads and unverified promises with Memoreply.
               </p>
             </div>
 
@@ -532,14 +563,14 @@ export default function LandingPage() {
                 <thead>
                   <tr className="bg-zinc-900 border-b border-zinc-800 text-zinc-300 font-mono">
                     <th className="p-4 font-semibold">Capability</th>
-                    <th className="p-4 font-semibold text-zinc-500">ChatGPT / Claude Tabs</th>
-                    <th className="p-4 font-semibold text-white bg-zinc-850 border-l border-zinc-700">Memoreply Context Engine</th>
+                    <th className="p-4 font-semibold text-zinc-500">Scattered Notes & Ad-Hoc Chat</th>
+                    <th className="p-4 font-semibold text-white bg-zinc-850 border-l border-zinc-700">Memoreply Context Ledger</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-850">
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-300">Thread Context Persistence</td>
-                    <td className="p-4 text-zinc-500">Lost on tab close / memory purge</td>
+                    <td className="p-4 text-zinc-500">Lost in buried threads and memory lapses</td>
                     <td className="p-4 text-emerald-400 font-semibold bg-zinc-900/50 border-l border-zinc-800">
                       Persistent in IndexedDB + Postgres
                     </td>
@@ -553,21 +584,21 @@ export default function LandingPage() {
                   </tr>
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-300">Native Platform Integration</td>
-                    <td className="p-4 text-zinc-500">Manual copy & paste back and forth</td>
+                    <td className="p-4 text-zinc-500">Manual searching across 200+ past messages</td>
                     <td className="p-4 text-emerald-400 font-semibold bg-zinc-900/50 border-l border-zinc-800">
                       1-click native DOM composer injection
                     </td>
                   </tr>
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-300">Seller Rules & Guidelines</td>
-                    <td className="p-4 text-zinc-500">Must re-prompt every single session</td>
+                    <td className="p-4 text-zinc-500">Forgotten or inconsistently applied</td>
                     <td className="p-4 text-emerald-400 font-semibold bg-zinc-900/50 border-l border-zinc-800">
                       Enforced globally on every draft
                     </td>
                   </tr>
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-300">Average Reply Turnaround</td>
-                    <td className="p-4 text-zinc-500">3 - 5 minutes of tab gymnastics</td>
+                    <td className="p-4 text-zinc-500">3 - 5 minutes of search & hesitation</td>
                     <td className="p-4 text-emerald-400 font-semibold bg-zinc-900/50 border-l border-zinc-800">
                       &lt; 45 seconds total
                     </td>
@@ -632,7 +663,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-base font-semibold text-white">LinkedIn Messaging & Sales Nav</h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Tracks corporate lead facts, company size notes, and executive consulting inquiries. Composes concise, executive-level replies.
+                  Tracks corporate lead facts, company size notes, and executive consulting inquiries. Secures verified project terms and consulting notes.
                 </p>
               </div>
             </div>
@@ -689,7 +720,7 @@ export default function LandingPage() {
                 <span className="font-semibold text-sm text-white tracking-tight">Memoreply</span>
               </div>
               <p className="text-zinc-400 text-xs">
-                AI replies that remember.
+                Replies that remember.
               </p>
               <div className="pt-2 text-[11px] text-zinc-500 font-mono">
                 Developed by <span className="text-zinc-300 font-semibold">HashTurn</span>
@@ -743,7 +774,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a href="#features" className="hover:text-zinc-300 transition-colors">
-                    Inline Response Composer
+                    Scope & Policy Guard
                   </a>
                 </li>
                 <li>
@@ -785,7 +816,7 @@ export default function LandingPage() {
                   <span className="text-zinc-400">Chrome MV3 Certified</span>
                 </li>
                 <li>
-                  <span className="text-zinc-400">Zero LLM Model Training</span>
+                  <span className="text-zinc-400">100% Client-Side Privacy & Encryption</span>
                 </li>
                 <li>
                   <span className="text-zinc-400">Deterministic Offline Mode</span>

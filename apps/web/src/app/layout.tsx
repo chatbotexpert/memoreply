@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Memoreply — AI replies that remember | Workspace Memory Ledger',
+  title: 'Memoreply — Replies that remember | Workspace Memory Ledger',
   description:
     'A deterministic context engine and communication ledger for client-facing professionals on Fiverr, Upwork, and LinkedIn by HashTurn.',
 };

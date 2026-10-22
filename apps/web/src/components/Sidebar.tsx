@@ -95,7 +95,7 @@ export function Sidebar() {
                   Cloud
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-500 font-mono tracking-tight">AI replies that remember</p>
+              <p className="text-[10px] text-zinc-500 font-mono tracking-tight">Replies that remember</p>
             </div>
           </Link>
         </div>
