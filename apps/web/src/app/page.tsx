@@ -127,19 +127,18 @@ export default function LandingPage() {
 
           {/* Right Action CTAs */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowInstallModal(true)}
-              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-md transition-all cursor-pointer shadow-2xs"
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-md transition-all cursor-pointer shadow-2xs"
             >
-              <Download className="w-3.5 h-3.5 text-zinc-400" />
-              <span>Install Extension</span>
-            </button>
+              <span>Sign In</span>
+            </Link>
 
             <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-zinc-950 bg-white hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
+              href="/signup"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
-              <span>Open Dashboard</span>
+              <span>Get Started / Buy Access</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
@@ -156,7 +155,7 @@ export default function LandingPage() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-zinc-400">Release v0.2</span>
               <span className="text-zinc-600">&bull;</span>
-              <span>Deterministic Context Engine & Cloud Mirror</span>
+              <span>Commercial B2B Agency & Freelancer Cloud</span>
               <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
             </div>
 
@@ -173,20 +172,19 @@ export default function LandingPage() {
             {/* Hero CTAs */}
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/dashboard"
+                href="/signup"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-lg transition-all shadow-md group cursor-pointer"
               >
-                <span>Open Workspace Dashboard</span>
+                <span>Get Started / Buy Access</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
 
-              <button
-                onClick={() => setShowInstallModal(true)}
+              <Link
+                href="/login"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 hover:border-zinc-700 rounded-lg transition-all shadow-2xs cursor-pointer"
               >
-                <Download className="w-4 h-4 text-zinc-400" />
-                <span>Install Chrome Extension</span>
-              </button>
+                <span>Sign In to Workspace</span>
+              </Link>
             </div>
 
             {/* Architecture Highlights Pill Row */}
@@ -685,20 +683,19 @@ export default function LandingPage() {
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  href="/dashboard"
+                  href="/signup"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-lg transition-all shadow-md group cursor-pointer"
                 >
-                  <span>Open Workspace Dashboard</span>
+                  <span>Get Started / Buy Access</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
 
-                <button
-                  onClick={() => setShowInstallModal(true)}
+                <Link
+                  href="/login"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg transition-all cursor-pointer"
                 >
-                  <Download className="w-4 h-4 text-zinc-400" />
-                  <span>Install Extension</span>
-                </button>
+                  <span>Sign In to Workspace</span>
+                </Link>
               </div>
             </div>
           </div>

@@ -11,9 +11,11 @@ import {
   Settings,
   ShieldCheck,
   ChevronDown,
+  LogOut,
 } from 'lucide-react';
 
 import { useWorkspace, WorkspaceOption } from '@/context/WorkspaceContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface NavItem {
   label: string;
@@ -33,6 +35,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState(false);
   const { activeWorkspace, setWorkspace, workspaces } = useWorkspace();
+  const { user, logout } = useAuth();
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   const counts = WORKSPACE_COUNTS[activeWorkspace.platform] || WORKSPACE_COUNTS.all;
@@ -238,16 +241,26 @@ export function Sidebar() {
 
         {/* User Account Item */}
         <div className="flex items-center gap-2.5 px-1.5">
-          <div className="w-8 h-8 rounded-full bg-zinc-300 dark:bg-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-            H
+          <div className="w-8 h-8 rounded-full bg-zinc-300 dark:bg-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-800 dark:text-zinc-200 shrink-0">
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
-              HashTurn Seller
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                {user?.name || 'HashTurn Agency'}
+              </p>
+            </div>
+            <p className="text-[10px] text-zinc-500 truncate font-mono">
+              {user?.agencyName || user?.email || 'seller@hashturn.com'}
             </p>
-            <p className="text-[11px] text-zinc-500 truncate font-mono">seller@hashturn.com</p>
           </div>
-          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <button
+            onClick={logout}
+            className="p-1 rounded text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </aside>

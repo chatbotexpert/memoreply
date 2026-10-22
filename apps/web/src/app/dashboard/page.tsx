@@ -12,9 +12,22 @@ import {
   Filter,
   Shield,
   Layers,
+  KeyRound,
+  Copy,
+  Check,
+  RefreshCw,
+  Laptop,
+  Download,
+  Trash2,
+  ExternalLink,
+  Zap,
+  Globe,
+  Sliders,
+  Sparkles,
 } from 'lucide-react';
 
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface MockClientThread {
   id: string;
@@ -114,7 +127,23 @@ const RECENT_CLIENTS: MockClientThread[] = [
 
 export default function DashboardOverviewPage() {
   const [filterQuery, setFilterQuery] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+  const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+
   const { activePlatform, activeWorkspace } = useWorkspace();
+  const { user, regenerateLicense, revokeSeat } = useAuth();
+
+  const handleCopyLicense = () => {
+    if (!user) return;
+    navigator.clipboard.writeText(user.licenseKey);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handleRegenKey = () => {
+    regenerateLicense();
+    setShowRegenConfirm(false);
+  };
 
   const platformFiltered = RECENT_CLIENTS.filter((c) => {
     if (activePlatform === 'all') return true;
@@ -137,34 +166,255 @@ export default function DashboardOverviewPage() {
   };
 
   const currentStats = statsMap[activePlatform] || statsMap.all;
+  const seatPercent = user ? Math.round((user.activeSeats / user.maxSeats) * 100) : 60;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      {/* Personalized Workspace Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50 tracking-tight">
-              Workspace Intelligence
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl font-bold text-zinc-950 dark:text-zinc-50 tracking-tight">
+              {user?.agencyName || 'Agency Workspace'}
             </h2>
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-              <span className={`w-1.5 h-1.5 rounded-full ${activeWorkspace.dotColor}`} />
-              {activeWorkspace.name}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {user?.plan || 'Agency Pro'} Active
             </span>
           </div>
           <p className="text-xs text-zinc-500 mt-1">
-            Real-time synchronization mirror for {activeWorkspace.name} client communications, memory facts, and policies.
+            Logged in as <span className="text-zinc-800 dark:text-zinc-200 font-medium">{user?.name}</span> ({user?.email}) &bull; Active Node: <span className="font-mono text-zinc-700 dark:text-zinc-300">{activeWorkspace.name}</span>
           </p>
         </div>
+
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            PostgreSQL Schema Synced
-          </span>
+          <Link
+            href="/settings"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 shadow-2xs transition-colors"
+          >
+            <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Workspace Settings</span>
+          </Link>
+
+          <Link
+            href="/signup"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 shadow-xs transition-colors"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-500" />
+            <span>Manage Plan</span>
+          </Link>
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
+      {/* COMMERCIAL B2B MODULE: Extension License & Team Seats Manager */}
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-5 sm:p-6 shadow-sm space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-900 dark:text-white">
+              <KeyRound className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  Chrome Extension License & Seats
+                </h3>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  Commercial B2B
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Each active freelancer or agency seat connects directly to this workspace ledger.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                alert('Extension package ready. Load the /dist directory as an unpacked extension via chrome://extensions.');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Download Extension Build</span>
+            </button>
+          </div>
+        </div>
+
+        {/* License Key & Seat Meter Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Col 1: License Key Box (7 cols) */}
+          <div className="lg:col-span-7 bg-zinc-50 dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+                Agency License Key
+              </span>
+              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                Authorized
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 px-3 py-2 rounded-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 font-mono text-xs text-zinc-900 dark:text-zinc-100 tracking-wider truncate">
+                {user?.licenseKey || 'MR-AGENCY-8849-X92F-PRO'}
+              </div>
+
+              <button
+                onClick={handleCopyLicense}
+                className="px-3 py-2 rounded-md bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0"
+                title="Copy License Key"
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Key</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowRegenConfirm(true)}
+                className="px-2.5 py-2 rounded-md bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-800 transition-colors cursor-pointer shrink-0"
+                title="Regenerate License Key"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-zinc-500">
+              Paste this key into the extension popup under <code className="text-zinc-700 dark:text-zinc-300 font-mono">Settings → License Key</code> to authenticate and mirror client messages.
+            </p>
+
+            {showRegenConfirm && (
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-200 space-y-2">
+                <p>
+                  Regenerating will revoke the current key. All active extension seats must be updated with the new key.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRegenKey}
+                    className="px-2.5 py-1 rounded bg-amber-600 text-white text-[11px] font-semibold hover:bg-amber-700"
+                  >
+                    Confirm Regenerate
+                  </button>
+                  <button
+                    onClick={() => setShowRegenConfirm(false)}
+                    className="px-2.5 py-1 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[11px]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Col 2: Seat Allocation & Tier Meter (5 cols) */}
+          <div className="lg:col-span-5 bg-zinc-50 dark:bg-zinc-950 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                  Extension Seat Utilization
+                </span>
+                <span className="font-mono text-zinc-600 dark:text-zinc-400">
+                  {user?.activeSeats || 3} / {user?.maxSeats || 5} Seats
+                </span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-2 w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                  style={{ width: `${seatPercent}%` }}
+                />
+              </div>
+
+              <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-500">
+                <span>Plan: <strong className="text-zinc-800 dark:text-zinc-200">{user?.plan || 'Agency Pro'}</strong></span>
+                <span>Renews: <strong className="text-zinc-800 dark:text-zinc-200">{user?.renewalDate || 'Nov 22, 2026'}</strong></span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-zinc-200 dark:border-zinc-850 flex items-center justify-between text-[11px]">
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                All {user?.activeSeats || 3} Seats Operational
+              </span>
+              <Link href="/signup" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                Add More Seats →
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Connected Extension Seats List */}
+        <div className="space-y-2 pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+              Connected Extension Instances
+            </span>
+            <span className="text-[11px] text-zinc-500 font-mono">
+              Real-time WebSocket Heartbeat
+            </span>
+          </div>
+
+          <div className="divide-y divide-zinc-200 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-950 text-xs">
+            {user?.seats && user.seats.length > 0 ? (
+              user.seats.map((seat) => (
+                <div
+                  key={seat.id}
+                  className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Laptop className="w-4 h-4 text-zinc-400 shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                          {seat.deviceName}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">
+                          ({seat.browser})
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                          {seat.platform}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-zinc-500">
+                        Last ping: {seat.lastPing} &bull; IP: {seat.ipAddress}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active
+                    </span>
+
+                    <button
+                      onClick={() => revokeSeat(seat.id)}
+                      className="p-1 rounded text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                      title="Revoke Extension Seat"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-xs text-zinc-500">
+                No active seats connected. Install the extension and input your license key to register your device.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Stats Grid across platforms */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1 */}
         <Link
@@ -183,7 +433,7 @@ export default function DashboardOverviewPage() {
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">+14 this week</span>
           </div>
-          <p className="text-[11px] text-zinc-400 mt-1">100% platform user mapped</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Fiverr, Upwork & LinkedIn mapped</p>
         </Link>
 
         {/* Metric 2 */}
@@ -203,7 +453,7 @@ export default function DashboardOverviewPage() {
             </span>
             <span className="text-xs text-zinc-500 font-mono">threads</span>
           </div>
-          <p className="text-[11px] text-zinc-400 mt-1">Deduplicated across reloads</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Deduplicated across agency seats</p>
         </Link>
 
         {/* Metric 3 */}
@@ -223,7 +473,7 @@ export default function DashboardOverviewPage() {
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">0 conflicts</span>
           </div>
-          <p className="text-[11px] text-zinc-400 mt-1">Specs, timelines & budgets</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Budgets, milestones & deliverables</p>
         </Link>
 
         {/* Metric 4 */}
@@ -233,7 +483,7 @@ export default function DashboardOverviewPage() {
         >
           <div className="flex items-center justify-between text-zinc-500">
             <span className="text-xs font-medium group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
-              Deterministic Proposals Compiled
+              Contract Terms Guarded
             </span>
             <Layers className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors" />
           </div>
@@ -243,7 +493,7 @@ export default function DashboardOverviewPage() {
             </span>
             <span className="text-xs text-zinc-500 font-mono">&lt; 45s avg</span>
           </div>
-          <p className="text-[11px] text-zinc-400 mt-1">Inserted directly into {activeWorkspace.name}</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Scope protected from false promises</p>
         </Link>
       </div>
 
@@ -364,7 +614,7 @@ export default function DashboardOverviewPage() {
               <div>
                 <span className="text-zinc-400 text-[11px] block font-mono">Identity & Role</span>
                 <p className="font-medium text-zinc-800 dark:text-zinc-200 mt-0.5">
-                  HashTurn Digital &bull; Senior Full-Stack Engineer & Extension Specialist
+                  {user?.agencyName || 'HashTurn Digital'} &bull; Senior Full-Stack Engineer & Extension Specialist
                 </p>
               </div>
 
