@@ -38,7 +38,7 @@ export function Sidebar() {
   const counts = WORKSPACE_COUNTS[activeWorkspace.platform] || WORKSPACE_COUNTS.all;
 
   const navItems: NavItem[] = [
-    { label: 'Overview', href: '/', icon: LayoutDashboard },
+    { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Clients', href: '/clients', icon: Users, count: counts.clients },
     { label: 'Conversations', href: '/conversations', icon: MessageSquare, count: counts.conversations },
     { label: 'Context Vault', href: '/context-vault', icon: Database, count: counts.vault },
@@ -80,22 +80,22 @@ export function Sidebar() {
       <div>
         {/* Workspace Brand Header */}
         <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-semibold text-xs flex items-center justify-center tracking-tight shadow-xs">
-              M
+          <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
+            <div className="w-7 h-7 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold text-xs flex items-center justify-center tracking-tight shadow-xs font-mono">
+              C
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 tracking-tight">
-                  Memoreply
+                  Contexly
                 </span>
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                   Cloud
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-500 font-mono tracking-tight">Enterprise Sync</p>
+              <p className="text-[10px] text-zinc-500 font-mono tracking-tight">AI replies that remember</p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Workspace Switcher Dropdown */}
