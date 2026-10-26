@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased dark" style={{ colorScheme: 'dark' }}>
-      <body className={`${inter.className} min-h-full bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased transition-colors duration-200`}>
+      <body className={`${inter.className} min-h-full bg-[#fafafa] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased transition-colors duration-200`}>
         <AppLayoutWrapper>{children}</AppLayoutWrapper>
       </body>
     </html>

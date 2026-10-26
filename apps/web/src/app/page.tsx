@@ -88,16 +88,16 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-zinc-200 dark:selection:bg-zinc-800 selection:text-zinc-950 dark:selection:text-white font-sans antialiased overflow-x-hidden transition-colors duration-200">
-      {/* Background Decorative Gradients (Linear Minimalist) */}
+    <div className="min-h-screen bg-[#fafafa] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-zinc-200 dark:selection:bg-zinc-800 selection:text-zinc-950 dark:selection:text-white font-sans antialiased overflow-x-hidden transition-colors duration-200">
+      {/* Background Decorative Gradients (Soft, eye-friendly ambient lighting) */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-b from-zinc-300/30 dark:from-zinc-800/20 via-zinc-200/10 dark:via-zinc-900/10 to-transparent blur-3xl opacity-60" />
-        <div className="absolute top-[20%] right-[10%] w-[400px] h-[300px] bg-emerald-500/10 dark:bg-emerald-950/10 blur-[120px] opacity-40" />
-        <div className="absolute top-[50%] left-[5%] w-[450px] h-[350px] bg-indigo-500/10 dark:bg-indigo-950/10 blur-[130px] opacity-30" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-zinc-200/40 dark:from-zinc-800/20 via-transparent to-transparent blur-3xl opacity-50" />
+        <div className="absolute top-[20%] right-[10%] w-[380px] h-[280px] bg-emerald-500/5 dark:bg-emerald-950/10 blur-[120px] opacity-30" />
+        <div className="absolute top-[50%] left-[5%] w-[420px] h-[320px] bg-indigo-500/5 dark:bg-indigo-950/10 blur-[130px] opacity-25" />
       </div>
 
       {/* Top Navigation */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-[#fafafa]/80 dark:bg-zinc-950/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo & Brand */}
           <Link href="/" className="flex items-center gap-3 group">
@@ -855,8 +855,8 @@ export default function LandingPage() {
               </div>
 
               {/* Card 2: Agency Pro (Highlighted) */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border-2 border-indigo-500/90 shadow-2xl scale-[1.01] relative flex flex-col justify-between">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-600 text-white shadow-md whitespace-nowrap">
+              <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border-2 border-indigo-600/70 dark:border-indigo-500/80 shadow-xl shadow-indigo-500/5 dark:shadow-2xl scale-[1.01] relative flex flex-col justify-between">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-600 text-white shadow-xs whitespace-nowrap">
                   Popular &bull; Agency Choice
                 </div>
 

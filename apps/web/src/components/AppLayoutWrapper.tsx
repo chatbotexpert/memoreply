@@ -20,7 +20,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <AuthProvider>
         {isPublicPage ? (
-          <div className="w-full min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
+          <div className="w-full min-h-screen bg-[#fafafa] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
             {children}
           </div>
         ) : (
