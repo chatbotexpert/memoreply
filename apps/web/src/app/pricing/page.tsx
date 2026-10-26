@@ -15,6 +15,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+import { EarlyAccessModal } from '@/components/EarlyAccessModal';
+
 type BillingPeriod = 'monthly' | 'yearly';
 type PlanType = 'Freelancer' | 'Agency Pro' | 'Enterprise';
 
@@ -114,6 +116,7 @@ const FAQS = [
 export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Agency Pro');
+  const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-zinc-800 selection:text-white font-sans antialiased overflow-x-hidden">
@@ -172,13 +175,13 @@ export default function PricingPage() {
               <span>Sign In</span>
             </Link>
 
-            <Link
-              href={`/signup?plan=${encodeURIComponent(selectedPlan)}`}
+            <button
+              onClick={() => setIsEarlyAccessOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
-              <span>Get Started</span>
+              <span>Get Early Access</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -189,9 +192,9 @@ export default function PricingPage() {
         <section className="pt-20 pb-12 sm:pt-24 sm:pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-300 mb-6 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Commercial B2B SaaS Tiers</span>
+            <span>Pre-Launch Early Access Tiers</span>
             <span className="text-zinc-600">&bull;</span>
-            <span className="text-emerald-400">Instant License Issuance</span>
+            <span className="text-emerald-400">Batch 1 Allocations</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight">
@@ -296,17 +299,21 @@ export default function PricingPage() {
 
                   {/* CTA Button */}
                   <div className="mt-8 pt-6 border-t border-zinc-800/80">
-                    <Link
-                      href={`/signup?plan=${encodeURIComponent(tier.id)}`}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPlan(tier.id);
+                        setIsEarlyAccessOpen(true);
+                      }}
                       className={`w-full py-3 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md group ${
                         tier.popular
                           ? 'bg-white hover:bg-zinc-200 text-zinc-950'
                           : 'bg-zinc-800 hover:bg-zinc-700 text-white'
                       }`}
                     >
-                      <span>Get Started with {tier.name}</span>
+                      <span>{tier.id === 'Enterprise' ? 'Join Waitlist' : `Get Early Access with ${tier.name}`}</span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                    </button>
                   </div>
                 </div>
               );
@@ -466,13 +473,13 @@ export default function PricingPage() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href={`/signup?plan=${encodeURIComponent(selectedPlan)}`}
+                <button
+                  onClick={() => setIsEarlyAccessOpen(true)}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-lg transition-all shadow-md group cursor-pointer"
                 >
-                  <span>Get Started Now</span>
+                  <span>Get Early Access</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                </button>
 
                 <Link
                   href="/login"
@@ -505,6 +512,13 @@ export default function PricingPage() {
           </p>
         </div>
       </footer>
+
+      {/* Early Access / Waitlist Modal */}
+      <EarlyAccessModal
+        isOpen={isEarlyAccessOpen}
+        onClose={() => setIsEarlyAccessOpen(false)}
+        defaultPlan={selectedPlan}
+      />
     </div>
   );
 }

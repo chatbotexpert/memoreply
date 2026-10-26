@@ -26,7 +26,10 @@ import {
   Copy,
   Download,
   X,
+  Sparkles,
 } from 'lucide-react';
+
+import { EarlyAccessModal } from '@/components/EarlyAccessModal';
 
 type GuardRule = 'Timeline Shield' | 'Split Milestone' | 'Scope Defense' | 'TOS Protection';
 
@@ -74,6 +77,8 @@ export default function LandingPage() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [activePlatformTab, setActivePlatformTab] = useState<'fiverr' | 'upwork' | 'linkedin'>('fiverr');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
+  const [selectedEarlyAccessPlan, setSelectedEarlyAccessPlan] = useState('Agency Pro');
 
   const handleCopyDemo = () => {
     navigator.clipboard.writeText(GUARD_TEMPLATES[selectedRule].response);
@@ -138,13 +143,16 @@ export default function LandingPage() {
               <span>Sign In</span>
             </Link>
 
-            <Link
-              href="/signup"
+            <button
+              onClick={() => {
+                setSelectedEarlyAccessPlan('Agency Pro');
+                setIsEarlyAccessOpen(true);
+              }}
               className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
-              <span>Get Started</span>
+              <span>Get Early Access</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -157,9 +165,9 @@ export default function LandingPage() {
             {/* Announcement Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-300 mb-8 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-zinc-400">Release v0.2</span>
+              <span className="text-zinc-400">Pre-Launch Early Access</span>
               <span className="text-zinc-600">&bull;</span>
-              <span>Commercial B2B Agency & Freelancer Cloud</span>
+              <span>Batch 1 Invitations Open</span>
               <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
             </div>
 
@@ -175,13 +183,16 @@ export default function LandingPage() {
 
             {/* Hero CTAs */}
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/signup"
+              <button
+                onClick={() => {
+                  setSelectedEarlyAccessPlan('Agency Pro');
+                  setIsEarlyAccessOpen(true);
+                }}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-lg transition-all shadow-md group cursor-pointer"
               >
-                <span>Get Started</span>
+                <span>Get Early Access</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              </button>
 
               <a
                 href="#pricing"
@@ -769,13 +780,16 @@ export default function LandingPage() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-zinc-850">
-                  <Link
-                    href="/signup?plan=Freelancer"
-                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
+                  <button
+                    onClick={() => {
+                      setSelectedEarlyAccessPlan('Freelancer');
+                      setIsEarlyAccessOpen(true);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
                   >
-                    <span>Get Started</span>
+                    <span>Get Early Access</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  </button>
                 </div>
               </div>
 
@@ -834,13 +848,16 @@ export default function LandingPage() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-zinc-800">
-                  <Link
-                    href="/signup?plan=Agency%20Pro"
-                    className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md group"
+                  <button
+                    onClick={() => {
+                      setSelectedEarlyAccessPlan('Agency Pro');
+                      setIsEarlyAccessOpen(true);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md group cursor-pointer"
                   >
-                    <span>Get Started</span>
+                    <span>Get Early Access</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                  </button>
                 </div>
               </div>
 
@@ -891,13 +908,16 @@ export default function LandingPage() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-zinc-850">
-                  <Link
-                    href="/signup?plan=Enterprise"
-                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
+                  <button
+                    onClick={() => {
+                      setSelectedEarlyAccessPlan('Enterprise');
+                      setIsEarlyAccessOpen(true);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
                   >
-                    <span>Get Started</span>
+                    <span>Join Waitlist</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -938,13 +958,16 @@ export default function LandingPage() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/signup"
+                <button
+                  onClick={() => {
+                    setSelectedEarlyAccessPlan('Agency Pro');
+                    setIsEarlyAccessOpen(true);
+                  }}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-950 bg-white hover:bg-zinc-200 rounded-lg transition-all shadow-md group cursor-pointer"
                 >
-                  <span>Get Started / Buy Access</span>
+                  <span>Get Early Access</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                </button>
 
                 <Link
                   href="/login"
@@ -1157,6 +1180,13 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+
+      {/* Early Access / Waitlist Modal */}
+      <EarlyAccessModal
+        isOpen={isEarlyAccessOpen}
+        onClose={() => setIsEarlyAccessOpen(false)}
+        defaultPlan={selectedEarlyAccessPlan}
+      />
     </div>
   );
 }
