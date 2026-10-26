@@ -241,9 +241,9 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* 4 PRICING TIER CARDS - COMPACT SLEEK GRID */}
-        <section className="pb-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+        {/* 4 PRICING TIER CARDS - BALANCED SLEEK GRID */}
+        <section className="pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
             {PRICING_TIERS.map((tier) => {
               const isSelected = selectedPlan === tier.id;
               const price = billing === 'yearly' ? tier.yearlyPrice : tier.monthlyPrice;
@@ -253,38 +253,38 @@ export default function PricingPage() {
                 <div
                   key={tier.id}
                   onClick={() => setSelectedPlan(tier.id)}
-                  className={`p-5 rounded-xl transition-all cursor-pointer relative flex flex-col justify-between ${
+                  className={`p-6 rounded-2xl transition-all cursor-pointer relative flex flex-col justify-between ${
                     tier.popular
-                      ? 'bg-zinc-900 border-2 border-indigo-500/90 shadow-xl'
+                      ? 'bg-zinc-900 border-2 border-indigo-500/90 shadow-2xl scale-[1.01]'
                       : isSelected
                       ? 'bg-zinc-900/90 border border-zinc-500 ring-1 ring-zinc-500/20 shadow-md'
                       : 'bg-zinc-900/40 border border-zinc-800/90 hover:border-zinc-700 hover:bg-zinc-900/60'
                   }`}
                 >
                   {tier.badge && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-600 text-white shadow-xs whitespace-nowrap">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-600 text-white shadow-md whitespace-nowrap">
                       {tier.badge}
                     </div>
                   )}
 
                   <div>
                     <div className="flex items-center justify-between gap-1.5">
-                      <h3 className="text-base font-bold text-white tracking-tight">{tier.name}</h3>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800/90 text-zinc-400 border border-zinc-700/60 shrink-0">
+                      <h3 className="text-lg font-bold text-white tracking-tight">{tier.name}</h3>
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-zinc-800/90 text-zinc-400 border border-zinc-700/60 shrink-0">
                         {tier.seats}
                       </span>
                     </div>
-                    <p className="mt-1 text-[11px] text-zinc-400 leading-snug min-h-[28px]">
+                    <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed min-h-[34px]">
                       {tier.tagline}
                     </p>
 
-                    <div className="mt-3.5 flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-white font-mono tracking-tight">
+                    <div className="mt-4 flex items-baseline gap-1.5">
+                      <span className="text-4xl font-bold text-white font-mono tracking-tight">
                         ${price}
                       </span>
-                      <span className="text-[11px] text-zinc-400 font-medium">/ mo</span>
+                      <span className="text-xs text-zinc-400 font-medium">/ month</span>
                     </div>
-                    <span className="text-[10px] text-zinc-500 font-mono block mt-0.5">
+                    <span className="text-[11px] text-zinc-500 font-mono block mt-1">
                       {tier.monthlyPrice === 0
                         ? 'Free forever'
                         : billing === 'yearly'
@@ -293,10 +293,10 @@ export default function PricingPage() {
                     </span>
 
                     {/* Features List */}
-                    <div className="mt-4 pt-3.5 border-t border-zinc-800/80 space-y-2 text-[11px] text-zinc-300">
+                    <div className="mt-5 pt-4 border-t border-zinc-800/80 space-y-2.5 text-xs text-zinc-300">
                       {tier.features.map((feat) => (
-                        <div key={feat} className="flex items-start gap-2">
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <div key={feat} className="flex items-start gap-2.5">
+                          <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                           <span className="leading-tight text-zinc-300">{feat}</span>
                         </div>
                       ))}
@@ -304,14 +304,14 @@ export default function PricingPage() {
                   </div>
 
                   {/* CTA Button */}
-                  <div className="mt-5 pt-3.5 border-t border-zinc-850">
+                  <div className="mt-6 pt-4 border-t border-zinc-850">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedPlan(tier.id);
                         setIsEarlyAccessOpen(true);
                       }}
-                      className={`w-full py-2 px-3 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs group ${
+                      className={`w-full py-2.5 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm group ${
                         tier.popular
                           ? 'bg-white hover:bg-zinc-200 text-zinc-950'
                           : 'bg-zinc-800 hover:bg-zinc-700 text-white'
