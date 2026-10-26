@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Search, RefreshCw, Download, ExternalLink } from 'lucide-react';
 
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface TopNavProps {
   title?: string;
@@ -81,6 +82,9 @@ export function TopNav({ title = 'Workspace Overview', onSyncTrigger }: TopNavPr
           <Download className="w-3.5 h-3.5" />
           <span>Export Snapshot</span>
         </button>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* Extension Link */}
         <a

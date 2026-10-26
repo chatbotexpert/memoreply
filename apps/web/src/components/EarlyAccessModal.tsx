@@ -90,10 +90,10 @@ export function EarlyAccessModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 dark:bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
       {/* Modal Box */}
       <div
-        className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden p-6 sm:p-8 text-left"
+        className="relative w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden p-6 sm:p-8 text-left transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Background glow accent */}
@@ -102,7 +102,7 @@ export function EarlyAccessModal({
         {/* Close Button */}
         <button
           onClick={handleResetAndClose}
-          className="absolute top-5 right-5 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="absolute top-5 right-5 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           title="Close modal"
         >
           <X className="w-4 h-4" />
@@ -111,45 +111,45 @@ export function EarlyAccessModal({
         {isSuccess ? (
           /* SUCCESS STATE */
           <div className="text-center py-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 rounded-full bg-emerald-950/80 border border-emerald-800/80 flex items-center justify-center mx-auto text-emerald-400 shadow-lg shadow-emerald-950/50">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800/80 flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400 shadow-md">
               <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-800/70">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/70">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Priority Reservation Confirmed
               </span>
-              <h3 className="text-2xl font-bold tracking-tight text-white">
+              <h3 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
                 You&apos;re on the whitelist!
               </h3>
-              <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
                 We&apos;ll email your license key when your workspace batch is ready.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-xs font-mono text-zinc-400 text-left space-y-1.5">
-              <div className="flex items-center justify-between text-zinc-300">
+            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/90 border border-zinc-200 dark:border-zinc-800 text-xs font-mono text-zinc-600 dark:text-zinc-400 text-left space-y-1.5">
+              <div className="flex items-center justify-between text-zinc-800 dark:text-zinc-300">
                 <span>Reserved For:</span>
-                <span className="font-semibold text-white">{agencyName}</span>
+                <span className="font-semibold text-zinc-950 dark:text-white">{agencyName}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Notification Email:</span>
-                <span className="text-zinc-200">{email}</span>
+                <span className="text-zinc-900 dark:text-zinc-200">{email}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Target Plan:</span>
-                <span className="text-indigo-400">{plan}</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-medium">{plan}</span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-zinc-850 text-[10px] text-zinc-500">
+              <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-850 text-[10px] text-zinc-500">
                 <span>Batch Status:</span>
-                <span className="text-emerald-400 font-semibold">Wave 1 Allocated</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Wave 1 Allocated</span>
               </div>
             </div>
 
             <button
               onClick={handleResetAndClose}
-              className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs transition-colors cursor-pointer shadow-md"
+              className="w-full py-2.5 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-colors cursor-pointer shadow-md"
             >
               Done
             </button>
@@ -158,22 +158,22 @@ export function EarlyAccessModal({
           /* FORM STATE */
           <div className="space-y-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono bg-zinc-800/90 border border-zinc-750 text-zinc-300 mb-3 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-750 text-zinc-700 dark:text-zinc-300 mb-3 shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                 <span>Pre-Launch Batch 1</span>
-                <span className="text-zinc-600">&bull;</span>
-                <span className="text-emerald-400">Limited Invitations</span>
+                <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Limited Invitations</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
                 Get Early Access to Memoreply
               </h3>
-              <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1.5 leading-relaxed">
                 Reserve your agency license key before public launch and lock in lifetime early supporter benefits.
               </p>
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300">
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-xs text-red-600 dark:text-red-300">
                 {errorMsg}
               </div>
             )}
@@ -181,43 +181,43 @@ export function EarlyAccessModal({
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Work Email */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300 block">
-                  Work / Agency Email <span className="text-red-400">*</span>
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
+                  Work / Agency Email <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="alex@youragency.com"
                     required
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
                   />
                 </div>
               </div>
 
               {/* Agency / Company Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300 block">
-                  Agency / Freelance Name <span className="text-red-400">*</span>
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
+                  Agency / Freelance Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <Building2 className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Building2 className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={agencyName}
                     onChange={(e) => setAgencyName(e.target.value)}
                     placeholder="Apex Freelance Studio"
                     required
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
                   />
                 </div>
               </div>
 
               {/* Primary Platform */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300 block">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
                   Primary Client Platform
                 </label>
                 <div className="grid grid-cols-4 gap-1.5 text-xs">
@@ -228,8 +228,8 @@ export function EarlyAccessModal({
                       onClick={() => setPlatform(p)}
                       className={`py-1.5 px-2 rounded-md font-mono text-[11px] transition-all cursor-pointer text-center ${
                         platform === p
-                          ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
-                          : 'bg-zinc-950 text-zinc-400 border border-zinc-800 hover:text-zinc-200 hover:bg-zinc-850'
+                          ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-semibold shadow-xs'
+                          : 'bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-850'
                       }`}
                     >
                       {p}
@@ -240,7 +240,7 @@ export function EarlyAccessModal({
 
               {/* Plan Choice Pill */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300 block">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
                   Target License Tier
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
@@ -252,7 +252,7 @@ export function EarlyAccessModal({
                       className={`py-1.5 px-2 rounded-md font-medium text-[11px] transition-all cursor-pointer text-center truncate ${
                         plan === p
                           ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                          : 'bg-zinc-950 text-zinc-400 border border-zinc-800 hover:text-zinc-200 hover:bg-zinc-850'
+                          : 'bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-850'
                       }`}
                     >
                       {p}
@@ -263,7 +263,7 @@ export function EarlyAccessModal({
 
               {/* Trust Specs */}
               <div className="pt-2 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-                <span className="flex items-center gap-1 text-emerald-400">
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   Zero Spam Guarantee
                 </span>
@@ -274,7 +274,7 @@ export function EarlyAccessModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60 mt-4"
+                className="w-full py-2.5 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60 mt-4"
               >
                 <span>{isLoading ? 'Securing Your Spot...' : 'Join Priority Waitlist'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
