@@ -8,7 +8,6 @@ import {
   Mail,
   Building2,
   CheckCircle2,
-  Sparkles,
   Lock,
 } from 'lucide-react';
 
@@ -117,14 +116,14 @@ export function EarlyAccessModal({
 
             <div className="space-y-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/70">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Priority Reservation Confirmed
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Spot Reserved
               </span>
               <h3 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                You&apos;re on the whitelist!
+                You&apos;re on the list!
               </h3>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
-                We&apos;ll email your license key when your workspace batch is ready.
+                We&apos;ll send your license key and setup guide directly to your email as soon as your access is active.
               </p>
             </div>
 
@@ -134,16 +133,16 @@ export function EarlyAccessModal({
                 <span className="font-semibold text-zinc-950 dark:text-white">{agencyName}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Notification Email:</span>
+                <span>Contact Email:</span>
                 <span className="text-zinc-900 dark:text-zinc-200">{email}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Target Plan:</span>
+                <span>Selected Plan:</span>
                 <span className="text-indigo-600 dark:text-indigo-400 font-medium">{plan}</span>
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-850 text-[10px] text-zinc-500">
-                <span>Batch Status:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Wave 1 Allocated</span>
+                <span>Status:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Priority Request Confirmed</span>
               </div>
             </div>
 
@@ -159,16 +158,16 @@ export function EarlyAccessModal({
           <div className="space-y-6">
             <div>
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-750 text-zinc-700 dark:text-zinc-300 mb-3 shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-                <span>Pre-Launch Batch 1</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Early Access Program</span>
                 <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Limited Invitations</span>
+                <span className="text-zinc-600 dark:text-zinc-400">Direct Founder Onboarding</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
                 Get Early Access to Memoreply
               </h3>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1.5 leading-relaxed">
-                Reserve your agency license key before public launch and lock in lifetime early supporter benefits.
+                Join our early user group to lock in lifetime founder perks and get personal setup support.
               </p>
             </div>
 

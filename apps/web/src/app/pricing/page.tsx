@@ -12,7 +12,6 @@ import {
   HelpCircle,
   Download,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 
 import { EarlyAccessModal } from '@/components/EarlyAccessModal';
@@ -37,87 +36,87 @@ const PRICING_TIERS: PricingTier[] = [
   {
     id: 'Starter Free',
     name: 'Starter Free',
-    tagline: 'Essential memory extraction for solo freelancers starting out.',
+    tagline: 'Save agreed budgets and client notes for solo freelance projects.',
     monthlyPrice: 0,
     yearlyPrice: 0,
     seats: '1 Seat',
     features: [
-      '1 Extension Seat (Chrome MV3)',
-      'Basic client memory extraction',
-      'Fiverr or Upwork adapter',
-      'Local IndexedDB offline vault',
+      '1 Chrome Extension seat',
+      'Pin client budgets & milestones',
+      'Works on Fiverr & Upwork',
+      'Private local storage in your browser',
       'Community Discord support',
     ],
   },
   {
     id: 'Freelancer',
     name: 'Freelancer',
-    tagline: 'Multi-platform memory & scope defense for active sellers.',
+    tagline: 'Keep track of client agreements across all your freelance platforms.',
     monthlyPrice: 29,
     yearlyPrice: 23,
     seats: '1 Seat',
     features: [
-      '1 Extension Seat (Chrome MV3)',
-      'Fiverr, Upwork & LinkedIn full sync',
-      'Contradiction Engine & Scope Shield',
-      'IndexedDB + Cloud Mirror backup',
-      'Standard email support (<24h)',
+      '1 Chrome Extension seat',
+      'Fiverr, Upwork & LinkedIn support',
+      'Instant reminders when scope changes',
+      'Save & insert quick response templates',
+      'Fast direct email support (<24h)',
     ],
   },
   {
     id: 'Agency Pro',
     name: 'Agency Pro',
     popular: true,
-    badge: 'Popular • Agency Choice',
-    tagline: 'Unified memory sync pool for growing agency teams.',
+    badge: 'Most Popular • For Studios',
+    tagline: 'Share client notes and agreed terms across your entire agency team.',
     monthlyPrice: 79,
     yearlyPrice: 63,
     seats: '5 Seats',
     features: [
-      '5 Concurrent Extension Seats',
-      'Centralized Team Dashboard',
-      'Shared Team Memory Mirror pool',
-      'Cross-seat contradiction alerts',
-      'Priority WebSocket Cloud Gateway',
+      '5 Team extension seats',
+      'Central agency overview dashboard',
+      'Shared client notes across team members',
+      'Team-wide scope change alerts',
+      'Priority direct email & chat support',
     ],
   },
   {
     id: 'Enterprise',
     name: 'Enterprise',
-    tagline: 'Custom pipelines, dedicated replicas & priority SLA.',
+    tagline: 'Tailored setup, custom integrations, and dedicated account support.',
     monthlyPrice: 199,
     yearlyPrice: 159,
     seats: '20 Seats',
     features: [
-      '20 Concurrent Extension Seats',
-      'Custom CRM webhooks & streaming',
-      'Dedicated PostgreSQL replica',
-      'Team permission controls & audits',
-      'Dedicated Account Manager (24/7)',
+      '20+ Team extension seats',
+      'Custom CRM & webhook integrations',
+      'Dedicated workspace database',
+      'Role permissions & audit history',
+      'Dedicated account manager (24/7)',
     ],
   },
 ];
 
 const FAQS = [
   {
-    q: 'How does extension licensing work after I sign up?',
-    a: 'Immediately after registration, an authorized License Key (e.g. MR-AGENCY-XXXX-SEC) is generated in your dashboard. You and your team enter this key in the Memoreply Chrome Extension to instantly link your sessions to your agency memory vault.',
+    q: 'How do I activate the Chrome Extension after joining?',
+    a: 'Once your workspace is created, you get a personal license key in your dashboard. Simply paste this key into the Memoreply extension popup in Chrome, and your client notes and agreement history will be ready.',
   },
   {
-    q: 'Can I add more seats as my agency expands?',
-    a: 'Yes. You can upgrade from Freelancer to Agency Pro or Enterprise at any time. Additional extension seats become active immediately with zero downtime.',
+    q: 'Can I add team members as my freelance business grows?',
+    a: 'Yes, easily. You can upgrade from Freelancer to Agency Pro at any time to invite additional teammates and share client notes across your team.',
   },
   {
-    q: 'Is our client messaging data private and secure?',
-    a: 'Yes, 100%. Memoreply stores extracted context deterministically in client-side IndexedDB with encrypted cloud sync. We never sell data or train public LLMs on your private client negotiations.',
+    q: 'Is my client messaging data private and confidential?',
+    a: 'Yes, 100%. Memoreply stores your agreements and notes locally inside your browser, with optional private encrypted cloud sync. We never sell your data or share your private client messages.',
   },
   {
     q: 'Does it work simultaneously across Fiverr, Upwork, and LinkedIn?',
-    a: 'Yes. Memoreply includes dedicated DOM adapters for all three major platforms. You can manage clients across different marketplaces simultaneously within the same unified ledger.',
+    a: 'Yes. Memoreply runs smoothly inside the inbox of Fiverr, Upwork, and LinkedIn, keeping all your client context organized regardless of where you message.',
   },
   {
-    q: 'Can I cancel my subscription if needed?',
-    a: 'Yes, absolutely. You can cancel with 1-click at any time directly from your workspace dashboard. You also have a full 14-day money-back guarantee.',
+    q: 'Can I cancel my plan at any time?',
+    a: 'Yes, anytime with one click in your settings. There are no contracts or cancellation fees, and all paid plans include a 14-day free trial period.',
   },
 ];
 
@@ -161,16 +160,16 @@ export default function PricingPage() {
               Overview
             </Link>
             <Link href="/#features" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-              Core Modules
+              Features
             </Link>
             <Link href="/#how-it-works" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-              Deterministic Engine
+              How It Works
             </Link>
             <Link href="/#platforms" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-              Supported Platforms
+              Platforms
             </Link>
             <Link href="/pricing" className="text-zinc-900 dark:text-white font-semibold">
-              Pricing & Plans
+              Pricing
             </Link>
           </nav>
 
@@ -200,18 +199,18 @@ export default function PricingPage() {
       <main className="relative z-10">
         {/* HERO TITLE & BILLING TOGGLE */}
         <section className="pt-20 pb-12 sm:pt-24 sm:pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 mb-6 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-            <span>Pre-Launch Early Access Tiers</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 mb-6 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="font-medium">Early Access Program</span>
             <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Batch 1 Allocations</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">14-Day Free Trial</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-zinc-900 dark:text-white leading-tight">
-            Predictable, transparent pricing for agencies
+            Predictable, transparent pricing for freelancers & agencies
           </h1>
           <p className="mt-5 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-            Select the license tier that fits your roster. Every plan includes full client memory ledger, multi-platform adapters, and the contradiction protection shield.
+            Choose the plan that fits your client roster. All plans include client agreement tracking, scope change reminders, and multi-platform support.
           </p>
 
           {/* Monthly vs Annual Toggle */}
@@ -371,8 +370,8 @@ export default function PricingPage() {
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900/40 shadow-xs">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 font-mono text-zinc-700 dark:text-zinc-400">
-                    <th className="p-4 font-semibold">Feature / Module</th>
+                  <tr className="bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 font-medium text-zinc-700 dark:text-zinc-400">
+                    <th className="p-4 font-semibold">Feature</th>
                     <th className="p-4 font-semibold text-center">Starter Free</th>
                     <th className="p-4 font-semibold text-center">Freelancer</th>
                     <th className="p-4 font-semibold text-center text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 border-x border-zinc-200 dark:border-zinc-800">
@@ -393,7 +392,7 @@ export default function PricingPage() {
                   </tr>
 
                   <tr className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
-                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Fiverr, Upwork & LinkedIn Adapters</td>
+                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Fiverr, Upwork & LinkedIn Support</td>
                     <td className="p-4 text-center text-zinc-600 dark:text-zinc-300">Single (Fiverr / Upwork)</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400">✓ Full</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 bg-indigo-50/50 dark:bg-indigo-950/20 border-x border-zinc-200 dark:border-zinc-800">
@@ -403,7 +402,7 @@ export default function PricingPage() {
                   </tr>
 
                   <tr className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
-                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Contradiction Engine & Scope Shield</td>
+                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Scope Change Alerts & Reminders</td>
                     <td className="p-4 text-center text-zinc-500 dark:text-zinc-400">Basic</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400">✓ Included</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 bg-indigo-50/50 dark:bg-indigo-950/20 border-x border-zinc-200 dark:border-zinc-800">
@@ -413,17 +412,17 @@ export default function PricingPage() {
                   </tr>
 
                   <tr className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
-                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Centralized Cloud Sync Mirror</td>
-                    <td className="p-4 text-center text-zinc-400 dark:text-zinc-500">Local DB Only</td>
+                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Shared Workspace & Team Notes</td>
+                    <td className="p-4 text-center text-zinc-400 dark:text-zinc-500">Local Only</td>
                     <td className="p-4 text-center text-zinc-400 dark:text-zinc-500">Personal Only</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 bg-indigo-50/50 dark:bg-indigo-950/20 border-x border-zinc-200 dark:border-zinc-800">
                       ✓ Team Unified
                     </td>
-                    <td className="p-4 text-center text-emerald-600 dark:text-emerald-400">✓ Dedicated Replica</td>
+                    <td className="p-4 text-center text-emerald-600 dark:text-emerald-400">✓ Dedicated Setup</td>
                   </tr>
 
                   <tr className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
-                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">License Key Regeneration & Seat Revocation</td>
+                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">License Key Management & Revocation</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400">✓ Yes</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400">✓ Yes</td>
                     <td className="p-4 text-center text-emerald-600 dark:text-emerald-400 bg-indigo-50/50 dark:bg-indigo-950/20 border-x border-zinc-200 dark:border-zinc-800">
@@ -433,7 +432,7 @@ export default function PricingPage() {
                   </tr>
 
                   <tr className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
-                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Custom CRM Webhooks & API Streaming</td>
+                    <td className="p-4 font-medium text-zinc-800 dark:text-zinc-200">Custom CRM & Webhook Integrations</td>
                     <td className="p-4 text-center text-zinc-400 dark:text-zinc-500">—</td>
                     <td className="p-4 text-center text-zinc-400 dark:text-zinc-500">—</td>
                     <td className="p-4 text-center text-zinc-400 dark:text-zinc-500 bg-indigo-50/50 dark:bg-indigo-950/20 border-x border-zinc-200 dark:border-zinc-800">—</td>
