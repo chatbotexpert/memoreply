@@ -26,6 +26,7 @@ import {
   Copy,
   Download,
   X,
+  Menu,
 } from 'lucide-react';
 
 import { EarlyAccessModal } from '@/components/EarlyAccessModal';
@@ -79,6 +80,7 @@ export default function LandingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
   const [selectedEarlyAccessPlan, setSelectedEarlyAccessPlan] = useState('Agency Pro');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleCopyDemo = () => {
     navigator.clipboard.writeText(REPLY_TEMPLATES[selectedScenario].response);
@@ -115,7 +117,7 @@ export default function LandingPage() {
             </div>
           </Link>
 
-          {/* Nav Links */}
+          {/* Nav Links (Desktop) */}
           <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-zinc-600 dark:text-zinc-400">
             <a href="#features" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
               Features
@@ -140,7 +142,7 @@ export default function LandingPage() {
 
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 rounded-md transition-all cursor-pointer shadow-2xs"
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 rounded-md transition-all cursor-pointer shadow-2xs"
             >
               <span>Sign In</span>
             </Link>
@@ -150,22 +152,92 @@ export default function LandingPage() {
                 setSelectedEarlyAccessPlan('Agency Pro');
                 setIsEarlyAccessOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-white dark:text-zinc-950 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white dark:text-zinc-950 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
               <span>Get Early Access</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </button>
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-1.5 rounded-md border border-zinc-250 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-zinc-200/80 dark:border-zinc-800/80 bg-[#fafafa] dark:bg-zinc-950 px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <a
+              href="#features"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              Features
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              How It Works
+            </a>
+            <a
+              href="#comparison"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              Why Memoreply
+            </a>
+            <a
+              href="#platforms"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              Platforms
+            </a>
+            <Link
+              href="/pricing"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-semibold text-zinc-950 dark:text-white"
+            >
+              Pricing
+            </Link>
+            <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+              >
+                Sign In
+              </Link>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setSelectedEarlyAccessPlan('Agency Pro');
+                  setIsEarlyAccessOpen(true);
+                }}
+                className="px-3.5 py-1.5 text-xs font-semibold text-white dark:text-zinc-950 bg-zinc-900 dark:bg-white rounded-md transition-colors"
+              >
+                Get Early Access
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}
       <main className="relative z-10">
         {/* HERO SECTION */}
-        <section className="pt-20 pb-16 sm:pt-28 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <section className="pt-16 pb-14 sm:pt-28 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto">
             {/* Announcement Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 mb-8 shadow-xs">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1 rounded-full text-[11px] sm:text-xs bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 mb-6 sm:mb-8 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-medium">Early Access Program</span>
               <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
@@ -174,17 +246,17 @@ export default function LandingPage() {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white leading-[1.08]">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white leading-[1.1] sm:leading-[1.08]">
               Replies that <span className="text-zinc-500 dark:text-zinc-400 underline decoration-zinc-300 dark:decoration-zinc-800 underline-offset-8">remember</span>.
             </h1>
 
             {/* Sub-headline / Value Proposition */}
-            <p className="mt-6 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 sm:mt-6 text-sm sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
               Never forget an agreed price, deadline, or deliverable in client chat. Memoreply keeps your agreed project terms visible right next to your conversations on <span className="text-zinc-900 dark:text-zinc-200 font-semibold">Fiverr</span>, <span className="text-zinc-900 dark:text-zinc-200 font-semibold">Upwork</span>, and <span className="text-zinc-900 dark:text-zinc-200 font-semibold">LinkedIn</span> so you always reply with confidence.
             </p>
 
             {/* Hero CTAs */}
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <button
                 onClick={() => {
                   setSelectedEarlyAccessPlan('Agency Pro');
@@ -205,21 +277,21 @@ export default function LandingPage() {
             </div>
 
             {/* Benefit Highlights Pill Row */}
-            <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-850/80 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-zinc-600 dark:text-zinc-400">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-zinc-200 dark:border-zinc-850/80 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-8 gap-y-2.5 sm:gap-y-3 text-[11px] sm:text-xs text-zinc-600 dark:text-zinc-400">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>Works in Fiverr & Upwork</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
                 <span>Private browser storage</span>
               </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>Catch scope changes early</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
                 <span>1-click quick replies</span>
               </div>
             </div>
@@ -357,7 +429,7 @@ export default function LandingPage() {
                   {/* Interactive Reply Option Selectors */}
                   <div className="mt-3">
                     <span className="text-[10px] font-mono text-zinc-500 block mb-1.5">Choose a response approach:</span>
-                    <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
                       {(Object.keys(REPLY_TEMPLATES) as ReplyScenario[]).map((scenario) => (
                         <button
                           key={scenario}
@@ -574,7 +646,7 @@ export default function LandingPage() {
             </div>
 
             <div className="max-w-4xl mx-auto overflow-x-auto">
-              <table className="w-full text-left border-collapse border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden text-xs bg-white dark:bg-zinc-900/40 shadow-xs">
+              <table className="w-full min-w-[580px] text-left border-collapse border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden text-xs bg-white dark:bg-zinc-900/40 shadow-xs">
                 <thead>
                   <tr className="bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium">
                     <th className="p-4 font-semibold">Situation</th>
@@ -1005,10 +1077,10 @@ export default function LandingPage() {
         {/* CTA BANNER */}
         <section className="py-20 border-t border-zinc-200 dark:border-zinc-900 relative transition-colors">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="p-10 sm:p-14 rounded-2xl bg-gradient-to-b from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border border-zinc-200 dark:border-zinc-800 text-center relative overflow-hidden shadow-2xl">
+            <div className="p-6 sm:p-10 lg:p-14 rounded-2xl bg-gradient-to-b from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border border-zinc-200 dark:border-zinc-800 text-center relative overflow-hidden shadow-2xl">
               <div className="absolute top-0 right-1/2 translate-x-1/2 w-[500px] h-[200px] bg-indigo-500/5 dark:bg-white/5 blur-3xl rounded-full pointer-events-none" />
 
-              <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
                 Never undercharge or overcommit on a client project again.
               </h2>
               <p className="mt-4 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto">

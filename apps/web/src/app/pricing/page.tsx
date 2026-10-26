@@ -12,6 +12,8 @@ import {
   HelpCircle,
   Download,
   ChevronRight,
+  Menu,
+  X,
 } from 'lucide-react';
 
 import { EarlyAccessModal } from '@/components/EarlyAccessModal';
@@ -124,6 +126,7 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Agency Pro');
   const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-zinc-200 dark:selection:bg-zinc-800 selection:text-zinc-950 dark:selection:text-white font-sans antialiased overflow-x-hidden transition-colors duration-200">
@@ -154,7 +157,7 @@ export default function PricingPage() {
             </div>
           </Link>
 
-          {/* Navigation Links */}
+          {/* Navigation Links (Desktop) */}
           <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-zinc-600 dark:text-zinc-400">
             <Link href="/" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
               Overview
@@ -174,25 +177,94 @@ export default function PricingPage() {
           </nav>
 
           {/* Right Action CTAs */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
 
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-md transition-all cursor-pointer shadow-2xs"
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-md transition-all cursor-pointer shadow-2xs"
             >
               <span>Sign In</span>
             </Link>
 
             <button
               onClick={() => setIsEarlyAccessOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:text-zinc-950 dark:bg-white dark:hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:text-zinc-950 dark:bg-white dark:hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
               <span>Get Early Access</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </button>
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-1.5 rounded-md border border-zinc-250 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-zinc-200/80 dark:border-zinc-800/80 bg-[#fafafa] dark:bg-zinc-950 px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              Overview
+            </Link>
+            <Link
+              href="/#features"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              Features
+            </Link>
+            <Link
+              href="/#how-it-works"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              How It Works
+            </Link>
+            <Link
+              href="/#platforms"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              Platforms
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-semibold text-zinc-950 dark:text-white"
+            >
+              Pricing
+            </Link>
+            <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+              >
+                Sign In
+              </Link>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsEarlyAccessOpen(true);
+                }}
+                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-zinc-900 dark:bg-white dark:text-zinc-950 rounded-md transition-colors"
+              >
+                Get Early Access
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}
@@ -367,8 +439,8 @@ export default function PricingPage() {
               </h2>
             </div>
 
-            <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900/40 shadow-xs">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-x-auto bg-white dark:bg-zinc-900/40 shadow-xs">
+              <table className="w-full min-w-[620px] text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 font-medium text-zinc-700 dark:text-zinc-400">
                     <th className="p-4 font-semibold">Feature</th>
