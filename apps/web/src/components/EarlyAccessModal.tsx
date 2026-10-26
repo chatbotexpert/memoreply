@@ -8,13 +8,25 @@ import {
   Mail,
   Building2,
   CheckCircle2,
-  Lock,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 
 interface EarlyAccessModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultPlan?: string;
+}
+
+interface ConfirmedWaitlistEntry {
+  id?: string;
+  email: string;
+  agencyName: string;
+  tier: string;
+  platform: string;
+  status: string;
+  wave: string;
+  createdAt?: string;
 }
 
 export function EarlyAccessModal({
@@ -28,6 +40,8 @@ export function EarlyAccessModal({
   const [plan, setPlan] = useState(defaultPlan);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
+  const [confirmedEntry, setConfirmedEntry] = useState<ConfirmedWaitlistEntry | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   // Synchronize plan if defaultPlan changes
@@ -52,7 +66,10 @@ export function EarlyAccessModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !agencyName) {
+    const cleanEmail = email.trim();
+    const cleanAgency = agencyName.trim();
+
+    if (!cleanEmail || !cleanAgency) {
       setErrorMsg('Please enter your work email and agency name.');
       return;
     }
@@ -64,17 +81,43 @@ export function EarlyAccessModal({
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, agencyName, plan, platform }),
+        body: JSON.stringify({
+          email: cleanEmail,
+          agencyName: cleanAgency,
+          tier: plan,
+          platform,
+        }),
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to join waitlist');
+      const data = await res.json();
+
+      // If user is already registered (409 Conflict), gracefully show their allocated Wave 1 status
+      if (res.status === 409 && data.entry) {
+        setConfirmedEntry(data.entry);
+        setIsAlreadyRegistered(true);
+        setIsSuccess(true);
+        return;
       }
 
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Failed to register on waitlist. Please try again.');
+        return;
+      }
+
+      setConfirmedEntry(
+        data.entry || {
+          email: cleanEmail,
+          agencyName: cleanAgency,
+          tier: plan,
+          platform,
+          status: 'Wave 1 Allocated',
+          wave: 'Wave 1',
+        }
+      );
+      setIsAlreadyRegistered(false);
       setIsSuccess(true);
     } catch {
-      // Fallback success state for offline/demo reliability
-      setIsSuccess(true);
+      setErrorMsg('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +125,8 @@ export function EarlyAccessModal({
 
   const handleResetAndClose = () => {
     setIsSuccess(false);
+    setIsAlreadyRegistered(false);
+    setConfirmedEntry(null);
     setEmail('');
     setAgencyName('');
     setErrorMsg('');
@@ -108,42 +153,72 @@ export function EarlyAccessModal({
         </button>
 
         {isSuccess ? (
-          /* SUCCESS STATE */
-          <div className="text-center py-6 space-y-5 animate-in zoom-in-95 duration-200">
+          /* SUCCESS STATE / WAVE 1 CONFIRMATION VIEW */
+          <div className="text-center py-4 sm:py-6 space-y-5 animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800/80 flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400 shadow-md">
               <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/70">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Spot Reserved
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/70">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Wave 1 Allocated
               </span>
               <h3 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                You&apos;re on the list!
+                {isAlreadyRegistered ? "You're Already on the Whitelist!" : "You're on the Whitelist!"}
               </h3>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
-                We&apos;ll send your license key and setup guide directly to your email as soon as your access is active.
+                We’ll email your license key when your workspace batch is ready.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/90 border border-zinc-200 dark:border-zinc-800 text-xs font-mono text-zinc-600 dark:text-zinc-400 text-left space-y-1.5">
+            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950/90 border border-zinc-200 dark:border-zinc-800 text-xs font-mono text-zinc-600 dark:text-zinc-400 text-left space-y-2">
+              <div className="flex items-center justify-between text-zinc-800 dark:text-zinc-200">
+                <span className="text-zinc-500">Whitelist Status:</span>
+                <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Wave 1 Allocated
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Batch Phase:</span>
+                <span className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  Founder Wave 1
+                </span>
+              </div>
               <div className="flex items-center justify-between text-zinc-800 dark:text-zinc-300">
-                <span>Reserved For:</span>
-                <span className="font-semibold text-zinc-950 dark:text-white">{agencyName}</span>
+                <span className="text-zinc-500">Reserved For:</span>
+                <span className="font-semibold text-zinc-950 dark:text-white">
+                  {confirmedEntry?.agencyName || agencyName}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Contact Email:</span>
-                <span className="text-zinc-900 dark:text-zinc-200">{email}</span>
+                <span className="text-zinc-500">Contact Email:</span>
+                <span className="text-zinc-900 dark:text-zinc-200 font-medium">
+                  {confirmedEntry?.email || email}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Selected Plan:</span>
-                <span className="text-indigo-600 dark:text-indigo-400 font-medium">{plan}</span>
+                <span className="text-zinc-500">Target License:</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                  {confirmedEntry?.tier || plan}
+                </span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-850 text-[10px] text-zinc-500">
-                <span>Status:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Priority Request Confirmed</span>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Primary Platform:</span>
+                <span className="text-zinc-900 dark:text-zinc-200">
+                  {confirmedEntry?.platform || platform}
+                </span>
               </div>
+              {confirmedEntry?.id && (
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-zinc-850 text-[10px] text-zinc-500">
+                  <span>Ledger Reference:</span>
+                  <span className="font-mono text-zinc-600 dark:text-zinc-400">
+                    {confirmedEntry.id}
+                  </span>
+                </div>
+              )}
             </div>
 
             <button
@@ -158,7 +233,7 @@ export function EarlyAccessModal({
           <div className="space-y-6">
             <div>
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-750 text-zinc-700 dark:text-zinc-300 mb-3 shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Early Access Program</span>
                 <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
                 <span className="text-zinc-600 dark:text-zinc-400">Direct Founder Onboarding</span>
@@ -172,8 +247,9 @@ export function EarlyAccessModal({
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-xs text-red-600 dark:text-red-300">
-                {errorMsg}
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-xs text-red-600 dark:text-red-300 flex items-start gap-2 animate-in fade-in duration-150">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{errorMsg}</span>
               </div>
             )}
 
@@ -188,7 +264,10 @@ export function EarlyAccessModal({
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errorMsg) setErrorMsg('');
+                    }}
                     placeholder="alex@youragency.com"
                     required
                     className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
@@ -206,7 +285,10 @@ export function EarlyAccessModal({
                   <input
                     type="text"
                     value={agencyName}
-                    onChange={(e) => setAgencyName(e.target.value)}
+                    onChange={(e) => {
+                      setAgencyName(e.target.value);
+                      if (errorMsg) setErrorMsg('');
+                    }}
                     placeholder="Apex Freelance Studio"
                     required
                     className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
@@ -275,7 +357,7 @@ export function EarlyAccessModal({
                 disabled={isLoading}
                 className="w-full py-2.5 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60 mt-4"
               >
-                <span>{isLoading ? 'Securing Your Spot...' : 'Join Priority Waitlist'}</span>
+                <span>{isLoading ? 'Securing Wave 1 Spot...' : 'Join Priority Waitlist'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </form>

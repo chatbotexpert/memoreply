@@ -1,65 +1,117 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  isValidEmail,
+  isValidAgencyName,
+  addWaitlistSubmission,
+  getWaitlistStats,
+} from '@/lib/waitlistStorage';
 
-interface WaitlistEntry {
-  email: string;
-  agencyName: string;
-  plan?: string;
-  platform?: string;
-  createdAt: string;
-}
-
-// In-memory waitlist store for demo / pre-launch phase
-const waitlistSubmissions: WaitlistEntry[] = [];
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, agencyName, plan = 'Agency Pro', platform = 'All' } = body;
-
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: 'Valid work email is required.' },
+        { error: 'Invalid JSON request payload.' },
         { status: 400 }
       );
     }
 
-    if (!agencyName || typeof agencyName !== 'string') {
+    const {
+      email,
+      agencyName,
+      plan = 'Agency Pro',
+      tier,
+      platform = 'All',
+    } = body || {};
+
+    // 1. Rigorous Email Validation
+    if (!isValidEmail(email)) {
       return NextResponse.json(
-        { error: 'Agency or company name is required.' },
+        { error: 'Please enter a valid work or agency email address.' },
         { status: 400 }
       );
     }
 
-    const entry: WaitlistEntry = {
-      email: email.trim().toLowerCase(),
-      agencyName: agencyName.trim(),
-      plan,
+    // 2. Agency Name Validation
+    if (!isValidAgencyName(agencyName)) {
+      return NextResponse.json(
+        { error: 'Please provide an agency or company name (min 2 characters).' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Extract metadata
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      undefined;
+    const userAgent = request.headers.get('user-agent') || undefined;
+
+    // 4. Register or Duplicate Check via persistent storage
+    const targetTier = tier || plan || 'Agency Pro';
+    const result = await addWaitlistSubmission({
+      email,
+      agencyName,
       platform,
-      createdAt: new Date().toISOString(),
-    };
-
-    waitlistSubmissions.push(entry);
-
-    return NextResponse.json({
-      success: true,
-      message: "You're on the whitelist! We’ll email your license key when your workspace batch is ready.",
-      entry: {
-        email: entry.email,
-        agencyName: entry.agencyName,
-        plan: entry.plan,
-      },
+      tier: targetTier,
+      ip,
+      userAgent,
     });
-  } catch (error) {
+
+    if (result.isDuplicate) {
+      return NextResponse.json(
+        {
+          error: 'This email is already registered on our priority waitlist.',
+          alreadyRegistered: true,
+          status: 'Wave 1 Allocated',
+          entry: {
+            email: result.entry.email,
+            agencyName: result.entry.agencyName,
+            tier: result.entry.tier,
+            platform: result.entry.platform,
+            status: result.entry.status,
+            wave: result.entry.wave,
+            createdAt: result.entry.createdAt,
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Failed to process waitlist registration.' },
+      {
+        success: true,
+        message: "You're on the whitelist! We’ll email your license key when your workspace batch is ready.",
+        entry: {
+          id: result.entry.id,
+          email: result.entry.email,
+          agencyName: result.entry.agencyName,
+          tier: result.entry.tier,
+          platform: result.entry.platform,
+          status: result.entry.status,
+          wave: result.entry.wave,
+          createdAt: result.entry.createdAt,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('[Waitlist API Error]:', error);
+    return NextResponse.json(
+      { error: 'Failed to process waitlist registration. Please try again.' },
       { status: 500 }
     );
   }
 }
 
 export async function GET() {
+  const stats = await getWaitlistStats();
   return NextResponse.json({
-    totalCount: waitlistSubmissions.length,
-    status: 'Early Access Waitlist Active',
+    success: true,
+    metrics: stats,
+    status: 'Early Access Wave 1 Waitlist Active',
+    timestamp: new Date().toISOString(),
   });
 }
