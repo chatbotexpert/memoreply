@@ -18,7 +18,7 @@ import {
 import { EarlyAccessModal } from '@/components/EarlyAccessModal';
 
 type BillingPeriod = 'monthly' | 'yearly';
-type PlanType = 'Freelancer' | 'Agency Pro' | 'Enterprise';
+type PlanType = 'Starter Free' | 'Freelancer' | 'Agency Pro' | 'Enterprise';
 
 interface PricingTier {
   id: PlanType;
@@ -33,6 +33,22 @@ interface PricingTier {
 }
 
 const PRICING_TIERS: PricingTier[] = [
+  {
+    id: 'Starter Free',
+    name: 'Starter Free',
+    tagline: 'Essential client memory extraction for solo freelancers starting out.',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    seats: '1 Free Seat',
+    features: [
+      '1 Free Extension License Seat',
+      'Basic client memory extraction',
+      'Community Discord support',
+      'Single-platform adapter (Fiverr or Upwork)',
+      'Local IndexedDB encrypted memory store',
+      'Basic thread context extraction',
+    ],
+  },
   {
     id: 'Freelancer',
     name: 'Freelancer',
@@ -234,9 +250,9 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* 3 PRICING TIER CARDS */}
+        {/* 4 PRICING TIER CARDS */}
         <section className="pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
             {PRICING_TIERS.map((tier) => {
               const isSelected = selectedPlan === tier.id;
               const price = billing === 'yearly' ? tier.yearlyPrice : tier.monthlyPrice;
@@ -246,7 +262,7 @@ export default function PricingPage() {
                 <div
                   key={tier.id}
                   onClick={() => setSelectedPlan(tier.id)}
-                  className={`p-8 rounded-2xl transition-all cursor-pointer relative flex flex-col justify-between ${
+                  className={`p-7 rounded-2xl transition-all cursor-pointer relative flex flex-col justify-between ${
                     tier.popular
                       ? 'bg-zinc-900 border-2 border-indigo-500/90 shadow-2xl scale-[1.02]'
                       : isSelected
@@ -255,15 +271,15 @@ export default function PricingPage() {
                   }`}
                 >
                   {tier.badge && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500 text-white shadow-md">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500 text-white shadow-md whitespace-nowrap">
                       {tier.badge}
                     </div>
                   )}
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-bold text-white">{tier.name}</h3>
-                      <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
+                      <h3 className="text-lg font-bold text-white">{tier.name}</h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 shrink-0">
                         {tier.seats}
                       </span>
                     </div>
@@ -272,13 +288,15 @@ export default function PricingPage() {
                     </p>
 
                     <div className="mt-6 flex items-baseline gap-1.5">
-                      <span className="text-4xl sm:text-5xl font-bold text-white font-mono">
+                      <span className="text-3xl sm:text-4xl font-bold text-white font-mono">
                         ${price}
                       </span>
                       <span className="text-xs text-zinc-400 font-medium">/ month</span>
                     </div>
                     <span className="text-[11px] text-zinc-500 font-mono block mt-1">
-                      {billing === 'yearly'
+                      {tier.monthlyPrice === 0
+                        ? 'Free forever'
+                        : billing === 'yearly'
                         ? `Billed annually ($${annualTotal}/year)`
                         : 'Billed monthly'}
                     </span>
@@ -305,13 +323,19 @@ export default function PricingPage() {
                         setSelectedPlan(tier.id);
                         setIsEarlyAccessOpen(true);
                       }}
-                      className={`w-full py-3 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md group ${
+                      className={`w-full py-2.5 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md group ${
                         tier.popular
                           ? 'bg-white hover:bg-zinc-200 text-zinc-950'
                           : 'bg-zinc-800 hover:bg-zinc-700 text-white'
                       }`}
                     >
-                      <span>{tier.id === 'Enterprise' ? 'Join Waitlist' : `Get Early Access with ${tier.name}`}</span>
+                      <span>
+                        {tier.id === 'Enterprise'
+                          ? 'Join Waitlist'
+                          : tier.id === 'Starter Free'
+                          ? 'Get Free Early Access'
+                          : `Get Early Access with ${tier.name}`}
+                      </span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
@@ -358,6 +382,7 @@ export default function PricingPage() {
                 <thead>
                   <tr className="bg-zinc-900 border-b border-zinc-800 font-mono text-zinc-400">
                     <th className="p-4 font-semibold">Feature / Module</th>
+                    <th className="p-4 font-semibold text-center">Starter Free</th>
                     <th className="p-4 font-semibold text-center">Freelancer</th>
                     <th className="p-4 font-semibold text-center text-indigo-400 bg-indigo-950/20 border-x border-zinc-800">
                       Agency Pro
@@ -368,6 +393,7 @@ export default function PricingPage() {
                 <tbody className="divide-y divide-zinc-850">
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-200">Extension License Seats</td>
+                    <td className="p-4 text-center font-mono text-zinc-400">1 Seat (Free)</td>
                     <td className="p-4 text-center font-mono text-zinc-300">1 Seat</td>
                     <td className="p-4 text-center font-mono font-semibold text-indigo-300 bg-indigo-950/20 border-x border-zinc-800">
                       5 Seats
@@ -377,6 +403,7 @@ export default function PricingPage() {
 
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-200">Fiverr, Upwork & LinkedIn Adapters</td>
+                    <td className="p-4 text-center text-zinc-300">Single (Fiverr / Upwork)</td>
                     <td className="p-4 text-center text-emerald-400">✓ Full</td>
                     <td className="p-4 text-center text-emerald-400 bg-indigo-950/20 border-x border-zinc-800">
                       ✓ Full
@@ -386,6 +413,7 @@ export default function PricingPage() {
 
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-200">Contradiction Engine & Scope Shield</td>
+                    <td className="p-4 text-center text-zinc-400">Basic</td>
                     <td className="p-4 text-center text-emerald-400">✓ Included</td>
                     <td className="p-4 text-center text-emerald-400 bg-indigo-950/20 border-x border-zinc-800">
                       ✓ Multi-Seat
@@ -395,6 +423,7 @@ export default function PricingPage() {
 
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-200">Centralized Cloud Sync Mirror</td>
+                    <td className="p-4 text-center text-zinc-500">Local DB Only</td>
                     <td className="p-4 text-center text-zinc-500">Personal Only</td>
                     <td className="p-4 text-center text-emerald-400 bg-indigo-950/20 border-x border-zinc-800">
                       ✓ Team Unified
@@ -405,6 +434,7 @@ export default function PricingPage() {
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-200">License Key Regeneration & Seat Revocation</td>
                     <td className="p-4 text-center text-emerald-400">✓ Yes</td>
+                    <td className="p-4 text-center text-emerald-400">✓ Yes</td>
                     <td className="p-4 text-center text-emerald-400 bg-indigo-950/20 border-x border-zinc-800">
                       ✓ Yes
                     </td>
@@ -414,12 +444,14 @@ export default function PricingPage() {
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-200">Custom CRM Webhooks & API Streaming</td>
                     <td className="p-4 text-center text-zinc-500">—</td>
+                    <td className="p-4 text-center text-zinc-500">—</td>
                     <td className="p-4 text-center text-zinc-500 bg-indigo-950/20 border-x border-zinc-800">—</td>
                     <td className="p-4 text-center text-emerald-400">✓ Included</td>
                   </tr>
 
                   <tr className="hover:bg-zinc-900/30">
                     <td className="p-4 font-medium text-zinc-200">Support Channel</td>
+                    <td className="p-4 text-center text-zinc-400 font-mono">Community Discord</td>
                     <td className="p-4 text-center text-zinc-400 font-mono">Standard Email</td>
                     <td className="p-4 text-center font-mono text-indigo-300 bg-indigo-950/20 border-x border-zinc-800">
                       Priority Slack / Email

@@ -243,8 +243,8 @@ export function EarlyAccessModal({
                 <label className="text-xs font-medium text-zinc-300 block">
                   Target License Tier
                 </label>
-                <div className="grid grid-cols-3 gap-1.5 text-xs">
-                  {['Freelancer', 'Agency Pro', 'Enterprise'].map((p) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+                  {['Starter Free', 'Freelancer', 'Agency Pro', 'Enterprise'].map((p) => (
                     <button
                       type="button"
                       key={p}

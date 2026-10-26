@@ -727,10 +727,74 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* 3 Pricing Tier Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
+            {/* 4 Pricing Tier Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
+              {/* Card 0: Starter Free */}
+              <div className="p-7 rounded-2xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">Starter Free</h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-400 border border-zinc-750">
+                      Free Forever
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-400 min-h-[32px] leading-relaxed">
+                    Essential client memory extraction for solo freelancers starting out.
+                  </p>
+
+                  <div className="mt-6 flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-white font-mono">
+                      $0
+                    </span>
+                    <span className="text-xs text-zinc-400">/ month</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 font-mono block mt-1">
+                    Free forever &bull; No card required
+                  </span>
+
+                  <div className="mt-6 pt-6 border-t border-zinc-850 space-y-3 text-xs text-zinc-300">
+                    <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">
+                      Features Included:
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span><strong>1 Free Extension Seat</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Basic memory extraction</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Fiverr or Upwork adapter</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Local IndexedDB encrypted vault</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Community Discord support</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-zinc-850">
+                  <button
+                    onClick={() => {
+                      setSelectedEarlyAccessPlan('Starter Free');
+                      setIsEarlyAccessOpen(true);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
+                  >
+                    <span>Get Free Early Access</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
               {/* Card 1: Freelancer */}
-              <div className="p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between">
+              <div className="p-7 rounded-2xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-white">Freelancer</h3>
@@ -738,7 +802,7 @@ export default function LandingPage() {
                       Solo Seller
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-zinc-400">
+                  <p className="mt-2 text-xs text-zinc-400 min-h-[32px] leading-relaxed">
                     Perfect for independent freelancers managing high-volume client orders.
                   </p>
 
@@ -794,8 +858,8 @@ export default function LandingPage() {
               </div>
 
               {/* Card 2: Agency Pro (Highlighted / Instantly style) */}
-              <div className="p-8 rounded-2xl bg-zinc-900 border-2 border-indigo-500/80 shadow-2xl relative flex flex-col justify-between">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500 text-white shadow-md">
+              <div className="p-7 rounded-2xl bg-zinc-900 border-2 border-indigo-500/80 shadow-2xl relative flex flex-col justify-between">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500 text-white shadow-md whitespace-nowrap">
                   Most Popular &bull; Agency Choice
                 </div>
 
@@ -806,7 +870,7 @@ export default function LandingPage() {
                       5 Team Seats
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-zinc-400">
+                  <p className="mt-2 text-xs text-zinc-400 min-h-[32px] leading-relaxed">
                     For growing agency teams and studios managing multiple marketplace accounts.
                   </p>
 
@@ -862,7 +926,7 @@ export default function LandingPage() {
               </div>
 
               {/* Card 3: Enterprise */}
-              <div className="p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between">
+              <div className="p-7 rounded-2xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-white">Enterprise Agency</h3>
@@ -870,7 +934,7 @@ export default function LandingPage() {
                       20 Seats
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-zinc-400">
+                  <p className="mt-2 text-xs text-zinc-400 min-h-[32px] leading-relaxed">
                     For enterprise studios requiring custom integrations and dedicated mirrors.
                   </p>
 
