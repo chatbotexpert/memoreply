@@ -1093,200 +1093,303 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* PRODUCT ROADMAP SECTION */}
-        <section id="roadmap" className="py-24 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-50/60 dark:bg-zinc-950/60 relative transition-colors">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 mb-4 shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Product Roadmap &amp; Journey</span>
+        {/* PRODUCT ROADMAP SECTION (Clix.money inspired connected timeline) */}
+        <section id="roadmap" className="py-24 sm:py-32 border-t border-zinc-200 dark:border-zinc-900 bg-[#fbfbfb] dark:bg-zinc-950/80 relative overflow-hidden transition-colors">
+          {/* Subtle ambient lighting behind roadmap */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[350px] bg-gradient-to-r from-emerald-500/5 via-indigo-500/5 to-purple-500/5 blur-[140px] pointer-events-none rounded-full" />
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            {/* Section Header */}
+            <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 mb-5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">PRODUCT ROADMAP</span>
+                <span className="text-zinc-400 dark:text-zinc-600">&bull;</span>
+                <span className="text-zinc-500">Continuous Vision</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                The Future of Client Memory
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-zinc-900 dark:text-white leading-[1.1]">
+                From Browser Ledger to <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-emerald-600 via-indigo-600 to-purple-600 dark:from-emerald-400 dark:via-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                  Ambient Client Intelligence
+                </span>
               </h2>
-              <p className="mt-4 text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                Memoreply is evolving from a browser extension into an omnipresent intelligent layer that protects your agreements everywhere you communicate.
+              <p className="mt-5 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-2xl mx-auto">
+                Follow our 3-phase journey engineered to protect agreed deliverables, catch verbal discounts, and sync client memory across all devices.
               </p>
             </div>
 
-            {/* 3 Milestone Roadmap Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto relative">
-              {/* Milestone 1: Phase 1 */}
-              <div className="relative p-6 sm:p-7 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Phase 1 &bull; Live Early Access
+            {/* DESKTOP TIMELINE TRACK WITH GLOWING CONNECTED NODES */}
+            <div className="hidden lg:block relative max-w-5xl mx-auto mb-12">
+              {/* Luminous Connecting Track Line */}
+              <div className="absolute top-4 left-16 right-16 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-zinc-400 dark:to-zinc-700" />
+              <div className="absolute top-4 left-16 w-1/3 h-[2px] bg-emerald-400 blur-xs" />
+
+              <div className="grid grid-cols-3 text-center relative">
+                {/* Node 1 */}
+                <div className="flex flex-col items-center">
+                  <div className="relative flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center ring-4 ring-emerald-500/30 dark:ring-emerald-500/20">
+                      <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]" />
                     </span>
-                    <span className="text-xs font-mono text-zinc-400">Q4 2026</span>
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  </div>
+                  <span className="mt-3 font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
+                    PHASE 01 &bull; Q4 2026
+                  </span>
+                </div>
+
+                {/* Node 2 */}
+                <div className="flex flex-col items-center">
+                  <div className="relative flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center ring-4 ring-indigo-500/30 dark:ring-indigo-500/20">
+                      <span className="w-3.5 h-3.5 rounded-full bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.8)]" />
+                    </span>
+                  </div>
+                  <span className="mt-3 font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">
+                    PHASE 02 &bull; Q1 2027
+                  </span>
+                </div>
+
+                {/* Node 3 */}
+                <div className="flex flex-col items-center">
+                  <div className="relative flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center ring-4 ring-zinc-300 dark:ring-zinc-800/80">
+                      <span className="w-3.5 h-3.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+                    </span>
+                  </div>
+                  <span className="mt-3 font-mono text-[11px] font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
+                    PHASE 03 &bull; Q2 2027
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* TIMELINE CARDS GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch">
+              {/* Milestone 1: Phase 1 */}
+              <div className="group relative rounded-2xl bg-white dark:bg-zinc-900/80 border border-emerald-500/30 dark:border-emerald-500/20 p-6 sm:p-7 shadow-lg flex flex-col justify-between overflow-hidden transition-all duration-300 hover:border-emerald-500/60 dark:hover:border-emerald-500/40 hover:shadow-xl hover:-translate-y-1">
+                {/* Top Glowing Beam */}
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-500 via-emerald-400 to-transparent" />
+                <div className="absolute -right-12 -top-12 w-36 h-36 bg-emerald-500/10 blur-3xl pointer-events-none rounded-full group-hover:bg-emerald-500/20 transition-all" />
+
+                <div className="space-y-5">
+                  {/* Status & Badge */}
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      LIVE EARLY ACCESS
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      01
+                    </span>
                   </div>
 
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-750">
-                    <Globe className="w-5 h-5" />
+                  {/* Icon & Milestone Name */}
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs shrink-0">
+                      <Globe className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-mono uppercase text-zinc-500 font-semibold tracking-wider block">
+                        Desktop Browser Extension
+                      </span>
+                      <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight mt-0.5">
+                        Phase 1: Extension (Only Web)
+                      </h3>
+                    </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                      Phase 1: Extension (Only Web)
-                    </h3>
-                    <p className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                      Manifest V3 companion living directly inside Fiverr Inbox, Upwork Rooms, and LinkedIn Messages with zero context switching.
-                    </p>
-                  </div>
+                  <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    Manifest V3 companion operating directly inside Fiverr Inbox, Upwork Rooms, and LinkedIn Messages. Keeps agreed milestones visibly pinned right beside your active chat.
+                  </p>
 
-                  <div className="pt-3 border-t border-zinc-200 dark:border-zinc-850 space-y-2 text-xs text-zinc-700 dark:text-zinc-300">
-                    <div className="flex items-start gap-2">
+                  {/* Milestone Deliverables */}
+                  <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800/80 space-y-2.5 text-xs text-zinc-700 dark:text-zinc-300">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <span>Pinned client agreement terms sidebar</span>
+                      <span className="leading-tight">Pinned project agreements &amp; budget ledger</span>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <span>Scope creep &amp; deadline contradiction alerts</span>
+                      <span className="leading-tight">Real-time deadline &amp; revision contradiction alerts</span>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <span>1-click polite response insertion</span>
+                      <span className="leading-tight">1-click polite response templates insertion</span>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <span>100% private local browser storage</span>
+                      <span className="leading-tight">100% private sandbox with local storage</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-850 flex items-center justify-between text-xs">
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">
-                    Available Now
-                  </span>
+                {/* Footer Action */}
+                <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-850 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-mono text-[11px] font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Available to Try Now
+                  </div>
                   <a
                     href="#download"
-                    className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-white hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer group/link"
                   >
-                    <span>Download Extension</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Get Build</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
                   </a>
                 </div>
               </div>
 
               {/* Milestone 2: Phase 2 */}
-              <div className="relative p-6 sm:p-7 rounded-2xl bg-white dark:bg-zinc-900/60 border border-indigo-200 dark:border-indigo-950/80 flex flex-col justify-between shadow-xs hover:border-indigo-300 dark:hover:border-indigo-900 transition-all">
-                <div className="space-y-4">
+              <div className="group relative rounded-2xl bg-white dark:bg-zinc-900/80 border border-indigo-500/30 dark:border-indigo-500/20 p-6 sm:p-7 shadow-lg flex flex-col justify-between overflow-hidden transition-all duration-300 hover:border-indigo-500/60 dark:hover:border-indigo-500/40 hover:shadow-xl hover:-translate-y-1">
+                {/* Top Glowing Beam */}
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-indigo-500 via-indigo-400 to-transparent" />
+                <div className="absolute -right-12 -top-12 w-36 h-36 bg-indigo-500/10 blur-3xl pointer-events-none rounded-full group-hover:bg-indigo-500/20 transition-all" />
+
+                <div className="space-y-5">
+                  {/* Status & Badge */}
                   <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80 shadow-2xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                      Phase 2 &bull; In Development
+                      IN ACTIVE DEVELOPMENT
                     </span>
-                    <span className="text-xs font-mono text-zinc-400">Q1 2027</span>
+                    <span className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                      02
+                    </span>
                   </div>
 
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80">
-                    <Smartphone className="w-5 h-5" />
+                  {/* Icon & Milestone Name */}
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs shrink-0">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-mono uppercase text-zinc-500 font-semibold tracking-wider block">
+                        iOS &amp; Android Keyboard
+                      </span>
+                      <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight mt-0.5">
+                        Phase 2: Mobile Keyboard (Mobile)
+                      </h3>
+                    </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                      Phase 2: Mobile Keyboard (Mobile)
-                    </h3>
-                    <p className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                      Custom iOS &amp; Android keyboard extension bringing your client agreement ledger into WhatsApp, Telegram, Slack, and mobile inboxes.
-                    </p>
-                  </div>
+                  <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    Custom smartphone keyboard extension bringing your client agreement ledger straight into WhatsApp, Telegram, Slack, and mobile inboxes while on the go.
+                  </p>
 
-                  <div className="pt-3 border-t border-zinc-200 dark:border-zinc-850 space-y-2 text-xs text-zinc-700 dark:text-zinc-300">
-                    <div className="flex items-start gap-2">
+                  {/* Milestone Deliverables */}
+                  <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800/80 space-y-2.5 text-xs text-zinc-700 dark:text-zinc-300">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <span>Context bar right above the mobile keyboard</span>
+                      <span className="leading-tight">Floating context bar directly above keyboard</span>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <span>Auto-suggests agreed prices &amp; delivery dates</span>
+                      <span className="leading-tight">Auto-suggests agreed prices, scopes &amp; milestones</span>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <span>Quick-paste invoice &amp; milestone terms on phone</span>
+                      <span className="leading-tight">Instant copy-paste verified invoice terms</span>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <span>End-to-end encrypted mobile sync</span>
+                      <span className="leading-tight">End-to-end encrypted mobile sync gateway</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-850 flex items-center justify-between text-xs">
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold text-[11px]">
-                    Private Beta Soon
-                  </span>
+                {/* Footer Action */}
+                <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-850 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-mono text-[11px] font-semibold">
+                    <Zap className="w-3.5 h-3.5" />
+                    Testing Core Engine
+                  </div>
                   <button
                     onClick={() => {
                       setSelectedEarlyAccessPlan('Agency Pro');
                       setIsEarlyAccessOpen(true);
                     }}
-                    className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-white hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group/link"
                   >
                     <span>Reserve Mobile Spot</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
                   </button>
                 </div>
               </div>
 
               {/* Milestone 3: Phase 3 */}
-              <div className="relative p-6 sm:p-7 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
-                <div className="space-y-4">
+              <div className="group relative rounded-2xl bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 p-6 sm:p-7 shadow-lg flex flex-col justify-between overflow-hidden transition-all duration-300 hover:border-purple-500/50 dark:hover:border-purple-500/30 hover:shadow-xl hover:-translate-y-1">
+                {/* Top Glowing Beam */}
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-500 via-pink-500 to-transparent" />
+                <div className="absolute -right-12 -top-12 w-36 h-36 bg-purple-500/10 blur-3xl pointer-events-none rounded-full group-hover:bg-purple-500/20 transition-all" />
+
+                <div className="space-y-5">
+                  {/* Status & Badge */}
                   <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-250 dark:border-zinc-700 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-                      Phase 3 &bull; Planned
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-250 dark:border-zinc-700 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                      PLANNED ARCHITECTURE
                     </span>
-                    <span className="text-xs font-mono text-zinc-400">Q2 2027</span>
+                    <span className="font-mono text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                      03
+                    </span>
                   </div>
 
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-750">
-                    <Video className="w-5 h-5" />
+                  {/* Icon & Milestone Name */}
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-2xs shrink-0">
+                      <Video className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-mono uppercase text-zinc-500 font-semibold tracking-wider block">
+                        Ambient Audio Intelligence
+                      </span>
+                      <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight mt-0.5">
+                        Phase 3: Meeting AI Assistant
+                      </h3>
+                    </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                      Phase 3: Meeting AI Assistant
-                    </h3>
-                    <p className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                      Ambient intelligence for Google Meet, Zoom, and Loom discovery calls that extracts agreed terms and stops accidental verbal discounts.
-                    </p>
-                  </div>
+                  <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    Real-time meeting companion for Google Meet, Zoom, and Loom discovery calls that extracts agreed terms and prevents accidental verbal discounts before you commit.
+                  </p>
 
-                  <div className="pt-3 border-t border-zinc-200 dark:border-zinc-850 space-y-2 text-xs text-zinc-700 dark:text-zinc-300">
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
-                      <span>Live term extraction during kickoff calls</span>
+                  {/* Milestone Deliverables */}
+                  <div className="pt-4 border-t border-zinc-200 dark:border-zinc-850 space-y-2.5 text-xs text-zinc-700 dark:text-zinc-300">
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">Live term extraction during discovery &amp; kickoff calls</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
-                      <span>Automatic post-call agreement recap generation</span>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">Verbal scope creep &amp; free revision warnings in real time</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
-                      <span>Real-time verbal scope creep warning</span>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">Auto agreement recap summary sent directly to chat</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
-                      <span>Auto-syncs verbal notes directly to client card</span>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">1-click export to formal contract or invoice milestone</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-850 flex items-center justify-between text-xs">
-                  <span className="font-mono text-zinc-500 font-semibold text-[11px]">
+                {/* Footer Action */}
+                <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-850 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-mono text-[11px] font-semibold">
+                    <Sparkles className="w-3.5 h-3.5" />
                     Research &amp; Specs
-                  </span>
+                  </div>
                   <button
                     onClick={() => {
                       setSelectedEarlyAccessPlan('Enterprise');
                       setIsEarlyAccessOpen(true);
                     }}
-                    className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-white hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer group/link"
                   >
                     <span>Request Early Specs</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
                   </button>
                 </div>
               </div>
