@@ -194,11 +194,21 @@ export class MemoreplyFloatingWidget {
 
     this.shadow.innerHTML = `
       <style>
+        /* ── Memoreply Brand Typography ────────────────────────── */
         * {
           box-sizing: border-box;
           margin: 0;
           padding: 0;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          /* Inter / Geist / SF Pro stack for UI elements */
+          font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* JetBrains Mono for version tags, ledger terms, platform chips */
+        .mono, code, kbd {
+          font-family: "JetBrains Mono", "Fira Code", "Cascadia Code",
+            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-feature-settings: "liga" 1, "calt" 1;
         }
 
         .mr-widget {
@@ -252,7 +262,8 @@ export class MemoreplyFloatingWidget {
 
         .mr-platform-chip {
           font-size: 9px;
-          font-family: monospace;
+          font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+          font-feature-settings: "liga" 1, "calt" 1;
           background: #27272a;
           color: #a1a1aa;
           padding: 2px 6px;
@@ -265,7 +276,8 @@ export class MemoreplyFloatingWidget {
           font-size: 10px;
           color: #10b981;
           font-weight: 600;
-          font-family: monospace;
+          font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+          font-feature-settings: "liga" 1, "calt" 1;
         }
 
         /* Expanded Card */
@@ -471,7 +483,8 @@ export class MemoreplyFloatingWidget {
 
         .mr-template-badge {
           font-size: 9px;
-          font-family: monospace;
+          font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+          font-feature-settings: "liga" 1, "calt" 1;
           padding: 1px 5px;
           border-radius: 4px;
           background: #1e1b4b;
