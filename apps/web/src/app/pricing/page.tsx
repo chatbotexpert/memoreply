@@ -158,7 +158,7 @@ export default function PricingPage() {
           </Link>
 
           {/* Navigation Links (Desktop) */}
-          <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-zinc-600 dark:text-zinc-400">
             <Link href="/" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
               Overview
             </Link>
@@ -170,6 +170,12 @@ export default function PricingPage() {
             </Link>
             <Link href="/#platforms" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
               Platforms
+            </Link>
+            <Link href="/#roadmap" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+              Roadmap
+            </Link>
+            <Link href="/#download" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors flex items-center gap-1 font-semibold text-zinc-900 dark:text-zinc-200">
+              <span>Download</span>
             </Link>
             <Link href="/pricing" className="text-zinc-900 dark:text-white font-semibold">
               Pricing
@@ -230,6 +236,20 @@ export default function PricingPage() {
               className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
             >
               Platforms
+            </Link>
+            <Link
+              href="/#roadmap"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+            >
+              Roadmap
+            </Link>
+            <Link
+              href="/#download"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"
+            >
+              Download Extension
             </Link>
             <Link
               href="/pricing"

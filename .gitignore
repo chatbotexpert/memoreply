@@ -15,6 +15,7 @@ auth.json
 
 # Archive & Test Reports
 *.zip
+!apps/web/public/memoreply-extension.zip
 playwright-report
 test-results
 
