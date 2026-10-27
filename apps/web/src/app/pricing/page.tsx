@@ -180,16 +180,9 @@ export default function PricingPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
 
-            <Link
-              href="/login"
-              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-md transition-all cursor-pointer shadow-2xs"
-            >
-              <span>Sign In</span>
-            </Link>
-
             <button
               onClick={() => setIsEarlyAccessOpen(true)}
-              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:text-zinc-950 dark:bg-white dark:hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:text-zinc-950 dark:bg-white dark:hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
               <span>Get Early Access</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -245,22 +238,16 @@ export default function PricingPage() {
             >
               Pricing
             </Link>
-            <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
-              >
-                Sign In
-              </Link>
+            <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800">
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   setIsEarlyAccessOpen(true);
                 }}
-                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-zinc-900 dark:bg-white dark:text-zinc-950 rounded-md transition-colors"
+                className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-zinc-900 dark:bg-white dark:text-zinc-950 rounded-md transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
               >
-                Get Early Access
+                <span>Get Early Access</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
