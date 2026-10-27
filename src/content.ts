@@ -15,6 +15,7 @@ import type {
 } from './types';
 import { generateDeterministicMessageId } from './utils/deduplication';
 import { getAdapterForUrl } from './adapters';
+import { MemoreplyFloatingWidget } from './ui/FloatingWidget';
 
 console.log('[Memoreply] Multi-platform content script initialized on:', window.location.href);
 
@@ -498,10 +499,52 @@ function checkAndBroadcastConversation(): void {
           }
         }
       );
+
+      // 3. Update floating widget UI
+      if (floatingWidget) {
+        floatingWidget.updateState(data.clientDisplayName, data.messages.length);
+      } else {
+        initFloatingWidget();
+      }
     }
   } catch (err) {
     console.warn('[Memoreply] Background extraction warning:', err);
   }
+}
+
+// ============================================================
+// Floating Extension UI (Vite MV3 Injected Widget)
+// ============================================================
+
+let floatingWidget: MemoreplyFloatingWidget | null = null;
+
+function initFloatingWidget(): void {
+  if (floatingWidget || !isConversationPage()) return;
+
+  const adapter = getAdapterForUrl(window.location.href);
+  const platform = adapter ? adapter.platform : 'fiverr';
+
+  floatingWidget = new MemoreplyFloatingWidget({
+    platform,
+    onExtract: () => {
+      const conv = extractCurrentConversation();
+      return {
+        clientDisplayName: conv.clientDisplayName,
+        messagesCount: conv.messages.length,
+        platform: conv.platform,
+        conversationId: conv.conversationId,
+      };
+    },
+    onInsertDraft: (text: string) => insertDraftIntoComposer(text),
+  });
+
+  floatingWidget.mount();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initFloatingWidget);
+} else {
+  initFloatingWidget();
 }
 
 // 1. Initial extraction on load
@@ -512,6 +555,7 @@ setTimeout(checkAndBroadcastConversation, 2400);
 let debounceTimer: number | null = null;
 const observer = new MutationObserver(() => {
   if (!isConversationPage()) return;
+  if (!floatingWidget) initFloatingWidget();
   if (debounceTimer) window.clearTimeout(debounceTimer);
   debounceTimer = window.setTimeout(checkAndBroadcastConversation, 800);
 });
@@ -522,4 +566,9 @@ observer.observe(document.body, {
 });
 
 // 3. Periodic fallback poll (every 4 seconds) to catch SPA navigation
-setInterval(checkAndBroadcastConversation, 4000);
+setInterval(() => {
+  if (!floatingWidget && isConversationPage()) {
+    initFloatingWidget();
+  }
+  checkAndBroadcastConversation();
+}, 4000);
