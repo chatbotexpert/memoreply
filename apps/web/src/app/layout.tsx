@@ -22,6 +22,17 @@ export const metadata: Metadata = {
   title: 'Memoreply — Replies that remember | Workspace Memory Ledger',
   description:
     'A deterministic context engine and communication ledger for client-facing professionals on Fiverr, Upwork, and LinkedIn by HashTurn.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon-48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/logo.png', sizes: '128x128', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/logo.png', sizes: '128x128', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
