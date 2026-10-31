@@ -21,6 +21,7 @@ export interface ConversationData {
   clientUsername: string | null;
   clientDisplayName: string | null;
   clientAvatarUrl: string | null;
+  clientEmail?: string | null;
   messages: ExtractedMessage[];
   extractedAt: string;
   url: string;

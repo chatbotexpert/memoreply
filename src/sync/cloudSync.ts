@@ -96,6 +96,7 @@ export async function pushConversationToCloud(
         platform: conversation.platform,
         status: conversation.status,
         url: conversation.url,
+        clientEmail: conversation.clientEmail || null,
         messages: conversation.messages.map((m) => ({
           messageId: m.id,
           senderRole: m.senderRole,

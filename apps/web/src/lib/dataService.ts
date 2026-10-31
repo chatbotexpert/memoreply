@@ -33,6 +33,7 @@ export interface LiveConversation {
   id: string;
   clientName: string;
   username: string;
+  clientEmail?: string | null;
   platform: 'Fiverr' | 'Upwork' | 'LinkedIn';
   status: 'Active' | 'Completed' | 'Pending Offer';
   lastUpdated: string;
@@ -478,6 +479,7 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
           update: {
             lastMessageAt: new Date(),
             url: convData.url,
+            clientEmail: convData.clientEmail || clientData.email || null,
           },
           create: {
             userId: defaultUser.id,
@@ -485,6 +487,7 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
             platform: clientData.platform.toUpperCase(),
             conversationId: convData.conversationId || clientData.platformUserId,
             url: convData.url,
+            clientEmail: convData.clientEmail || clientData.email || null,
           },
         });
 

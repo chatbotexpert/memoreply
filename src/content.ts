@@ -126,6 +126,56 @@ function extractConversationId(): string | null {
 }
 
 /**
+ * Regex to extract client email address from messages or profile DOM.
+ */
+function extractEmailFromText(text: string): string | null {
+  if (!text) return null;
+  const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+  const matches = text.match(emailRegex);
+  if (matches && matches.length > 0) {
+    // Filter out common false positives like asset urls or placeholders
+    const valid = matches.find((m) => !m.endsWith('.png') && !m.endsWith('.jpg') && !m.includes('example.com'));
+    return valid ? valid.toLowerCase() : null;
+  }
+  return null;
+}
+
+/**
+ * Scan DOM and message list for client's email address
+ */
+function detectClientEmail(messages: ExtractedMessage[]): string | null {
+  // 1. Scan client messages first
+  for (const msg of messages) {
+    if (msg.senderRole === 'client' || !msg.isOwn) {
+      const email = extractEmailFromText(msg.text);
+      if (email) return email;
+    }
+  }
+
+  // 2. Scan active thread container / contact info links in DOM
+  const emailAnchor = document.querySelector<HTMLAnchorElement>('a[href^="mailto:"]');
+  if (emailAnchor) {
+    const raw = emailAnchor.href.replace(/^mailto:/i, '').split('?')[0].trim();
+    if (raw) return raw.toLowerCase();
+  }
+
+  // 3. Scan user profile sidebar / details panel
+  const profilePanel = document.querySelector('[class*="profile"], [class*="contact"], [class*="client-info"], [class*="about-client"]');
+  if (profilePanel && profilePanel.textContent) {
+    const email = extractEmailFromText(profilePanel.textContent);
+    if (email) return email;
+  }
+
+  // 4. Fallback: check any remaining message
+  for (const msg of messages) {
+    const email = extractEmailFromText(msg.text);
+    if (email) return email;
+  }
+
+  return null;
+}
+
+/**
  * Extract client details (username, display name, avatar) from the page.
  */
 function extractClientInfo(): {
@@ -330,6 +380,7 @@ function extractCurrentConversation(): ConversationData {
     const conversationId = adapter.extractConversationId();
     const clientInfo = adapter.extractClientInfo();
     const messages = adapter.extractMessages();
+    const clientEmail = detectClientEmail(messages);
     const status: ConversationData['status'] = messages.length > 0 ? 'active' : 'empty';
 
     return {
@@ -338,6 +389,7 @@ function extractCurrentConversation(): ConversationData {
       clientUsername: clientInfo.username,
       clientDisplayName: clientInfo.displayName,
       clientAvatarUrl: clientInfo.avatarUrl,
+      clientEmail,
       messages,
       extractedAt: new Date().toISOString(),
       url: window.location.href,
@@ -350,6 +402,7 @@ function extractCurrentConversation(): ConversationData {
   const conversationId = extractConversationId();
   const { username, displayName, avatarUrl } = extractClientInfo();
   const messages = isInbox ? extractMessages() : [];
+  const clientEmail = detectClientEmail(messages);
 
   let status: ConversationData['status'] = 'not_found';
   if (isInbox) {
@@ -362,6 +415,7 @@ function extractCurrentConversation(): ConversationData {
     clientUsername: username,
     clientDisplayName: displayName,
     clientAvatarUrl: avatarUrl,
+    clientEmail,
     messages,
     extractedAt: new Date().toISOString(),
     url: window.location.href,

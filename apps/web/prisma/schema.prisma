@@ -91,6 +91,7 @@ model Conversation {
   client         Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platform       PlatformType       @default(FIVERR)
   conversationId String             // Platform specific thread ID
+  clientEmail    String?            // Extracted client email from thread/profile
   status         ConversationStatus @default(ACTIVE)
   url            String?
   lastMessageAt  DateTime           @default(now())
