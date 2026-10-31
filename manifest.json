@@ -29,7 +29,10 @@
         "*://*.upwork.com/*",
         "https://upwork.com/*",
         "*://*.linkedin.com/*",
-        "https://linkedin.com/*"
+        "https://linkedin.com/*",
+        "https://memoreply.com/*",
+        "https://*.vercel.app/*",
+        "http://localhost:3000/*"
       ],
       "js": ["src/content.ts"],
       "run_at": "document_idle"

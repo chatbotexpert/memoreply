@@ -6,6 +6,57 @@
 // extension side panel.
 // ============================================================
 
+// ── Web App Auth Handshake Bridge (memoreply.com & localhost) ────
+const isAuthHost =
+  window.location.hostname.includes('memoreply.com') ||
+  window.location.hostname === 'localhost' ||
+  window.location.hostname.includes('vercel.app');
+
+if (isAuthHost) {
+  // Listen for login/signup success broadcast from web app
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+
+    if (event.data?.type === 'MEMOREPLY_AUTH_PAYLOAD' && event.data?.payload?.token) {
+      const auth = event.data.payload;
+      chrome.storage.local.set({
+        memoreply_auth_session: {
+          token: auth.token,
+          refreshToken: auth.refreshToken,
+          userId: auth.userId,
+          email: auth.email,
+          name: auth.name || 'Freelancer',
+          plan: auth.plan || 'FREE',
+          authenticatedAt: Date.now(),
+        },
+      }).then(() => {
+        console.log('[Memoreply] Auth session captured and stored successfully!');
+      });
+    }
+  });
+
+  // Also check if data attribute was set on documentElement
+  const authAttr = document.body?.getAttribute('data-memoreply-auth');
+  if (authAttr) {
+    try {
+      const auth = JSON.parse(authAttr);
+      if (auth.token) {
+        chrome.storage.local.set({
+          memoreply_auth_session: {
+            token: auth.token,
+            userId: auth.userId,
+            email: auth.email,
+            name: auth.name || 'Freelancer',
+            plan: auth.plan || 'FREE',
+            authenticatedAt: Date.now(),
+          },
+        });
+      }
+    } catch {}
+  }
+}
+
+
 import type {
   ConversationData,
   ExtractedMessage,

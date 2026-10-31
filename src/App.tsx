@@ -99,6 +99,15 @@ const MOCK_CONVERSATION: ConversationData = {
 };
 
 export default function App() {
+  // Web Authentication & Free Tier Session
+  const [authSession, setAuthSession] = useState<{
+    token: string;
+    email: string;
+    name: string;
+    plan: string;
+  } | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [activeTone, setActiveTone] = useState<string>('Professional');
@@ -155,6 +164,53 @@ export default function App() {
     setTimeout(() => {
       setToast({ show: false, message: '', type: 'info' });
     }, 4000);
+  };
+
+  // Initial Web Session Check & Reactive Storage Listener
+  useEffect(() => {
+    chrome.storage.local.get(['memoreply_auth_session'], (res: Record<string, any>) => {
+      const sess = res.memoreply_auth_session;
+      if (sess && typeof sess === 'object' && sess.token) {
+        setAuthSession({
+          token: String(sess.token),
+          email: String(sess.email || ''),
+          name: String(sess.name || 'Freelancer'),
+          plan: String(sess.plan || 'Free'),
+        });
+      }
+      setIsCheckingAuth(false);
+    });
+
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.memoreply_auth_session) {
+        const newVal = changes.memoreply_auth_session.newValue as Record<string, any> | undefined;
+        if (newVal && typeof newVal === 'object' && newVal.token) {
+          setAuthSession({
+            token: String(newVal.token),
+            email: String(newVal.email || ''),
+            name: String(newVal.name || 'Freelancer'),
+            plan: String(newVal.plan || 'Free'),
+          });
+        } else {
+          setAuthSession(null);
+        }
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+  }, []);
+
+  const handleOpenWebLogin = () => {
+    chrome.tabs.create({
+      url: 'https://memoreply.com/login?source=extension',
+    });
+  };
+
+  const handleLogout = async () => {
+    await chrome.storage.local.remove(['memoreply_auth_session']);
+    setAuthSession(null);
+    showToast('Signed out of Memoreply.', 'info');
   };
 
   // Load Direct AI settings and seller knowledge on mount
@@ -963,6 +1019,87 @@ export default function App() {
   const clientDisplayName = conversation?.clientDisplayName ?? storedClient?.displayName ?? 'Client';
   const messageCount = conversation?.messages?.length ?? 0;
 
+  // Loading state
+  if (isCheckingAuth) {
+    return (
+      <div style={{ width: 380, height: 520, background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a1a1aa' }}>
+        <span className="spinner" style={{ width: 24, height: 24 }} />
+      </div>
+    );
+  }
+
+  // ========================================================
+  // MANDATORY AUTH GUARD: Unauthenticated User Screen
+  // ========================================================
+  if (!authSession) {
+    return (
+      <div style={{ width: 380, height: 540, background: '#09090b', color: '#fafafa', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 24, boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/icons/icon-48.png" alt="Memoreply" style={{ width: 28, height: 28, borderRadius: 8 }} />
+              <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.02em' }}>Memoreply</span>
+            </div>
+            <span style={{ fontSize: 10, fontFamily: 'monospace', padding: '2px 8px', borderRadius: 999, background: '#18181b', color: '#a1a1aa', border: '1px solid #27272a' }}>
+              v0.1.1
+            </span>
+          </div>
+
+          {/* Hero Card */}
+          <div style={{ padding: 18, borderRadius: 16, background: 'linear-gradient(180deg, #18181b 0%, #09090b 100%)', border: '1px solid #27272a', marginBottom: 20 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 6 }}>
+              Sign In to Activate
+            </h2>
+            <p style={{ fontSize: 12, color: '#a1a1aa', lineHeight: 1.5, margin: 0 }}>
+              Connect your free Memoreply account to unlock client context memory, scope ledger, and response composer.
+            </p>
+          </div>
+
+          {/* Feature List */}
+          <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+              Free Tier Includes
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#d4d4d8' }}>
+              <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> 50 Context AI Replies / Month
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#d4d4d8' }}>
+              <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Upwork, Fiverr & LinkedIn Floating Bar
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#d4d4d8' }}>
+              <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Cloud Database Sync with memoreply.com
+            </div>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 16 }}>
+          <button
+            onClick={handleOpenWebLogin}
+            style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: '#10b981', color: '#09090b', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)' }}
+          >
+            <span>Login via Web App</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </button>
+          <p style={{ fontSize: 11, color: '#71717a', textAlign: 'center', margin: 0 }}>
+            Don't have an account? Sign up is free in 30 seconds.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       {/* ---------- Header ---------- */}
@@ -972,10 +1109,18 @@ export default function App() {
           <div>
             <div className="app-logo-text">Memoreply</div>
           </div>
-          <span className="app-logo-badge">Pro</span>
+          <span className="app-logo-badge">{authSession?.plan || 'Free'}</span>
         </div>
 
         <div className="header-actions">
+          <button
+            className="btn btn-ghost"
+            onClick={handleLogout}
+            title="Sign out of Memoreply"
+            style={{ fontSize: 11, color: '#71717a', padding: '4px 8px' }}
+          >
+            Logout
+          </button>
           <button
             className="btn btn-ghost btn-icon"
             onClick={syncFromActiveTab}
