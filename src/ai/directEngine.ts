@@ -15,7 +15,7 @@ export interface InlineRefineOptions {
   clientName?: string;
 }
 
-const DEFAULT_PROXY_ENDPOINT = 'https://memoreply-cfy8.vercel.app/api/generate';
+const DEFAULT_PROXY_ENDPOINT = 'https://memoreply.com/api/generate';
 
 /**
  * Fetch an AI response directly via backend proxy or direct API without external tabs.

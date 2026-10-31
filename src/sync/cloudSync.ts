@@ -22,7 +22,7 @@ export interface QueuedSyncPayload {
   retryCount: number;
 }
 
-const DEFAULT_SYNC_ENDPOINT = 'https://memoreply-cfy8.vercel.app/api/sync';
+const DEFAULT_SYNC_ENDPOINT = 'https://memoreply.com/api/sync';
 const DEFAULT_API_TOKEN = 'memo_live_9f82d1b68536c045968186fcb699';
 const STORAGE_QUEUE_KEY = 'memoreply_offline_sync_queue';
 const MAX_RETRIES = 5;

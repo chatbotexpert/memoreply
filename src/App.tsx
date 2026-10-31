@@ -141,7 +141,7 @@ export default function App() {
   // Direct AI Gateway Settings
   const [selectedModel, setSelectedModel] = useState<string>('inline-engine');
   const [customApiKey, setCustomApiKey] = useState<string>('');
-  const [apiEndpoint, setApiEndpoint] = useState<string>('https://memoreply-cfy8.vercel.app/api/generate');
+  const [apiEndpoint, setApiEndpoint] = useState<string>('https://memoreply.com/api/generate');
   const [isTestingSession, setIsTestingSession] = useState<boolean>(false);
 
   // Module 7: Seller Knowledge Base States
@@ -476,7 +476,7 @@ export default function App() {
    */
   const handleTestDirectConnection = async () => {
     setIsTestingSession(true);
-    let targetUrl = (apiEndpoint || 'https://memoreply-cfy8.vercel.app/api/generate').trim();
+    let targetUrl = (apiEndpoint || 'https://memoreply.com/api/generate').trim();
     if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
       targetUrl = 'https://' + targetUrl;
     }

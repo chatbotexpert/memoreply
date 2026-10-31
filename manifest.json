@@ -51,7 +51,7 @@
     "*://*.chatgpt.com/*",
     "*://*.openai.com/*",
     "https://*.vercel.app/*",
-    "https://memoreply-cfy8.vercel.app/*",
+    "https://memoreply.com/*",
     "http://localhost:3000/*",
     "http://127.0.0.1:3000/*"
   ],
