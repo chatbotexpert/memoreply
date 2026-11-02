@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export type SaaSPlan = 'Freelancer' | 'Agency Pro' | 'Enterprise';
 
@@ -94,28 +95,161 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const router = useRouter();
 
-  // Load user session from localStorage on mount
+  // Sync Supabase Auth session on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('memoreply_auth_user');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setUser(parsed);
-        setIsAuthenticated(true);
-      } else {
-        // Persist default demo user for seamless out-of-the-box exploration
-        localStorage.setItem('memoreply_auth_user', JSON.stringify(DEFAULT_USER));
-        setUser(DEFAULT_USER);
-        setIsAuthenticated(true);
+    async function initSupabaseAuth() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+          const userMeta = session.user.user_metadata || {};
+          const plan: SaaSPlan = (userMeta.plan as SaaSPlan) || 'Freelancer';
+          const maxSeats = plan === 'Freelancer' ? 1 : plan === 'Agency Pro' ? 5 : 20;
+
+          const activeUser: UserProfile = {
+            id: session.user.id,
+            name: userMeta.name || session.user.email?.split('@')[0] || 'Agency User',
+            agencyName: userMeta.agencyName || 'Personal Workspace',
+            email: session.user.email || '',
+            plan,
+            licenseKey: userMeta.licenseKey || `MR-${plan.toUpperCase().replace(/\s+/g, '')}-SEC`,
+            activeSeats: 1,
+            maxSeats,
+            renewalDate: 'Monthly Plan',
+            isLicensed: true,
+            seats: [],
+          };
+
+          setUser(activeUser);
+          setIsAuthenticated(true);
+          try {
+            localStorage.setItem('memoreply_auth_user', JSON.stringify(activeUser));
+          } catch {}
+          return;
+        }
+
+        // Fallback to localStorage if offline/persisted
+        const stored = localStorage.getItem('memoreply_auth_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setUser(parsed);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch {
+        const stored = localStorage.getItem('memoreply_auth_user');
+        if (stored) {
+          setUser(JSON.parse(stored));
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
       }
-    } catch {
-      setUser(DEFAULT_USER);
-      setIsAuthenticated(true);
     }
+
+    initSupabaseAuth();
+
+    // Listen for auth state changes from Supabase
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session && session.user) {
+          const userMeta = session.user.user_metadata || {};
+          const plan: SaaSPlan = (userMeta.plan as SaaSPlan) || 'Freelancer';
+          const maxSeats = plan === 'Freelancer' ? 1 : plan === 'Agency Pro' ? 5 : 20;
+
+          const activeUser: UserProfile = {
+            id: session.user.id,
+            name: userMeta.name || session.user.email?.split('@')[0] || 'Agency User',
+            agencyName: userMeta.agencyName || 'Personal Workspace',
+            email: session.user.email || '',
+            plan,
+            licenseKey: userMeta.licenseKey || `MR-${plan.toUpperCase().replace(/\s+/g, '')}-SEC`,
+            activeSeats: 1,
+            maxSeats,
+            renewalDate: 'Monthly Plan',
+            isLicensed: true,
+            seats: [],
+          };
+
+          setUser(activeUser);
+          setIsAuthenticated(true);
+          try {
+            localStorage.setItem('memoreply_auth_user', JSON.stringify(activeUser));
+          } catch {}
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsAuthenticated(false);
+          try {
+            localStorage.removeItem('memoreply_auth_user');
+          } catch {}
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string): Promise<boolean> => {
-    // If logging in with existing or matching email, load or generate user
+  const login = async (email: string, password?: string): Promise<boolean> => {
+    // 1. Authenticate with Supabase Auth
+    if (password) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.user && data.session) {
+        const userMeta = data.user.user_metadata || {};
+        const plan: SaaSPlan = (userMeta.plan as SaaSPlan) || 'Freelancer';
+        const maxSeats = plan === 'Freelancer' ? 1 : plan === 'Agency Pro' ? 5 : 20;
+
+        const resolvedUser: UserProfile = {
+          id: data.user.id,
+          name: userMeta.name || email.split('@')[0],
+          agencyName: userMeta.agencyName || 'Personal Workspace',
+          email: data.user.email || email,
+          plan,
+          licenseKey: userMeta.licenseKey || `MR-${plan.toUpperCase().replace(/\s+/g, '')}-SEC`,
+          activeSeats: 1,
+          maxSeats,
+          renewalDate: 'Monthly Plan',
+          isLicensed: true,
+          seats: [],
+        };
+
+        setUser(resolvedUser);
+        setIsAuthenticated(true);
+        try {
+          localStorage.setItem('memoreply_auth_user', JSON.stringify(resolvedUser));
+        } catch {}
+
+        // Broadcast session for Chrome Extension handshake
+        window.postMessage(
+          {
+            type: 'MEMOREPLY_AUTH_PAYLOAD',
+            payload: {
+              token: data.session.access_token,
+              userId: data.user.id,
+              email: data.user.email,
+              name: resolvedUser.name,
+              plan: resolvedUser.plan,
+            },
+          },
+          window.location.origin
+        );
+
+        return true;
+      }
+    }
+
+    // Fallback if password not passed
     const existing = user && user.email.toLowerCase() === email.toLowerCase() ? user : null;
     const resolvedUser: UserProfile = existing || {
       ...DEFAULT_USER,
@@ -136,15 +270,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     name: string,
     agencyName: string,
     email: string,
-    _password: string,
+    password: string,
     plan: SaaSPlan
   ): Promise<boolean> => {
     const maxSeats = plan === 'Freelancer' ? 1 : plan === 'Agency Pro' ? 5 : 20;
     const randomHex = Math.random().toString(36).substring(2, 7).toUpperCase();
     const licenseKey = `MR-${plan.toUpperCase().replace(/\s+/g, '')}-${randomHex}-SEC`;
 
+    // 1. Real Signup on Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          agencyName,
+          plan,
+          licenseKey,
+        },
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
     const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
+      id: data.user?.id || `usr_${Date.now()}`,
       name,
       agencyName,
       email,
@@ -152,7 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       licenseKey,
       activeSeats: 1,
       maxSeats,
-      renewalDate: 'November 22, 2026',
+      renewalDate: 'Monthly Plan',
       isLicensed: true,
       seats: [
         {
@@ -172,10 +324,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem('memoreply_auth_user', JSON.stringify(newUser));
     } catch {}
+
+    // Broadcast session for Chrome Extension handshake if session exists
+    if (data.session) {
+      window.postMessage(
+        {
+          type: 'MEMOREPLY_AUTH_PAYLOAD',
+          payload: {
+            token: data.session.access_token,
+            userId: data.user?.id,
+            email: data.user?.email,
+            name: newUser.name,
+            plan: newUser.plan,
+          },
+        },
+        window.location.origin
+      );
+    }
+
     return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
     setUser(null);
     setIsAuthenticated(false);
     try {

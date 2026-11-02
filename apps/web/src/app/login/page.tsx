@@ -34,9 +34,14 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push('/dashboard');
-    } catch {
-      setErrorMsg('Unable to sign in. Please verify your credentials.');
+      // If user came from extension, redirect to extension success page
+      if (typeof window !== 'undefined' && window.location.search.includes('source=extension')) {
+        router.push('/auth/success');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Unable to sign in. Please verify your credentials.');
     } finally {
       setIsLoading(false);
     }

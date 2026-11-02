@@ -107,9 +107,17 @@ function SignUpForm() {
 
     try {
       await signup(name, agencyName, email, password, selectedPlan);
-      router.push('/dashboard');
-    } catch {
-      setErrorMsg('Failed to create agency account. Please try again.');
+      const isExtension =
+        searchParams.get('source') === 'extension' ||
+        (typeof window !== 'undefined' && window.location.search.includes('source=extension'));
+
+      if (isExtension) {
+        router.push('/auth/success');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to create agency account. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -331,7 +339,7 @@ function SignUpForm() {
           <div className="pt-2 text-center text-xs text-zinc-400 border-t border-zinc-850">
             <span>Already have an active agency account? </span>
             <Link
-              href="/login"
+              href={searchParams.get('source') === 'extension' ? '/login?source=extension' : '/login'}
               className="font-medium text-white hover:underline underline-offset-4"
             >
               Sign In to Workspace →
