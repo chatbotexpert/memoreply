@@ -1219,7 +1219,11 @@ export default function LandingPage() {
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <span className="leading-tight">100% private sandbox with local storage</span>
+                      <span className="leading-tight">Multi-platform support (Fiverr, Upwork, LinkedIn)</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">Supabase cloud sync &amp; client email extraction</span>
                     </div>
                   </div>
                 </div>
@@ -1285,15 +1289,19 @@ export default function LandingPage() {
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <span className="leading-tight">Auto-suggests agreed prices, scopes &amp; milestones</span>
+                      <span className="leading-tight">AI Smart Summary &amp; Client Sentiment mood tracking</span>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <span className="leading-tight">Instant copy-paste verified invoice terms</span>
+                      <span className="leading-tight">Real-time WebSockets / Supabase cross-device sync</span>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <span className="leading-tight">End-to-end encrypted mobile sync gateway</span>
+                      <span className="leading-tight">Automated Lead Ledger &amp; 1-click CSV/Excel export</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">Expansion to Gmail, Outlook &amp; Twitter (X) DMs</span>
                     </div>
                   </div>
                 </div>
