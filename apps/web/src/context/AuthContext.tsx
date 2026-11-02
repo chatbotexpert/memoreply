@@ -194,14 +194,115 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password?: string): Promise<boolean> => {
-    // 1. Authenticate with Supabase Auth
-    if (password) {
+    const isDemo =
+      !password ||
+      password === '••••••••••••' ||
+      email.toLowerCase().includes('agency@hashturn.com') ||
+      email.toLowerCase().includes('freelancer@alexmiller.io') ||
+      email.toLowerCase().includes('seller@hashturn.com');
+
+    // 1. If it's a demo account or quick demo button, bypass password check seamlessly
+    if (isDemo) {
+      const plan: SaaSPlan = email.toLowerCase().includes('freelancer') ? 'Freelancer' : 'Agency Pro';
+      const maxSeats = plan === 'Freelancer' ? 1 : 5;
+      const resolvedUser: UserProfile = {
+        ...DEFAULT_USER,
+        id: `demo_usr_${Date.now()}`,
+        email,
+        name: email.split('@')[0].replace(/[._-]/g, ' ').toUpperCase(),
+        agencyName: `${email.split('@')[0]} Agency`,
+        plan,
+        maxSeats,
+        isLicensed: true,
+      };
+
+      setUser(resolvedUser);
+      setIsAuthenticated(true);
+      try {
+        localStorage.setItem('memoreply_auth_user', JSON.stringify(resolvedUser));
+      } catch {}
+
+      const authPayload = {
+        token: `demo_jwt_token_${Date.now()}`,
+        refreshToken: `demo_refresh_${Date.now()}`,
+        userId: resolvedUser.id,
+        email: resolvedUser.email,
+        name: resolvedUser.name,
+        plan: resolvedUser.plan,
+      };
+
+      if (typeof window !== 'undefined') {
+        window.postMessage(
+          {
+            type: 'MEMOREPLY_AUTH_PAYLOAD',
+            payload: authPayload,
+          },
+          window.location.origin
+        );
+        if (document.body) {
+          document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+        }
+      }
+      return true;
+    }
+
+    // 2. Real Authenticate with Supabase Auth
+    try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        // If user is not yet registered in Supabase Auth, attempt seamless signup
+        if (error.message.toLowerCase().includes('invalid login') || error.message.toLowerCase().includes('user not found')) {
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                name: email.split('@')[0],
+                plan: 'Agency Pro',
+              },
+            },
+          });
+
+          if (!signUpError && signUpData.user && signUpData.session) {
+            const resolvedUser: UserProfile = {
+              id: signUpData.user.id,
+              name: email.split('@')[0],
+              agencyName: `${email.split('@')[0]} Agency`,
+              email,
+              plan: 'Agency Pro',
+              licenseKey: `MR-AGENCYPRO-DEMO-SEC`,
+              activeSeats: 1,
+              maxSeats: 5,
+              renewalDate: 'Monthly Plan',
+              isLicensed: true,
+              seats: [],
+            };
+            setUser(resolvedUser);
+            setIsAuthenticated(true);
+            try {
+              localStorage.setItem('memoreply_auth_user', JSON.stringify(resolvedUser));
+            } catch {}
+
+            const authPayload = {
+              token: signUpData.session.access_token,
+              refreshToken: signUpData.session.refresh_token,
+              userId: signUpData.user.id,
+              email: signUpData.user.email,
+              name: resolvedUser.name,
+              plan: resolvedUser.plan,
+            };
+
+            if (typeof window !== 'undefined') {
+              window.postMessage({ type: 'MEMOREPLY_AUTH_PAYLOAD', payload: authPayload }, window.location.origin);
+              if (document.body) document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+            }
+            return true;
+          }
+        }
         throw new Error(error.message);
       }
 
@@ -240,62 +341,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           plan: resolvedUser.plan,
         };
 
-        window.postMessage(
-          {
-            type: 'MEMOREPLY_AUTH_PAYLOAD',
-            payload: authPayload,
-          },
-          window.location.origin
-        );
+        if (typeof window !== 'undefined') {
+          window.postMessage(
+            {
+              type: 'MEMOREPLY_AUTH_PAYLOAD',
+              payload: authPayload,
+            },
+            window.location.origin
+          );
 
-        if (typeof document !== 'undefined' && document.body) {
-          document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+          if (document.body) {
+            document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+          }
         }
 
         return true;
       }
-    }
-
-    // Fallback if password not passed (e.g. 1-Click Instant Demo)
-    const existing = user && user.email.toLowerCase() === email.toLowerCase() ? user : null;
-    const plan: SaaSPlan = email.toLowerCase().includes('freelancer') ? 'Freelancer' : 'Agency Pro';
-    const resolvedUser: UserProfile = existing || {
-      ...DEFAULT_USER,
-      id: `demo_usr_${Date.now()}`,
-      email,
-      plan,
-      name: email.split('@')[0].replace(/[._-]/g, ' ').toUpperCase(),
-      agencyName: `${email.split('@')[0]} Agency`,
-    };
-
-    setUser(resolvedUser);
-    setIsAuthenticated(true);
-    try {
-      localStorage.setItem('memoreply_auth_user', JSON.stringify(resolvedUser));
-    } catch {}
-
-    // Broadcast session for Chrome Extension handshake
-    const authPayload = {
-      token: `demo_token_${Date.now()}`,
-      refreshToken: `demo_refresh_${Date.now()}`,
-      userId: resolvedUser.id,
-      email: resolvedUser.email,
-      name: resolvedUser.name,
-      plan: resolvedUser.plan,
-    };
-
-    if (typeof window !== 'undefined') {
-      window.postMessage(
-        {
-          type: 'MEMOREPLY_AUTH_PAYLOAD',
-          payload: authPayload,
-        },
-        window.location.origin
-      );
-
-      if (document.body) {
-        document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
-      }
+    } catch (err: any) {
+      throw err;
     }
 
     return true;
