@@ -615,7 +615,7 @@ export default function LandingPage() {
                 <span className="text-xs font-mono text-zinc-500 block">STEP 01</span>
                 <h4 className="text-base font-semibold text-zinc-900 dark:text-white">Open Client Chat</h4>
                 <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  Chat with your client normally on Fiverr, Upwork, or LinkedIn. Memoreply runs seamlessly right inside your active inbox.
+                  Chat with your client normally on Fiverr, Upwork, or LinkedIn. Memoreply stays active in your conversation window.
                 </p>
               </div>
 
