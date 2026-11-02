@@ -62,3 +62,4 @@ CREATE POLICY "tenant_isolation_client_facts" ON "client_facts"
       AND (c."userId" = auth.uid()::text OR auth.role() = 'service_role' OR auth.uid() IS NULL)
     )
   );
+

@@ -32,6 +32,13 @@ import {
   type StorageUsageStats,
   type StorageRetentionPolicy,
 } from './utils/localChatStorage';
+import {
+  verifyLicenseWithSupabase,
+  incrementFreeReplyCount,
+  isCoreFeatureLocked,
+  type SubscriptionLicenseStatus,
+  UPGRADE_URL,
+} from './utils/licenseManager';
 
 // ============================================================
 // Memoreply — Direct Inline AI Generation & Multi-Platform Client
@@ -116,6 +123,7 @@ export default function App() {
     plan: string;
   } | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+  const [licenseStatus, setLicenseStatus] = useState<SubscriptionLicenseStatus | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -221,9 +229,38 @@ export default function App() {
     });
   };
 
+  const handleOpenUpgrade = () => {
+    chrome.tabs.create({
+      url: UPGRADE_URL,
+    });
+  };
+
+  const refreshLicenseStatus = useCallback(async (token?: string) => {
+    const activeToken = token || authSession?.token;
+    if (!activeToken) {
+      setLicenseStatus(null);
+      return;
+    }
+    try {
+      const status = await verifyLicenseWithSupabase(activeToken);
+      setLicenseStatus(status);
+    } catch (err) {
+      console.warn('[Memoreply License] Verification warning:', err);
+    }
+  }, [authSession?.token]);
+
+  useEffect(() => {
+    if (authSession?.token) {
+      refreshLicenseStatus(authSession.token);
+    } else {
+      setLicenseStatus(null);
+    }
+  }, [authSession?.token, refreshLicenseStatus]);
+
   const handleLogout = async () => {
-    await chrome.storage.local.remove(['memoreply_auth_session']);
+    await chrome.storage.local.remove(['memoreply_auth_session', 'memoreply_license_status']);
     setAuthSession(null);
+    setLicenseStatus(null);
     showToast('Signed out of Memoreply.', 'info');
   };
 
@@ -842,6 +879,18 @@ export default function App() {
    * 3. Zero external tabs opened or manipulated!
    */
   const handleGenerateReply = async (toneOverride?: string) => {
+    // 1. Mandatory Auth & Subscription Limit Check
+    if (isCoreFeatureLocked(licenseStatus)) {
+      if (!authSession) {
+        showToast('Please sign in to Memoreply to generate AI replies.', 'error');
+        return;
+      }
+      if (licenseStatus?.tier === 'FREE' && licenseStatus.limits.isExhausted) {
+        showToast('Free tier limit exhausted. Upgrade to Pro on memoreply.com for unlimited AI replies!', 'error');
+        return;
+      }
+    }
+
     setIsGenerating(true);
     const chosenTone = toneOverride || activeTone;
 
@@ -887,6 +936,23 @@ export default function App() {
         setActiveVariantIndex(0);
         setDraftText(primaryResult.replyText);
         showToast(`Draft generated (${chosenTone})`, 'success');
+
+        // Track Free Tier AI response usage
+        if (licenseStatus?.tier === 'FREE') {
+          const { newCount, isExhausted } = await incrementFreeReplyCount();
+          setLicenseStatus((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  limits: {
+                    ...prev.limits,
+                    repliesUsed: newCount,
+                    isExhausted,
+                  },
+                }
+              : null
+          );
+        }
       }
     } catch (err: unknown) {
       console.error('[Memoreply] Direct generation error:', err);
@@ -901,6 +967,10 @@ export default function App() {
    * QuillBot / Grammarly-style quick refinement actions
    */
   const handleRefine = async (action: 'shorten' | 'expand' | 'milestone' | 'rephrase') => {
+    if (isCoreFeatureLocked(licenseStatus)) {
+      showToast('Core features locked. Upgrade on memoreply.com for unlimited AI refinements.', 'error');
+      return;
+    }
     if (!draftText.trim()) {
       showToast('Please generate or compose a draft first.', 'error');
       return;
@@ -952,6 +1022,10 @@ export default function App() {
    * Insert draft directly into the active platform's message composer (Fiverr, Upwork, LinkedIn)
    */
   const handleInsertDraft = async () => {
+    if (isCoreFeatureLocked(licenseStatus)) {
+      showToast('Core features locked. Upgrade on memoreply.com to insert drafts.', 'error');
+      return;
+    }
     if (!draftText.trim()) {
       showToast('Draft is empty. Generate or write a reply first.', 'error');
       return;
@@ -1176,10 +1250,37 @@ export default function App() {
           <div>
             <div className="app-logo-text">Memoreply</div>
           </div>
-          <span className="app-logo-badge">{authSession?.plan || 'Free'}</span>
+          <span
+            className="app-logo-badge"
+            style={{
+              background: licenseStatus?.isLicensed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+              color: licenseStatus?.isLicensed ? '#10b981' : '#a1a1aa',
+              border: `1px solid ${licenseStatus?.isLicensed ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+            }}
+          >
+            {licenseStatus?.plan || authSession?.plan || 'Free'}
+          </span>
         </div>
 
         <div className="header-actions">
+          {licenseStatus?.tier === 'FREE' && (
+            <button
+              onClick={handleOpenUpgrade}
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 6,
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#10b981',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                cursor: 'pointer',
+              }}
+              title="Upgrade to Pro on memoreply.com"
+            >
+              Upgrade
+            </button>
+          )}
           <button
             className="btn btn-ghost"
             onClick={handleLogout}
@@ -1416,6 +1517,40 @@ export default function App() {
                 ))}
               </div>
 
+              {/* Free Tier Usage Indicator (When Active) */}
+              {licenseStatus?.tier === 'FREE' && !licenseStatus.limits.isExhausted && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  fontSize: '11px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
+                    <span style={{ color: '#10b981', fontWeight: 700 }}>⚡</span>
+                    <span>Free Tier: <strong>{licenseStatus.limits.maxFreeReplies - licenseStatus.limits.repliesUsed}</strong> of {licenseStatus.limits.maxFreeReplies} replies left</span>
+                  </div>
+                  <button
+                    onClick={handleOpenUpgrade}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#10b981',
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    Upgrade →
+                  </button>
+                </div>
+              )}
+
               {/* Optional Custom Directive */}
               <div style={{ marginBottom: '10px' }}>
                 <input
@@ -1425,28 +1560,77 @@ export default function App() {
                   placeholder="Optional directive: e.g. Emphasize fast delivery, request Figma wireframes..."
                   value={customInstruction}
                   onChange={(e) => setCustomInstruction(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleGenerateReply()}
+                  onKeyDown={(e) => e.key === 'Enter' && !isCoreFeatureLocked(licenseStatus) && handleGenerateReply()}
+                  disabled={isCoreFeatureLocked(licenseStatus)}
                 />
               </div>
 
-              {/* Primary Generation Trigger */}
-              <div style={{ marginBottom: '12px' }}>
-                <button
-                  className="btn btn-primary btn-full"
-                  onClick={() => handleGenerateReply()}
-                  disabled={isGenerating || isRefining}
-                  style={{ padding: '8px 12px' }}
-                >
-                  {isGenerating ? (
-                    <>
-                      <span className="spinner" style={{ width: '13px', height: '13px' }} />
-                      Synthesizing {activeTone} draft...
-                    </>
-                  ) : (
-                    `Generate ${activeTone} Response`
-                  )}
-                </button>
-              </div>
+              {/* Free Tier Limit Exhausted Lock Banner */}
+              {licenseStatus?.tier === 'FREE' && licenseStatus.limits.isExhausted ? (
+                <div style={{
+                  padding: '14px',
+                  borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  marginBottom: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 999,
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 8px',
+                    color: '#ef4444'
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+                  <h3 style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0' }}>
+                    Free Tier Quota Exhausted ({licenseStatus.limits.maxFreeReplies}/{licenseStatus.limits.maxFreeReplies} Used)
+                  </h3>
+                  <p style={{ fontSize: '11px', color: '#a1a1aa', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Core AI response features are locked. Upgrade to Freelancer or Agency Pro on memoreply.com for unlimited generations.
+                  </p>
+                  <button
+                    className="btn btn-primary btn-full"
+                    onClick={handleOpenUpgrade}
+                    style={{
+                      padding: '8px 12px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '11px',
+                    }}
+                  >
+                    Upgrade on memoreply.com →
+                  </button>
+                </div>
+              ) : (
+                /* Primary Generation Trigger */
+                <div style={{ marginBottom: '12px' }}>
+                  <button
+                    className="btn btn-primary btn-full"
+                    onClick={() => handleGenerateReply()}
+                    disabled={isGenerating || isRefining || isCoreFeatureLocked(licenseStatus)}
+                    style={{ padding: '8px 12px' }}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <span className="spinner" style={{ width: '13px', height: '13px' }} />
+                        Synthesizing {activeTone} draft...
+                      </>
+                    ) : (
+                      `Generate ${activeTone} Response`
+                    )}
+                  </button>
+                </div>
+              )}
 
               {/* QuillBot / Grammarly Style Instant Refinements */}
               <div className="refine-bar-label">
@@ -1533,10 +1717,10 @@ export default function App() {
                   className="btn btn-primary"
                   style={{ flex: 2 }}
                   onClick={handleInsertDraft}
-                  disabled={!draftText.trim()}
-                  title="Insert this reply into the active platform message box without auto-sending"
+                  disabled={!draftText.trim() || isCoreFeatureLocked(licenseStatus)}
+                  title={isCoreFeatureLocked(licenseStatus) ? 'Upgrade to Pro to insert drafts' : 'Insert this reply into the active platform message box without auto-sending'}
                 >
-                  Insert into {conversation?.platform ? conversation.platform.charAt(0).toUpperCase() + conversation.platform.slice(1) : activePlatform !== 'unknown' ? activePlatform.charAt(0).toUpperCase() + activePlatform.slice(1) : 'Chat'}
+                  {isCoreFeatureLocked(licenseStatus) ? '🔒 Upgrade to Insert' : `Insert into ${conversation?.platform ? conversation.platform.charAt(0).toUpperCase() + conversation.platform.slice(1) : activePlatform !== 'unknown' ? activePlatform.charAt(0).toUpperCase() + activePlatform.slice(1) : 'Chat'}`}
                 </button>
                 <button
                   className="btn btn-secondary"
