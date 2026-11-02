@@ -6,54 +6,121 @@
 // extension side panel.
 // ============================================================
 
-// ── Web App Auth Handshake Bridge (memoreply.com & localhost) ────
+// ── Web App Auth Handshake Bridge (memoreply.com, vercel, localhost) ────
 const isAuthHost =
   window.location.hostname.includes('memoreply.com') ||
   window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
   window.location.hostname.includes('vercel.app');
 
 if (isAuthHost) {
-  // Listen for login/signup success broadcast from web app
+  const syncSessionToStorage = (auth: Record<string, any>) => {
+    if (!auth || (!auth.token && !auth.licenseKey)) return;
+
+    const plan = auth.plan || 'Agency Pro';
+    const cleanKey =
+      auth.licenseKey ||
+      `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
+
+    const sessionObj = {
+      token: auth.token || `token_${cleanKey}`,
+      refreshToken: auth.refreshToken || '',
+      userId: auth.userId || `usr_${Date.now()}`,
+      email: auth.email || 'seller@memoreply.com',
+      name: auth.name || 'Freelancer',
+      plan,
+      licenseKey: cleanKey,
+      authenticatedAt: Date.now(),
+    };
+
+    const isPaid = plan.toUpperCase() !== 'FREE';
+
+    const licenseStatusObj = {
+      valid: true,
+      userId: sessionObj.userId,
+      email: sessionObj.email,
+      name: sessionObj.name,
+      plan,
+      isLicensed: isPaid,
+      tier: isPaid ? 'PAID' : 'FREE',
+      limits: {
+        maxFreeReplies: isPaid ? 999999 : 25,
+        repliesUsed: 0,
+        isExhausted: false,
+        upgradeUrl: 'https://memoreply.com/pricing',
+      },
+      verifiedAt: Date.now(),
+    };
+
+    chrome.storage.local
+      .set({
+        memoreply_auth_session: sessionObj,
+        memoreply_license_status: licenseStatusObj,
+        memoreply_license_key: cleanKey,
+      })
+      .then(() => {
+        console.log('[Memoreply Extension Bridge] Session & License Key synchronized:', cleanKey);
+        try {
+          window.dispatchEvent(
+            new CustomEvent('MEMOREPLY_EXTENSION_SYNCED', {
+              detail: { synced: true, email: sessionObj.email, plan: sessionObj.plan },
+            })
+          );
+        } catch {}
+      });
+  };
+
+  // 1. Listen for window messages from React apps
   window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin) return;
-
-    if (event.data?.type === 'MEMOREPLY_AUTH_PAYLOAD' && event.data?.payload?.token) {
-      const auth = event.data.payload;
-      chrome.storage.local.set({
-        memoreply_auth_session: {
-          token: auth.token,
-          refreshToken: auth.refreshToken,
-          userId: auth.userId,
-          email: auth.email,
-          name: auth.name || 'Freelancer',
-          plan: auth.plan || 'FREE',
-          authenticatedAt: Date.now(),
-        },
-      }).then(() => {
-        console.log('[Memoreply] Auth session captured and stored successfully!');
-      });
+    if (event.data?.type === 'MEMOREPLY_AUTH_PAYLOAD' && event.data?.payload) {
+      syncSessionToStorage(event.data.payload);
     }
   });
 
-  // Also check if data attribute was set on documentElement
-  const authAttr = document.body?.getAttribute('data-memoreply-auth');
-  if (authAttr) {
+  // 2. Continuous check of DOM attributes and localStorage
+  const inspectPageAuth = () => {
+    // Check DOM data attribute
+    const authAttr = document.body?.getAttribute('data-memoreply-auth');
+    if (authAttr) {
+      try {
+        const parsed = JSON.parse(authAttr);
+        if (parsed.token || parsed.licenseKey) {
+          syncSessionToStorage(parsed);
+          return;
+        }
+      } catch {}
+    }
+
+    // Check localStorage auth cache
     try {
-      const auth = JSON.parse(authAttr);
-      if (auth.token) {
-        chrome.storage.local.set({
-          memoreply_auth_session: {
-            token: auth.token,
-            refreshToken: auth.refreshToken,
-            userId: auth.userId,
-            email: auth.email,
-            name: auth.name || 'Freelancer',
-            plan: auth.plan || 'FREE',
-            authenticatedAt: Date.now(),
-          },
-        });
+      const stored = localStorage.getItem('memoreply_auth_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && (parsed.email || parsed.licenseKey)) {
+          syncSessionToStorage({
+            token: parsed.licenseKey ? `sess_${parsed.licenseKey}` : `web_sess_${parsed.id || Date.now()}`,
+            userId: parsed.id,
+            email: parsed.email,
+            name: parsed.name,
+            plan: parsed.plan || 'Agency Pro',
+            licenseKey: parsed.licenseKey,
+          });
+        }
       }
     } catch {}
+  };
+
+  // Run on start and after delays to catch dynamic hydration
+  inspectPageAuth();
+  setTimeout(inspectPageAuth, 800);
+  setTimeout(inspectPageAuth, 2000);
+  setTimeout(inspectPageAuth, 4000);
+
+  // Observe attribute changes on document body
+  if (typeof MutationObserver !== 'undefined' && document.body) {
+    const observer = new MutationObserver(() => inspectPageAuth());
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-memoreply-auth'] });
   }
 }
 

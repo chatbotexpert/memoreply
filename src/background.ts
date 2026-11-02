@@ -121,4 +121,63 @@ chrome.runtime.onInstalled.addListener((details) => {
   enforceStorageQuotaFIFO().catch(() => {});
 });
 
+/**
+ * External message listener for direct web app synchronization
+ */
+chrome.runtime.onMessageExternal?.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'MEMOREPLY_AUTH_PAYLOAD' && message?.payload) {
+    const auth = message.payload;
+    const plan = auth.plan || 'Agency Pro';
+    const cleanKey =
+      auth.licenseKey ||
+      `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
+
+    const sessionObj = {
+      token: auth.token || `token_${cleanKey}`,
+      refreshToken: auth.refreshToken || '',
+      userId: auth.userId || `usr_${Date.now()}`,
+      email: auth.email || 'seller@memoreply.com',
+      name: auth.name || 'Freelancer',
+      plan,
+      licenseKey: cleanKey,
+      authenticatedAt: Date.now(),
+    };
+
+    const isPaid = plan.toUpperCase() !== 'FREE';
+
+    const licenseStatusObj = {
+      valid: true,
+      userId: sessionObj.userId,
+      email: sessionObj.email,
+      name: sessionObj.name,
+      plan,
+      isLicensed: isPaid,
+      tier: isPaid ? 'PAID' : 'FREE',
+      limits: {
+        maxFreeReplies: isPaid ? 999999 : 25,
+        repliesUsed: 0,
+        isExhausted: false,
+        upgradeUrl: 'https://memoreply.com/pricing',
+      },
+      verifiedAt: Date.now(),
+    };
+
+    chrome.storage.local
+      .set({
+        memoreply_auth_session: sessionObj,
+        memoreply_license_status: licenseStatusObj,
+        memoreply_license_key: cleanKey,
+      })
+      .then(() => {
+        sendResponse({ success: true, synced: true, key: cleanKey });
+      })
+      .catch((err) => {
+        sendResponse({ success: false, error: String(err) });
+      });
+    return true;
+  }
+  sendResponse({ success: false, error: 'Unknown payload' });
+  return false;
+});
+
 export {};

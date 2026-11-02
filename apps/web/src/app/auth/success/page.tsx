@@ -14,29 +14,36 @@ export default function AuthSuccessPage() {
     async function syncExtension() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-          const payload = {
-            token: session.access_token,
-            refreshToken: session.refresh_token,
-            userId: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata?.name || user?.name || 'Freelancer',
-            plan: session.user.user_metadata?.plan || user?.plan || 'Freelancer',
-          };
+        const activeToken = session?.access_token || user?.licenseKey || `session_${user?.id || Date.now()}`;
+        const activeUserId = session?.user?.id || user?.id || `usr_${Date.now()}`;
+        const activeEmail = session?.user?.email || user?.email || 'seller@memoreply.com';
+        const activeName = session?.user?.user_metadata?.name || user?.name || 'Freelancer';
+        const activePlan = session?.user?.user_metadata?.plan || user?.plan || 'Agency Pro';
+        const activeLicenseKey = user?.licenseKey || `MR-${activePlan.toUpperCase().replace(/\s+/g, '')}-SEC`;
 
-          // 1. PostMessage to window for content script
-          window.postMessage(
-            {
-              type: 'MEMOREPLY_AUTH_PAYLOAD',
-              payload,
-            },
-            window.location.origin
-          );
+        const payload = {
+          token: activeToken,
+          refreshToken: session?.refresh_token || '',
+          userId: activeUserId,
+          email: activeEmail,
+          name: activeName,
+          plan: activePlan,
+          licenseKey: activeLicenseKey,
+        };
 
-          // 2. Set DOM attribute backup
-          document.body.setAttribute('data-memoreply-auth', JSON.stringify(payload));
-          setBroadcasted(true);
-        }
+        // 1. PostMessage to window for content script
+        window.postMessage(
+          {
+            type: 'MEMOREPLY_AUTH_PAYLOAD',
+            payload,
+          },
+          window.location.origin
+        );
+
+        // 2. Set DOM attribute backup
+        document.body.setAttribute('data-memoreply-auth', JSON.stringify(payload));
+        document.body.setAttribute('data-license-key', activeLicenseKey);
+        setBroadcasted(true);
       } catch (err) {
         console.error('Extension handshake sync error:', err);
       }

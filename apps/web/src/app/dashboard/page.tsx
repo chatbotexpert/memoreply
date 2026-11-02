@@ -129,10 +129,48 @@ const RECENT_CLIENTS: MockClientThread[] = [
 export default function DashboardOverviewPage() {
   const [filterQuery, setFilterQuery] = useState('');
   const [isCopied, setIsCopied] = useState(false);
+  const [isSynced, setIsSynced] = useState(false);
   const [showRegenConfirm, setShowRegenConfirm] = useState(false);
 
   const { activePlatform, activeWorkspace } = useWorkspace();
   const { user, regenerateLicense, revokeSeat } = useAuth();
+
+  const handleSyncWithExtension = () => {
+    if (!user) return;
+    const authPayload = {
+      token: `session_${user.licenseKey || user.id}`,
+      refreshToken: '',
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+      licenseKey: user.licenseKey,
+    };
+
+    if (typeof window !== 'undefined') {
+      window.postMessage(
+        {
+          type: 'MEMOREPLY_AUTH_PAYLOAD',
+          payload: authPayload,
+        },
+        window.location.origin
+      );
+
+      if (document.body) {
+        document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+        document.body.setAttribute('data-license-key', user.licenseKey);
+      }
+    }
+
+    setIsSynced(true);
+    setTimeout(() => setIsSynced(false), 3000);
+  };
+
+  React.useEffect(() => {
+    if (user) {
+      handleSyncWithExtension();
+    }
+  }, [user?.id, user?.licenseKey]);
 
   const handleCopyLicense = () => {
     if (!user) return;
@@ -279,6 +317,24 @@ export default function DashboardOverviewPage() {
                   <>
                     <Copy className="w-3.5 h-3.5" />
                     <span>Copy Key</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleSyncWithExtension}
+                className="px-3 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0"
+                title="Sync Session & License Key with Extension"
+              >
+                {isSynced ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Synced!</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Sync Extension</span>
                   </>
                 )}
               </button>

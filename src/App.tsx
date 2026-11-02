@@ -36,6 +36,7 @@ import {
   verifyLicenseWithSupabase,
   incrementFreeReplyCount,
   isCoreFeatureLocked,
+  activateWithLicenseKey,
   type SubscriptionLicenseStatus,
   UPGRADE_URL,
 } from './utils/licenseManager';
@@ -124,6 +125,10 @@ export default function App() {
   } | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
   const [licenseStatus, setLicenseStatus] = useState<SubscriptionLicenseStatus | null>(null);
+  const [manualLicenseKey, setManualLicenseKey] = useState<string>('');
+  const [isActivatingKey, setIsActivatingKey] = useState<boolean>(false);
+  const [manualKeyError, setManualKeyError] = useState<string>('');
+  const [activeStoredKey, setActiveStoredKey] = useState<string>('');
 
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -190,25 +195,34 @@ export default function App() {
 
   // Initial Web Session Check & Reactive Storage Listener
   useEffect(() => {
-    chrome.storage.local.get(['memoreply_auth_session'], (res: Record<string, any>) => {
-      const sess = res.memoreply_auth_session;
-      if (sess && typeof sess === 'object' && sess.token) {
-        setAuthSession({
-          token: String(sess.token),
-          email: String(sess.email || ''),
-          name: String(sess.name || 'Freelancer'),
-          plan: String(sess.plan || 'Free'),
-        });
+    chrome.storage.local.get(
+      ['memoreply_auth_session', 'memoreply_license_key', 'memoreply_license_status'],
+      (res: Record<string, any>) => {
+        const sess = res.memoreply_auth_session;
+        if (sess && typeof sess === 'object' && (sess.token || sess.licenseKey)) {
+          setAuthSession({
+            token: String(sess.token || sess.licenseKey),
+            email: String(sess.email || ''),
+            name: String(sess.name || 'Freelancer'),
+            plan: String(sess.plan || 'Free'),
+          });
+        }
+        if (res.memoreply_license_key) {
+          setActiveStoredKey(String(res.memoreply_license_key));
+        }
+        if (res.memoreply_license_status) {
+          setLicenseStatus(res.memoreply_license_status as SubscriptionLicenseStatus);
+        }
+        setIsCheckingAuth(false);
       }
-      setIsCheckingAuth(false);
-    });
+    );
 
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.memoreply_auth_session) {
         const newVal = changes.memoreply_auth_session.newValue as Record<string, any> | undefined;
-        if (newVal && typeof newVal === 'object' && newVal.token) {
+        if (newVal && typeof newVal === 'object' && (newVal.token || newVal.licenseKey)) {
           setAuthSession({
-            token: String(newVal.token),
+            token: String(newVal.token || newVal.licenseKey),
             email: String(newVal.email || ''),
             name: String(newVal.name || 'Freelancer'),
             plan: String(newVal.plan || 'Free'),
@@ -216,6 +230,12 @@ export default function App() {
         } else {
           setAuthSession(null);
         }
+      }
+      if (changes.memoreply_license_key) {
+        setActiveStoredKey(String(changes.memoreply_license_key.newValue || ''));
+      }
+      if (changes.memoreply_license_status) {
+        setLicenseStatus(changes.memoreply_license_status.newValue as SubscriptionLicenseStatus);
       }
     };
 
@@ -225,8 +245,35 @@ export default function App() {
 
   const handleOpenWebLogin = () => {
     chrome.tabs.create({
-      url: 'https://memoreply.com/login?source=extension',
+      url: 'https://memoreply.com/dashboard',
     });
+  };
+
+  const handleActivateManualKey = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!manualLicenseKey.trim()) {
+      setManualKeyError('Please paste your agency license key.');
+      return;
+    }
+    setIsActivatingKey(true);
+    setManualKeyError('');
+    try {
+      const status = await activateWithLicenseKey(manualLicenseKey.trim());
+      setLicenseStatus(status);
+      setActiveStoredKey(manualLicenseKey.trim().toUpperCase());
+      setAuthSession({
+        token: `license_manual_${Date.now()}`,
+        email: status.email || 'licensed@memoreply.com',
+        name: status.name || 'Licensed Workspace',
+        plan: status.plan,
+      });
+      showToast(`Extension activated on ${status.plan}!`, 'success');
+      setManualLicenseKey('');
+    } catch (err: any) {
+      setManualKeyError(err.message || 'Failed to activate key.');
+    } finally {
+      setIsActivatingKey(false);
+    }
   };
 
   const handleOpenUpgrade = () => {
@@ -1220,11 +1267,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* Action Button */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 16 }}>
+        {/* Action Button & Manual Key Input Fallback */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 14 }}>
           <button
             onClick={handleOpenWebLogin}
-            style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: '#10b981', color: '#09090b', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)' }}
+            style={{ width: '100%', padding: '11px 16px', borderRadius: 10, background: '#10b981', color: '#09090b', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)' }}
           >
             <span>Login via Web App</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1233,8 +1280,64 @@ export default function App() {
               <line x1="10" y1="14" x2="21" y2="3" />
             </svg>
           </button>
-          <p style={{ fontSize: 11, color: '#71717a', textAlign: 'center', margin: 0 }}>
-            Don't have an account? Sign up is free in 30 seconds.
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0' }}>
+            <div style={{ flex: 1, height: 1, background: '#27272a' }} />
+            <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#71717a', textTransform: 'uppercase' }}>
+              OR ACTIVATE WITH LICENSE KEY
+            </span>
+            <div style={{ flex: 1, height: 1, background: '#27272a' }} />
+          </div>
+
+          {/* Manual License Key Form */}
+          <form onSubmit={handleActivateManualKey} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <input
+              type="text"
+              value={manualLicenseKey}
+              onChange={(e) => setManualLicenseKey(e.target.value)}
+              placeholder="Paste Key (e.g. MR-AGENCYPRO-ACTIVE-SEC)"
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 8,
+                background: '#18181b',
+                border: '1px solid #3f3f46',
+                color: '#ffffff',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            {manualKeyError && (
+              <p style={{ color: '#ef4444', fontSize: 11, margin: 0 }}>{manualKeyError}</p>
+            )}
+            <button
+              type="submit"
+              disabled={isActivatingKey}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: 8,
+                background: '#27272a',
+                color: '#ffffff',
+                border: '1px solid #3f3f46',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <span>{isActivatingKey ? 'Activating Key...' : 'Activate with License Key'}</span>
+              <span style={{ color: '#10b981' }}>→</span>
+            </button>
+          </form>
+          <p style={{ fontSize: 10, color: '#71717a', textAlign: 'center', margin: 0 }}>
+            Find your key anytime at <strong>memoreply.com/dashboard</strong>
           </p>
         </div>
       </div>
@@ -1249,6 +1352,11 @@ export default function App() {
           <img src="/icons/icon-48.png" alt="Memoreply" style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'contain' }} />
           <div>
             <div className="app-logo-text">Memoreply</div>
+            {authSession?.email && (
+              <div style={{ fontSize: '9px', color: 'var(--color-text-tertiary)', lineHeight: 1, marginTop: '2px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {authSession.email}
+              </div>
+            )}
           </div>
           <span
             className="app-logo-badge"
@@ -2153,6 +2261,75 @@ export default function App() {
         {/* ==================== TAB 4: SETTINGS & AUTH ==================== */}
         {activeTab === 'settings' && (
           <div className="animate-fade-in">
+            {/* License & Workspace Account Card */}
+            <div className="card" style={{ marginBottom: '14px' }}>
+              <div className="card-header">
+                <div>
+                  <span className="card-title">Agency License & Workspace</span>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                    Connected: {authSession?.email || 'Memoreply Cloud'}
+                  </div>
+                </div>
+                <span
+                  className="badge-pill active"
+                  style={{
+                    background: licenseStatus?.isLicensed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                    color: licenseStatus?.isLicensed ? '#10b981' : '#a1a1aa',
+                  }}
+                >
+                  {licenseStatus?.plan || authSession?.plan || 'Free Tier'}
+                </span>
+              </div>
+
+              {/* License Key Box */}
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label" style={{ fontSize: '12px', marginBottom: '4px' }}>
+                  Agency License Key
+                </label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="text"
+                    className="text-input"
+                    style={{ flex: 1, height: '32px', fontSize: '11px', fontFamily: 'monospace' }}
+                    placeholder="MR-AGENCYPRO-ACTIVE-SEC"
+                    value={activeStoredKey || manualLicenseKey}
+                    onChange={(e) => {
+                      setManualLicenseKey(e.target.value);
+                      setActiveStoredKey(e.target.value);
+                    }}
+                  />
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '11px', whiteSpace: 'nowrap' }}
+                    onClick={handleActivateManualKey}
+                    disabled={isActivatingKey}
+                  >
+                    {isActivatingKey ? 'Saving...' : 'Update Key'}
+                  </button>
+                </div>
+                <div className="form-hint" style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: '3px' }}>
+                  Obtain or refresh this key from your agency dashboard on <strong>memoreply.com/dashboard</strong>.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ flex: 1, fontSize: '11px', padding: '6px 10px' }}
+                  onClick={handleOpenWebLogin}
+                >
+                  Open Dashboard
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  style={{ fontSize: '11px', padding: '6px 10px' }}
+                  onClick={handleLogout}
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+
             {/* Direct AI Gateway & Engine Settings Card */}
             <div className="card">
               <div className="card-header">

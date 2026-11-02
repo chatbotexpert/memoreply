@@ -30,9 +30,12 @@
         "https://upwork.com/*",
         "*://*.linkedin.com/*",
         "https://linkedin.com/*",
+        "*://*.memoreply.com/*",
         "https://memoreply.com/*",
+        "http://memoreply.com/*",
         "https://*.vercel.app/*",
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*"
       ],
       "js": ["src/content.ts"],
       "run_at": "document_idle"
@@ -51,10 +54,21 @@
     "*://*.chatgpt.com/*",
     "*://*.openai.com/*",
     "https://*.vercel.app/*",
+    "*://*.memoreply.com/*",
     "https://memoreply.com/*",
+    "http://memoreply.com/*",
     "http://localhost:3000/*",
     "http://127.0.0.1:3000/*"
   ],
+  "externally_connectable": {
+    "matches": [
+      "*://*.memoreply.com/*",
+      "https://memoreply.com/*",
+      "https://*.vercel.app/*",
+      "http://localhost:3000/*",
+      "http://127.0.0.1:3000/*"
+    ]
+  },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }

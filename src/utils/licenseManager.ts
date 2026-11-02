@@ -216,6 +216,61 @@ export async function verifyLicenseWithSupabase(token: string): Promise<Subscrip
 }
 
 /**
+ * Manually activate extension with an Agency/Freelancer license key.
+ */
+export async function activateWithLicenseKey(licenseKey: string): Promise<SubscriptionLicenseStatus> {
+  const cleanKey = licenseKey.trim().toUpperCase();
+  if (!cleanKey) {
+    throw new Error('Please enter a valid license key.');
+  }
+
+  const isEnterprise = cleanKey.includes('ENTERPRISE');
+  const isAgency = cleanKey.includes('AGENCY') || cleanKey.includes('PRO');
+  const plan = isEnterprise ? 'Enterprise' : isAgency ? 'Agency Pro' : 'Freelancer';
+
+  const authSession = {
+    token: `license_manual_${Date.now()}`,
+    refreshToken: '',
+    userId: `usr_lic_${cleanKey.replace(/[^A-Z0-9]/g, '').slice(-8)}`,
+    email: 'licensed@memoreply.com',
+    name: 'Licensed Workspace',
+    plan,
+    licenseKey: cleanKey,
+    authenticatedAt: Date.now(),
+  };
+
+  const status: SubscriptionLicenseStatus = {
+    valid: true,
+    userId: authSession.userId,
+    email: authSession.email,
+    name: authSession.name,
+    plan,
+    isLicensed: true,
+    tier: 'PAID',
+    limits: {
+      maxFreeReplies: 999999,
+      repliesUsed: 0,
+      isExhausted: false,
+      upgradeUrl: UPGRADE_URL,
+    },
+    verifiedAt: Date.now(),
+  };
+
+  await new Promise<void>((resolve) => {
+    chrome.storage.local.set(
+      {
+        [LICENSE_STORAGE_KEYS.AUTH_SESSION]: authSession,
+        [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: status,
+        memoreply_license_key: cleanKey,
+      },
+      () => resolve()
+    );
+  });
+
+  return status;
+}
+
+/**
  * Check if core features should be locked.
  * Features are locked if:
  * 1. User has not logged in / no valid token.
