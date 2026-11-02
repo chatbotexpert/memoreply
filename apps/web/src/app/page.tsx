@@ -1289,6 +1289,18 @@ export default function LandingPage() {
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">Auto-suggests agreed prices, scopes &amp; milestones</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">Instant copy-paste verified invoice terms</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                      <span className="leading-tight">End-to-end encrypted mobile sync gateway</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                       <span className="leading-tight">AI Smart Summary &amp; Client Sentiment mood tracking</span>
                     </div>
                     <div className="flex items-start gap-2.5">
