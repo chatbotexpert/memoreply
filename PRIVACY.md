@@ -10,10 +10,12 @@ At HashTurn, your privacy, data security, and client confidentiality are our hig
 
 ## 1. Core Privacy Principles
 
-1. **Local-First Storage:** All conversation history, client facts, and seller knowledge base configurations are stored directly in your browser's local IndexedDB (`MemoreplyDB`) via Dexie.js. Your data does not leave your machine unless you explicitly generate an AI reply.
-2. **Zero Auto-Sending:** Memoreply strictly inserts draft replies into the message box for your manual review and approval. It never automatically sends messages, preserving complete user oversight and compliance with platform terms of service.
-3. **No Unrelated Tab Access:** Memoreply's permissions are restricted strictly to active freelancing message surfaces (`*://*.fiverr.com/*`) and user-authenticated ChatGPT session endpoints. It never monitors or accesses unrelated websites, tabs, or browsing activity.
-4. **No Third-Party Data Selling or Advertising:** We do not monetize your data, sell client information to brokers, or use private client conversations for advertising.
+1. **Local-First Privacy Architecture (Zero-Cloud Chat Storage):** All sensitive client chat histories (conversations on platforms like Fiverr, Upwork, and LinkedIn) are stored **exclusively inside the browser** using `chrome.storage.local` and IndexedDB. Raw client message texts are **NEVER uploaded or stored in any central cloud database**, ensuring strict confidentiality and user privacy.
+2. **Automated Data Retention & Auto-Purge:** Memoreply automatically purges conversation threads older than 30 to 60 days (user configurable), preventing unnecessary persistent storage of historical client chats.
+3. **10MB Quota Guard & FIFO Eviction:** To prevent browser storage exhaustion, Memoreply continuously monitors the 10MB `chrome.storage.local` quota and enforces a strict First-In, First-Out (FIFO) eviction strategy before usage exceeds limits.
+4. **Zero Auto-Sending:** Memoreply strictly inserts draft replies into the message box for your manual review and approval. It never automatically sends messages, preserving complete user oversight and compliance with platform terms of service.
+5. **No Unrelated Tab Access:** Memoreply's permissions are restricted strictly to active freelancing message surfaces (`*://*.fiverr.com/*`, `*://*.upwork.com/*`, `*://*.linkedin.com/*`). It never monitors or accesses unrelated websites, tabs, or browsing activity.
+6. **No Third-Party Data Selling or Advertising:** We do not monetize your data, sell client information to brokers, or use private client conversations for advertising.
 
 ---
 

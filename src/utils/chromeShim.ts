@@ -59,6 +59,14 @@ if (typeof window !== 'undefined' && !isRealExtension) {
           if (callback) callback();
           return Promise.resolve();
         },
+        getBytesInUse: (_keys?: string | string[] | null, callback?: (bytes: number) => void) => {
+          let totalBytes = 0;
+          try {
+            totalBytes = JSON.stringify(memoryStore).length * 2;
+          } catch {}
+          if (callback) callback(totalBytes);
+          return Promise.resolve(totalBytes);
+        },
       },
       onChanged: {
         addListener: () => {},

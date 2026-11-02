@@ -14,6 +14,7 @@ import {
 } from './index';
 import type { ConversationData } from '../types';
 import { pushConversationToCloud } from '../sync/cloudSync';
+import { saveLocalChat } from '../utils/localChatStorage';
 
 /**
  * Basic heuristic rule-based fact extractor from message text.
@@ -219,7 +220,15 @@ export async function saveExtractedConversation(conversationData: ConversationDa
     }
   }
 
-  // 5. Cloud Auto-Sync: Asynchronously push encrypted payload to Next.js dashboard
+  // 5. Local-First Privacy Storage: Persist chat history into chrome.storage.local
+  // Enforces 30-day auto-purge and 10MB FIFO quota limit.
+  try {
+    saveLocalChat(conversationData).catch((localErr) => {
+      console.warn('[Memoreply Local Storage Guard] Error saving to chrome.storage.local:', localErr);
+    });
+  } catch {}
+
+  // 6. Cloud Auto-Sync: Asynchronously push metadata (ZERO raw message texts) to Next.js dashboard
   try {
     pushConversationToCloud(conversationData, client, heuristicFacts).catch((cloudErr) => {
       console.warn('[Memoreply Cloud Auto-Sync] Background push error:', cloudErr);

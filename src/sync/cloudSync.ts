@@ -97,13 +97,10 @@ export async function pushConversationToCloud(
         status: conversation.status,
         url: conversation.url,
         clientEmail: conversation.clientEmail || null,
-        messages: conversation.messages.map((m) => ({
-          messageId: m.id,
-          senderRole: m.senderRole,
-          senderName: m.sender,
-          text: m.text,
-          timestamp: m.timestamp || new Date().toISOString(),
-        })),
+        // ZERO-CLOUD PRIVACY ENFORCEMENT:
+        // Sensitive client chat histories (Fiverr, Upwork, LinkedIn) are strictly kept local
+        // inside chrome.storage.local. Raw message texts are NEVER uploaded to the central database.
+        messages: [],
       },
       facts: (facts || []).map((f) => ({
         category: f.category,

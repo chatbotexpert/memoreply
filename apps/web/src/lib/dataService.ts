@@ -491,29 +491,11 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
           },
         });
 
-        if (Array.isArray(convData.messages)) {
-          for (const msg of convData.messages) {
-            const hash = msg.messageId || `${msg.senderRole}_${msg.text.slice(0, 32)}`;
-            await (prisma as any).message.upsert({
-              where: {
-                conversationId_deduplicationHash: {
-                  conversationId: convRecord.id,
-                  deduplicationHash: hash,
-                },
-              },
-              update: {},
-              create: {
-                conversationId: convRecord.id,
-                messageId: msg.messageId || `msg_${Date.now()}`,
-                senderRole: msg.senderRole === 'seller' ? 'SELLER' : 'CLIENT',
-                senderName: msg.senderName || clientData.displayName,
-                text: msg.text,
-                timestamp: msg.timestamp || new Date().toISOString(),
-                deduplicationHash: hash,
-              },
-            });
-          }
-        }
+        // ZERO-CLOUD PRIVACY ENFORCEMENT:
+        // Sensitive client chat histories (Fiverr, Upwork, LinkedIn) are strictly kept local
+        // inside the user's browser (chrome.storage.local).
+        // Message text bodies are NEVER persisted to the central cloud PostgreSQL database.
+        // The cloud maintains only client metadata & client memory facts.
       }
 
       if (Array.isArray(factsData) && clientRecord) {

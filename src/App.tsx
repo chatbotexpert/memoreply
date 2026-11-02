@@ -23,6 +23,15 @@ import type {
 } from './db/index';
 import { assembleContext } from './ai/contextAssembler';
 import { generateInlineResponse } from './ai/directEngine';
+import {
+  getStorageUsageStats,
+  purgeExpiredChats,
+  updateRetentionPolicy,
+  getRetentionPolicy,
+  clearAllLocalChats,
+  type StorageUsageStats,
+  type StorageRetentionPolicy,
+} from './utils/localChatStorage';
 
 // ============================================================
 // Memoreply — Direct Inline AI Generation & Multi-Platform Client
@@ -144,6 +153,11 @@ export default function App() {
   const [apiEndpoint, setApiEndpoint] = useState<string>('https://memoreply.com/api/generate');
   const [isTestingSession, setIsTestingSession] = useState<boolean>(false);
 
+  // Local-First Storage & Quota Guard States
+  const [storageStats, setStorageStats] = useState<StorageUsageStats | null>(null);
+  const [storagePolicy, setStoragePolicy] = useState<StorageRetentionPolicy | null>(null);
+  const [isPurgingStorage, setIsPurgingStorage] = useState<boolean>(false);
+
   // Module 7: Seller Knowledge Base States
   const [sellerProfile, setSellerProfile] = useState<SellerKnowledgeEntity>(DEFAULT_SELLER_KNOWLEDGE);
   const [isSavingKnowledge, setIsSavingKnowledge] = useState<boolean>(false);
@@ -245,6 +259,59 @@ export default function App() {
       console.error('[Memoreply] Failed to get DB stats:', err);
     }
   }, []);
+
+  // Refresh chrome.storage.local chat history & quota stats
+  const refreshStorageStats = useCallback(async () => {
+    try {
+      const stats = await getStorageUsageStats();
+      const policy = await getRetentionPolicy();
+      setStorageStats(stats);
+      setStoragePolicy(policy);
+    } catch (err) {
+      console.warn('[Memoreply Storage] Stats load error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshStorageStats();
+  }, [refreshStorageStats]);
+
+  const handleUpdateRetention = async (days: number) => {
+    try {
+      const updated = await updateRetentionPolicy({ retentionDays: days });
+      setStoragePolicy(updated);
+      showToast(`Data retention updated to ${days} days. Auto-purging enabled.`, 'success');
+      await refreshStorageStats();
+    } catch {
+      showToast('Failed to update retention policy.', 'error');
+    }
+  };
+
+  const handleManualPurge = async () => {
+    setIsPurgingStorage(true);
+    try {
+      const days = storagePolicy?.retentionDays || 30;
+      const res = await purgeExpiredChats(days);
+      await refreshStorageStats();
+      showToast(`Purge complete: ${res.purgedCount} conversation(s) older than ${days} days removed.`, 'info');
+    } catch {
+      showToast('Error purging expired chats.', 'error');
+    } finally {
+      setIsPurgingStorage(false);
+    }
+  };
+
+  const handleClearLocalChatsOnly = async () => {
+    if (window.confirm('Delete all locally cached client conversation messages? Client facts and profile will remain saved.')) {
+      try {
+        await clearAllLocalChats();
+        await refreshStorageStats();
+        showToast('All local client chat histories cleared.', 'info');
+      } catch {
+        showToast('Failed to clear local chat history.', 'error');
+      }
+    }
+  };
 
   // Load client memory from IndexedDB
   const loadClientMemory = useCallback(
@@ -2038,6 +2105,117 @@ export default function App() {
                 <div className="stat-card">
                   <div className="stat-number">{dbStats.factsCount}</div>
                   <div className="stat-label">Context Points</div>
+                </div>
+              </div>
+
+              {/* Local-First Chat Storage & Privacy Guard (chrome.storage.local) */}
+              <div style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '10px',
+                padding: '14px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    <span className="font-semibold" style={{ fontSize: '12px' }}>Local-First Privacy Guard</span>
+                  </div>
+                  <span style={{
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10b981',
+                    fontWeight: 600
+                  }}>
+                    Zero Cloud Upload
+                  </span>
+                </div>
+
+                <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: '0 0 12px 0', lineHeight: 1.45 }}>
+                  Conversations on Fiverr & Upwork are stored exclusively inside your browser (<strong>chrome.storage.local</strong>). Raw message text is never sent to central servers.
+                </p>
+
+                {/* 10MB Quota & FIFO Gauge */}
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>Storage Quota (10MB Limit)</span>
+                    <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                      {storageStats ? `${(storageStats.bytesInUse / 1024).toFixed(1)} KB / 10 MB` : 'Calculating...'}
+                    </span>
+                  </div>
+
+                  {/* Progress Gauge */}
+                  <div style={{
+                    width: '100%',
+                    height: '6px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    borderRadius: '3px',
+                    overflow: 'hidden',
+                    marginBottom: '4px'
+                  }}>
+                    <div style={{
+                      width: `${Math.max(2, Math.min(100, storageStats?.usagePercent || 1))}%`,
+                      height: '100%',
+                      background: (storageStats?.usagePercent || 0) > 80 ? 'var(--color-error)' : '#10b981',
+                      borderRadius: '3px',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
+                    <span>FIFO Auto-Eviction: Active</span>
+                    <span>{storageStats ? `${storageStats.totalConversations} cached conversations` : ''}</span>
+                  </div>
+                </div>
+
+                {/* Retention Policy Selection */}
+                <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                      Auto-Purge Retention Policy
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
+                      Older than {storagePolicy?.retentionDays || 30} days
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      className={`btn btn-sm ${storagePolicy?.retentionDays === 30 ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ flex: 1, fontSize: '11px', padding: '4px 8px' }}
+                      onClick={() => handleUpdateRetention(30)}
+                    >
+                      30 Days (Default)
+                    </button>
+                    <button
+                      className={`btn btn-sm ${storagePolicy?.retentionDays === 60 ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ flex: 1, fontSize: '11px', padding: '4px 8px' }}
+                      onClick={() => handleUpdateRetention(60)}
+                    >
+                      60 Days
+                    </button>
+                  </div>
+                </div>
+
+                {/* Cleanup Actions */}
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ flex: 1, fontSize: '10px', padding: '5px' }}
+                    disabled={isPurgingStorage}
+                    onClick={handleManualPurge}
+                  >
+                    {isPurgingStorage ? 'Purging...' : `Purge > ${storagePolicy?.retentionDays || 30} Days`}
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm text-tertiary"
+                    style={{ flex: 1, fontSize: '10px', padding: '5px' }}
+                    onClick={handleClearLocalChatsOnly}
+                  >
+                    Clear Chat Cache
+                  </button>
                 </div>
               </div>
 
