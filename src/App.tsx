@@ -937,9 +937,9 @@ export default function App() {
         setDraftText(primaryResult.replyText);
         showToast(`Draft generated (${chosenTone})`, 'success');
 
-        // Track Free Tier AI response usage
+        // Track Free Tier AI response usage & sync to user metadata in PostgreSQL
         if (licenseStatus?.tier === 'FREE') {
-          const { newCount, isExhausted } = await incrementFreeReplyCount();
+          const { newCount, isExhausted } = await incrementFreeReplyCount(authSession?.token);
           setLicenseStatus((prev) =>
             prev
               ? {

@@ -44,6 +44,7 @@ if (isAuthHost) {
         chrome.storage.local.set({
           memoreply_auth_session: {
             token: auth.token,
+            refreshToken: auth.refreshToken,
             userId: auth.userId,
             email: auth.email,
             name: auth.name || 'Freelancer',

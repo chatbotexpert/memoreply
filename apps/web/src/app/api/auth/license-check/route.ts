@@ -17,19 +17,22 @@ export async function OPTIONS() {
 
 /**
  * POST /api/auth/license-check
- * Validates user's Supabase session token and returns their live subscription plan and limits.
+ * Validates user's Supabase session token, syncs user metadata in PostgreSQL,
+ * and manages backend usage tracking (repliesUsed / limits).
  */
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
     let token = '';
+    let action = '';
 
+    const body = await req.json().catch(() => ({}));
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.replace('Bearer ', '').trim();
     } else {
-      const body = await req.json().catch(() => ({}));
       token = body?.token || '';
     }
+    action = body?.action || '';
 
     if (!token) {
       return NextResponse.json(
@@ -50,20 +53,43 @@ export async function POST(req: NextRequest) {
 
     const authUser = data.user;
     const userMeta = authUser.user_metadata || {};
+    const shouldIncrement = action === 'increment_usage';
 
-    // 2. Fetch or sync database user
+    // 2. Fetch, map, and synchronize user in PostgreSQL database
     let dbPlan = userMeta.plan || 'FREE';
+    let repliesUsed = 0;
+    let maxReplies = 25;
+
     try {
       if (prisma) {
-        const dbUser = await (prisma as any).user.findUnique({
+        const dbUser = await (prisma as any).user.upsert({
           where: { id: authUser.id },
-          select: { plan: true },
+          update: {
+            email: authUser.email || undefined,
+            name: userMeta.name || authUser.email?.split('@')[0] || undefined,
+            lastActiveAt: new Date(),
+            ...(shouldIncrement ? { repliesUsed: { increment: 1 } } : {}),
+          },
+          create: {
+            id: authUser.id,
+            email: authUser.email || `${authUser.id}@memoreply.user`,
+            name: userMeta.name || authUser.email?.split('@')[0] || 'Freelancer',
+            plan: userMeta.plan?.toUpperCase() === 'FREE' ? 'FREE' : 'PRO',
+            repliesUsed: shouldIncrement ? 1 : 0,
+            maxReplies: 25,
+            lastActiveAt: new Date(),
+          },
         });
+
         if (dbUser?.plan) {
           dbPlan = dbUser.plan;
         }
+        repliesUsed = dbUser?.repliesUsed ?? 0;
+        maxReplies = dbUser?.maxReplies ?? 25;
       }
-    } catch {}
+    } catch (dbErr) {
+      console.warn('[License Check] PostgreSQL user sync warning:', dbErr);
+    }
 
     const isPaidPlan =
       dbPlan.toUpperCase() === 'PRO' ||
@@ -71,6 +97,8 @@ export async function POST(req: NextRequest) {
       dbPlan.toLowerCase() === 'freelancer' ||
       dbPlan.toLowerCase() === 'agency pro' ||
       dbPlan.toLowerCase() === 'enterprise';
+
+    const isExhausted = !isPaidPlan && repliesUsed >= maxReplies;
 
     return NextResponse.json(
       {
@@ -82,7 +110,9 @@ export async function POST(req: NextRequest) {
         isLicensed: isPaidPlan,
         tier: isPaidPlan ? 'PAID' : 'FREE',
         limits: {
-          maxFreeReplies: 25,
+          maxFreeReplies: maxReplies,
+          repliesUsed,
+          isExhausted,
           upgradeUrl: 'https://memoreply.com/pricing',
         },
         verifiedAt: new Date().toISOString(),

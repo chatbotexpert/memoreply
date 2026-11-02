@@ -54,8 +54,9 @@ export async function getFreeUsageCount(): Promise<number> {
 
 /**
  * Increment free reply counter by 1 when user generates an AI reply on Free Tier
+ * Also syncs usage to backend PostgreSQL mapped to user ID.
  */
-export async function incrementFreeReplyCount(): Promise<{ newCount: number; isExhausted: boolean }> {
+export async function incrementFreeReplyCount(token?: string): Promise<{ newCount: number; isExhausted: boolean }> {
   const current = await getFreeUsageCount();
   const newCount = current + 1;
   const isExhausted = newCount >= DEFAULT_FREE_REPLY_LIMIT;
@@ -67,6 +68,20 @@ export async function incrementFreeReplyCount(): Promise<{ newCount: number; isE
       resolve();
     }
   });
+
+  // Asynchronously notify backend to update user metadata count
+  if (token) {
+    try {
+      fetch('https://memoreply.com/api/auth/license-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ token, action: 'increment_usage' }),
+      }).catch(() => {});
+    } catch {}
+  }
 
   return { newCount, isExhausted };
 }

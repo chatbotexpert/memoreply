@@ -231,19 +231,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {}
 
         // Broadcast session for Chrome Extension handshake
+        const authPayload = {
+          token: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+          userId: data.user.id,
+          email: data.user.email,
+          name: resolvedUser.name,
+          plan: resolvedUser.plan,
+        };
+
         window.postMessage(
           {
             type: 'MEMOREPLY_AUTH_PAYLOAD',
-            payload: {
-              token: data.session.access_token,
-              userId: data.user.id,
-              email: data.user.email,
-              name: resolvedUser.name,
-              plan: resolvedUser.plan,
-            },
+            payload: authPayload,
           },
           window.location.origin
         );
+
+        if (typeof document !== 'undefined' && document.body) {
+          document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+        }
 
         return true;
       }
@@ -327,19 +334,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Broadcast session for Chrome Extension handshake if session exists
     if (data.session) {
+      const authPayload = {
+        token: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        userId: data.user?.id,
+        email: data.user?.email,
+        name: newUser.name,
+        plan: newUser.plan,
+      };
+
       window.postMessage(
         {
           type: 'MEMOREPLY_AUTH_PAYLOAD',
-          payload: {
-            token: data.session.access_token,
-            userId: data.user?.id,
-            email: data.user?.email,
-            name: newUser.name,
-            plan: newUser.plan,
-          },
+          payload: authPayload,
         },
         window.location.origin
       );
+
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+      }
     }
 
     return true;
