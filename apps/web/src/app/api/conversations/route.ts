@@ -4,7 +4,8 @@ import { fetchLiveConversations } from '@/lib/dataService';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const platform = searchParams.get('platform') || undefined;
-  const conversations = await fetchLiveConversations(platform);
-  return NextResponse.json({ conversations, platform: platform || 'all', timestamp: new Date().toISOString() });
+  const userId = searchParams.get('userId') || undefined;
+  const conversations = await fetchLiveConversations(platform, userId);
+  return NextResponse.json({ conversations, platform: platform || 'all', userId, timestamp: new Date().toISOString() });
 }
 

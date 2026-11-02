@@ -13,10 +13,10 @@ datasource db {
 }
 
 // ------------------------------------------------------------
-// 1. Core User & Workspace Account
+// 1. Core User & Workspace Account (Freelancer Tenant)
 // ------------------------------------------------------------
 model User {
-  id              String           @id @default(cuid())
+  id              String           @id @default(uuid())
   email           String           @unique
   name            String?
   avatarUrl       String?
@@ -48,14 +48,14 @@ enum SubscriptionPlan {
 }
 
 // ------------------------------------------------------------
-// 2. Client Profile Entity (Cross-Platform Memory)
+// 2. Dedicated Client Entity (Tenant-Isolated per User)
 // ------------------------------------------------------------
 model Client {
-  id             String         @id @default(cuid())
+  id             String         @id @default(uuid())
   userId         String
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   platform       PlatformType   @default(FIVERR)
-  platformUserId String         // e.g. wazeer1203
+  platformUserId String         // e.g. wazeer1203 or client handle
   displayName    String         // e.g. Wazeer
   avatarUrl      String?
   notes          String?        @db.Text
@@ -68,8 +68,13 @@ model Client {
   conversations  Conversation[]
   facts          ClientFact[]
 
+  // Strict Tenant Isolation:
+  // Ensures client identity is strictly isolated per freelancer (userId).
+  // Two different freelancers can have clients with the same handle without collision or data leakage.
   @@unique([userId, platform, platformUserId])
+  @@index([userId])
   @@index([userId, platform])
+  @@index([userId, lastContactAt])
   @@map("clients")
 }
 
@@ -81,10 +86,10 @@ enum PlatformType {
 }
 
 // ------------------------------------------------------------
-// 3. Conversation Entity
+// 3. Dedicated Conversation Entity (Strictly Isolated per Client & User)
 // ------------------------------------------------------------
 model Conversation {
-  id             String             @id @default(cuid())
+  id             String             @id @default(uuid())
   userId         String
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientId       String
@@ -101,8 +106,13 @@ model Conversation {
   // Relationships
   messages       Message[]
 
+  // Strict Multi-Tenant Isolation Constraints:
+  // History is strictly isolated per user and per unique client ID.
   @@unique([userId, platform, conversationId])
+  @@index([userId])
   @@index([clientId])
+  @@index([userId, clientId])
+  @@index([userId, lastMessageAt])
   @@map("conversations")
 }
 
@@ -142,7 +152,7 @@ enum SenderRole {
 // 5. Client Fact & Memory (Contradiction Flagging Support)
 // ------------------------------------------------------------
 model ClientFact {
-  id             String       @id @default(cuid())
+  id             String       @id @default(uuid())
   clientId       String
   client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   category       FactCategory

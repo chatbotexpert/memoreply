@@ -81,8 +81,16 @@ export async function pushConversationToCloud(
       return { success: true, queued: false };
     }
 
+    // Retrieve active authenticated tenant user session (UUID)
+    const sessionRes = await new Promise<any>((resolve) => {
+      chrome.storage.local.get(['memoreply_auth_session'], (res) => resolve(res?.memoreply_auth_session));
+    });
+
     const payload = {
       apiKey: settings.apiToken,
+      userId: sessionRes?.userId || undefined,
+      userEmail: sessionRes?.email || undefined,
+      userName: sessionRes?.name || undefined,
       client: {
         id: client.id,
         platform: client.platform,

@@ -429,15 +429,36 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
   // 2. PostgreSQL Prisma persistence (safely executed if database is connected)
   try {
     if (process.env.DATABASE_URL && prisma) {
-      const defaultUser = await (prisma as any).user.upsert({
-        where: { email: 'owner@memoreply.local' },
-        update: {},
-        create: {
-          email: 'owner@memoreply.local',
-          name: 'Workspace Owner',
-          apiKey: payload?.apiKey || 'memo_live_9f82d1b68536c045968186fcb699',
-        },
-      });
+      // Strict Multi-Tenant Isolation:
+      // Resolve or register the tenant by their unique UUID (userId)
+      let targetUserId: string;
+      if (payload.userId) {
+        const user = await (prisma as any).user.upsert({
+          where: { id: payload.userId },
+          update: {
+            ...(payload.userEmail ? { email: payload.userEmail } : {}),
+            ...(payload.userName ? { name: payload.userName } : {}),
+          },
+          create: {
+            id: payload.userId,
+            email: payload.userEmail || `${payload.userId}@memoreply.user`,
+            name: payload.userName || 'Freelancer',
+            apiKey: payload?.apiKey || `key_${payload.userId}`,
+          },
+        });
+        targetUserId = user.id;
+      } else {
+        const defaultUser = await (prisma as any).user.upsert({
+          where: { email: 'owner@memoreply.local' },
+          update: {},
+          create: {
+            email: 'owner@memoreply.local',
+            name: 'Workspace Owner',
+            apiKey: payload?.apiKey || 'memo_live_9f82d1b68536c045968186fcb699',
+          },
+        });
+        targetUserId = defaultUser.id;
+      }
 
       let clientRecord: any = null;
       if (clientData) {
@@ -445,10 +466,11 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
         const rawPlatform = String(clientData.platform || 'FIVERR').toUpperCase();
         const displayName = clientData.displayName || rawUsername;
 
+        // Dedicated Clients table: Each client ID is strictly linked to targetUserId
         clientRecord = await (prisma as any).client.upsert({
           where: {
             userId_platform_platformUserId: {
-              userId: defaultUser.id,
+              userId: targetUserId,
               platform: rawPlatform,
               platformUserId: rawUsername,
             },
@@ -458,7 +480,7 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
             lastContactAt: new Date(),
           },
           create: {
-            userId: defaultUser.id,
+            userId: targetUserId,
             platform: rawPlatform,
             platformUserId: rawUsername,
             displayName,
@@ -468,10 +490,11 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
       }
 
       if (convData && clientRecord) {
-        const convRecord = await (prisma as any).conversation.upsert({
+        // Dedicated Conversations table: Strictly isolated per client and per user
+        await (prisma as any).conversation.upsert({
           where: {
             userId_platform_conversationId: {
-              userId: defaultUser.id,
+              userId: targetUserId,
               platform: clientData.platform.toUpperCase(),
               conversationId: convData.conversationId || clientData.platformUserId,
             },
@@ -482,7 +505,7 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
             clientEmail: convData.clientEmail || clientData.email || null,
           },
           create: {
-            userId: defaultUser.id,
+            userId: targetUserId,
             clientId: clientRecord.id,
             platform: clientData.platform.toUpperCase(),
             conversationId: convData.conversationId || clientData.platformUserId,
@@ -522,17 +545,20 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
   }
 }
 
-export async function fetchLiveClients(platform?: string): Promise<LiveClient[]> {
+export async function fetchLiveClients(platform?: string, userId?: string): Promise<LiveClient[]> {
   const normPlatform = platform && platform.toLowerCase() !== 'all' ? platform.toLowerCase() : null;
 
   try {
     if (process.env.DATABASE_URL && prisma) {
-      const whereClause = normPlatform ? { platform: normPlatform.toUpperCase() } : {};
+      const whereClause: any = {
+        ...(normPlatform ? { platform: normPlatform.toUpperCase() } : {}),
+        ...(userId ? { userId } : {}),
+      };
       const dbClients = await (prisma as any).client.findMany({
         where: whereClause,
         take: 50,
         orderBy: { lastContactAt: 'desc' },
-        include: { _count: { select: { messages: true, facts: true } } },
+        include: { _count: { select: { facts: true, conversations: true } } },
       });
 
       if (dbClients && dbClients.length > 0) {
@@ -560,12 +586,15 @@ export async function fetchLiveClients(platform?: string): Promise<LiveClient[]>
   return allClients.filter((c) => c.platform.toLowerCase() === normPlatform);
 }
 
-export async function fetchLiveConversations(platform?: string): Promise<LiveConversation[]> {
+export async function fetchLiveConversations(platform?: string, userId?: string): Promise<LiveConversation[]> {
   const normPlatform = platform && platform.toLowerCase() !== 'all' ? platform.toLowerCase() : null;
 
   try {
     if (process.env.DATABASE_URL && prisma) {
-      const whereClause = normPlatform ? { platform: normPlatform.toUpperCase() } : {};
+      const whereClause: any = {
+        ...(normPlatform ? { platform: normPlatform.toUpperCase() } : {}),
+        ...(userId ? { userId } : {}),
+      };
       const dbConvs = await (prisma as any).conversation.findMany({
         where: whereClause,
         take: 50,
