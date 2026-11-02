@@ -37,6 +37,8 @@ export default function LoginPage() {
       // If user came from extension, redirect to extension success page
       if (typeof window !== 'undefined' && window.location.search.includes('source=extension')) {
         router.push('/auth/success');
+      } else if (typeof window !== 'undefined' && window.location.search.includes('redirect=download')) {
+        router.push('/#download');
       } else {
         router.push('/dashboard');
       }

@@ -28,6 +28,7 @@ import {
 
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface MockClientThread {
   id: string;
@@ -230,13 +231,18 @@ export default function DashboardOverviewPage() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                alert('Extension package ready. Load the /dist directory as an unpacked extension via chrome://extensions.');
+              onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                  window.location.href = `/api/download?token=${encodeURIComponent(session.access_token)}`;
+                } else {
+                  window.location.href = '/login?redirect=dashboard';
+                }
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-zinc-400" />
-              <span>Download Extension Build</span>
+              <Download className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Download Extension (ZIP v0.1.1)</span>
             </button>
           </div>
         </div>

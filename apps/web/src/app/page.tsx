@@ -34,6 +34,9 @@ import {
 
 import { EarlyAccessModal } from '@/components/EarlyAccessModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 type ReplyScenario = 'Scope Reminder' | 'Offer Checkpoints' | 'Rush Fee Option' | 'Platform Terms';
 
@@ -76,6 +79,9 @@ const REPLY_TEMPLATES: Record<ReplyScenario, ReplyTemplate> = {
 };
 
 export default function LandingPage() {
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+
   const [selectedScenario, setSelectedScenario] = useState<ReplyScenario>('Scope Reminder');
   const [isCopied, setIsCopied] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
@@ -84,6 +90,30 @@ export default function LandingPage() {
   const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
   const [selectedEarlyAccessPlan, setSelectedEarlyAccessPlan] = useState('Agency Pro');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadExtension = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+
+    if (!isAuthenticated || !user) {
+      router.push('/login?redirect=download');
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !session.access_token) {
+        router.push('/login?redirect=download');
+        return;
+      }
+      window.location.href = `/api/download?token=${encodeURIComponent(session.access_token)}`;
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setTimeout(() => setIsDownloading(false), 2000);
+    }
+  };
 
   const handleCopyDemo = () => {
     navigator.clipboard.writeText(REPLY_TEMPLATES[selectedScenario].response);
@@ -279,13 +309,25 @@ export default function LandingPage() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
-              <a
-                href="#download"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:border-zinc-700 rounded-lg transition-all shadow-2xs cursor-pointer"
-              >
-                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Download Extension</span>
-              </a>
+              {isAuthenticated && user ? (
+                <button
+                  onClick={handleDownloadExtension}
+                  disabled={isDownloading}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:border-zinc-700 rounded-lg transition-all shadow-2xs cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>{isDownloading ? 'Preparing ZIP...' : 'Download Extension (ZIP)'}</span>
+                  <span className="text-[10px] font-mono py-0.5 px-1.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">v0.1.1</span>
+                </button>
+              ) : (
+                <Link
+                  href="/login?redirect=download"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-900/90 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:border-zinc-700 rounded-lg transition-all shadow-2xs cursor-pointer"
+                >
+                  <Lock className="w-4 h-4 text-amber-500" />
+                  <span>Login to Download Extension</span>
+                </Link>
+              )}
 
               <a
                 href="#pricing"
@@ -1444,14 +1486,25 @@ export default function LandingPage() {
 
                   {/* Actions */}
                   <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <a
-                      href="/memoreply-extension.zip"
-                      download="memoreply-extension.zip"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-all shadow-md group cursor-pointer"
-                    >
-                      <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-                      <span>Download Extension (.ZIP)</span>
-                    </a>
+                    {isAuthenticated && user ? (
+                      <button
+                        onClick={handleDownloadExtension}
+                        disabled={isDownloading}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-all shadow-md group cursor-pointer"
+                      >
+                        <Download className="w-4 h-4 text-emerald-500 group-hover:-translate-y-0.5 transition-transform" />
+                        <span>{isDownloading ? 'Preparing ZIP...' : 'Download Extension (ZIP)'}</span>
+                        <span className="text-[10px] font-mono py-0.5 px-1.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-950 font-bold">v0.1.1</span>
+                      </button>
+                    ) : (
+                      <Link
+                        href="/login?redirect=download"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-all shadow-md group cursor-pointer"
+                      >
+                        <Lock className="w-4 h-4 text-amber-400 group-hover:-translate-y-0.5 transition-transform" />
+                        <span>Login to Download Extension</span>
+                      </Link>
+                    )}
 
                     <button
                       type="button"
@@ -1554,13 +1607,24 @@ export default function LandingPage() {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
 
-                <a
-                  href="#download"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg transition-all cursor-pointer shadow-2xs"
-                >
-                  <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Download Extension</span>
-                </a>
+                {isAuthenticated && user ? (
+                  <button
+                    onClick={handleDownloadExtension}
+                    disabled={isDownloading}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg transition-all cursor-pointer shadow-2xs"
+                  >
+                    <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Download Extension (ZIP)</span>
+                  </button>
+                ) : (
+                  <Link
+                    href="/login?redirect=download"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg transition-all cursor-pointer shadow-2xs"
+                  >
+                    <Lock className="w-4 h-4 text-amber-500" />
+                    <span>Login to Download Extension</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -1756,14 +1820,24 @@ export default function LandingPage() {
             </div>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
-              <a
-                href="/memoreply-extension.zip"
-                download="memoreply-extension.zip"
-                className="w-full sm:flex-1 py-2 px-3 text-center rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download .ZIP</span>
-              </a>
+              {isAuthenticated && user ? (
+                <button
+                  onClick={handleDownloadExtension}
+                  disabled={isDownloading}
+                  className="w-full sm:flex-1 py-2 px-3 text-center rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isDownloading ? 'Preparing ZIP...' : 'Download Extension (ZIP)'}</span>
+                </button>
+              ) : (
+                <Link
+                  href="/login?redirect=download"
+                  className="w-full sm:flex-1 py-2 px-3 text-center rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Login to Download Extension</span>
+                </Link>
+              )}
 
               <a
                 href="https://github.com/chatbotexpert/memoreply"
