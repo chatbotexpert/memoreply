@@ -186,13 +186,13 @@ export default function PricingPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
 
-            <button
-              onClick={() => setIsEarlyAccessOpen(true)}
+            <Link
+              href="/signup"
               className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:text-zinc-950 dark:bg-white dark:hover:bg-zinc-200 rounded-md transition-all shadow-xs cursor-pointer group"
             >
-              <span>Get Early Access</span>
+              <span>Get Started</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </button>
+            </Link>
 
             {/* Mobile Hamburger Toggle */}
             <button
@@ -259,16 +259,14 @@ export default function PricingPage() {
               Pricing
             </Link>
             <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800">
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  setIsEarlyAccessOpen(true);
-                }}
+              <Link
+                href="/signup"
+                onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-zinc-900 dark:bg-white dark:text-zinc-950 rounded-md transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
               >
-                <span>Get Early Access</span>
+                <span>Get Started</span>
                 <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              </Link>
             </div>
           </div>
         )}
@@ -386,12 +384,8 @@ export default function PricingPage() {
 
                   {/* CTA Button */}
                   <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-850">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPlan(tier.id);
-                        setIsEarlyAccessOpen(true);
-                      }}
+                    <Link
+                      href={`/signup?plan=${tier.id === 'Starter Free' ? 'Freelancer' : tier.id}`}
                       className={`w-full py-2.5 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm group ${
                         tier.popular
                           ? 'bg-indigo-600 hover:bg-indigo-500 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-zinc-950'
@@ -400,13 +394,13 @@ export default function PricingPage() {
                     >
                       <span>
                         {tier.id === 'Enterprise'
-                          ? 'Join Waitlist'
+                          ? 'Get Enterprise Access'
                           : tier.id === 'Starter Free'
                           ? 'Get Free Access'
-                          : 'Get Early Access'}
+                          : `Choose ${tier.name}`}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               );
@@ -574,13 +568,13 @@ export default function PricingPage() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => setIsEarlyAccessOpen(true)}
+                <Link
+                  href="/signup"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:text-zinc-950 dark:bg-white dark:hover:bg-zinc-200 rounded-lg transition-all shadow-md group cursor-pointer"
                 >
-                  <span>Get Early Access</span>
+                  <span>Get Started Now</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+                </Link>
 
                 <Link
                   href="/login"

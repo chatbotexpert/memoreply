@@ -49,9 +49,23 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickDemo = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('••••••••••••');
+  const handleQuickDemo = async (demoEmail: string) => {
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      await login(demoEmail);
+      if (typeof window !== 'undefined' && window.location.search.includes('source=extension')) {
+        router.push('/auth/success');
+      } else if (typeof window !== 'undefined' && window.location.search.includes('redirect=download')) {
+        router.push('/#download');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Demo sign in failed.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -92,8 +106,20 @@ export default function LoginPage() {
         <div className="rounded-xl border border-zinc-800/90 bg-zinc-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
           <form onSubmit={handleLogin} className="space-y-4">
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-red-950/30 border border-red-800/50 text-xs text-red-300">
-                {errorMsg}
+              <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 space-y-1">
+                <p className="font-medium">{errorMsg}</p>
+                {errorMsg.toLowerCase().includes('invalid login') && (
+                  <p className="text-[11px] text-zinc-300 pt-1">
+                    Account not registered yet?{' '}
+                    <Link
+                      href={email ? `/signup?email=${encodeURIComponent(email)}` : '/signup'}
+                      className="text-white underline font-semibold hover:text-emerald-400"
+                    >
+                      Click here to Sign Up
+                    </Link>{' '}
+                    or use 1-Click Instant Demo below.
+                  </p>
+                )}
               </div>
             )}
 

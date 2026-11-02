@@ -256,11 +256,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Fallback if password not passed
+    // Fallback if password not passed (e.g. 1-Click Instant Demo)
     const existing = user && user.email.toLowerCase() === email.toLowerCase() ? user : null;
+    const plan: SaaSPlan = email.toLowerCase().includes('freelancer') ? 'Freelancer' : 'Agency Pro';
     const resolvedUser: UserProfile = existing || {
       ...DEFAULT_USER,
+      id: `demo_usr_${Date.now()}`,
       email,
+      plan,
       name: email.split('@')[0].replace(/[._-]/g, ' ').toUpperCase(),
       agencyName: `${email.split('@')[0]} Agency`,
     };
@@ -270,6 +273,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem('memoreply_auth_user', JSON.stringify(resolvedUser));
     } catch {}
+
+    // Broadcast session for Chrome Extension handshake
+    const authPayload = {
+      token: `demo_token_${Date.now()}`,
+      refreshToken: `demo_refresh_${Date.now()}`,
+      userId: resolvedUser.id,
+      email: resolvedUser.email,
+      name: resolvedUser.name,
+      plan: resolvedUser.plan,
+    };
+
+    if (typeof window !== 'undefined') {
+      window.postMessage(
+        {
+          type: 'MEMOREPLY_AUTH_PAYLOAD',
+          payload: authPayload,
+        },
+        window.location.origin
+      );
+
+      if (document.body) {
+        document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+      }
+    }
+
     return true;
   };
 
