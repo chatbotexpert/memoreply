@@ -37,7 +37,9 @@
         "http://localhost:3000/*",
         "http://127.0.0.1:3000/*"
       ],
-      "js": ["src/content.ts"],
+      "js": [
+        "src/content.ts"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -45,7 +47,8 @@
     "storage",
     "activeTab",
     "tabs",
-    "scripting"
+    "scripting",
+    "alarms"
   ],
   "host_permissions": [
     "*://*.fiverr.com/*",

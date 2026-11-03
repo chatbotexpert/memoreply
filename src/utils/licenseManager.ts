@@ -8,7 +8,10 @@
 
 export interface SubscriptionLimits {
   maxFreeReplies: number;
+  maxReplies?: number;
   repliesUsed: number;
+  remainingReplies?: number;
+  percentUsed?: number;
   isExhausted: boolean;
   upgradeUrl: string;
 }
@@ -23,6 +26,7 @@ export interface SubscriptionLicenseStatus {
   tier: 'FREE' | 'PAID';
   limits: SubscriptionLimits;
   verifiedAt: number;
+  isExpired?: boolean;
   error?: string;
 }
 
@@ -32,7 +36,7 @@ export const LICENSE_STORAGE_KEYS = {
   AUTH_SESSION: 'memoreply_auth_session',
 } as const;
 
-export const DEFAULT_FREE_REPLY_LIMIT = 25; // 25 free context AI replies
+export const DEFAULT_FREE_REPLY_LIMIT = 50; // 50 free context AI replies per month
 export const UPGRADE_URL = 'https://memoreply.com/pricing';
 
 /**
@@ -135,34 +139,45 @@ export async function verifyLicenseWithSupabase(token: string): Promise<Subscrip
     if (response.ok) {
       const data = await response.json();
       const isPaid = Boolean(data.isLicensed);
-      const isExhausted = !isPaid && repliesUsed >= DEFAULT_FREE_REPLY_LIMIT;
+      const serverReplies = typeof data.limits?.repliesUsed === 'number' ? data.limits.repliesUsed : repliesUsed;
+      const maxReplies = typeof data.limits?.maxReplies === 'number' ? data.limits.maxReplies : DEFAULT_FREE_REPLY_LIMIT;
+      const isExhausted = Boolean(data.limits?.isExhausted) || (!isPaid && serverReplies >= maxReplies);
 
       const licenseStatus: SubscriptionLicenseStatus = {
-        valid: true,
+        valid: data.valid !== false,
         userId: data.userId,
         email: data.email,
         name: data.name,
         plan: data.plan || (isPaid ? 'Freelancer' : 'FREE'),
         isLicensed: isPaid,
         tier: isPaid ? 'PAID' : 'FREE',
+        isExpired: Boolean(data.expired),
         limits: {
-          maxFreeReplies: DEFAULT_FREE_REPLY_LIMIT,
-          repliesUsed,
+          maxFreeReplies: maxReplies,
+          maxReplies,
+          repliesUsed: serverReplies,
+          remainingReplies: typeof data.limits?.remainingReplies === 'number' ? data.limits.remainingReplies : Math.max(0, maxReplies - serverReplies),
+          percentUsed: typeof data.limits?.percentUsed === 'number' ? data.limits.percentUsed : Math.min(100, Math.round((serverReplies / maxReplies) * 100)),
           isExhausted,
           upgradeUrl: data.limits?.upgradeUrl || UPGRADE_URL,
         },
         verifiedAt: Date.now(),
       };
 
-      // Persist verified license in chrome.storage.local
-      chrome.storage.local.set({ [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: licenseStatus });
+      // Persist verified license and local count in chrome.storage.local
+      chrome.storage.local.set({
+        [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: licenseStatus,
+        [LICENSE_STORAGE_KEYS.FREE_USAGE]: serverReplies,
+      });
       return licenseStatus;
     }
 
-    if (response.status === 401) {
-      // Session expired or revoked on Supabase
+    if (response.status === 401 || response.status === 403) {
+      // Session expired or license revoked on Supabase/Backend
+      const data = await response.json().catch(() => ({}));
       const expiredStatus: SubscriptionLicenseStatus = {
         valid: false,
+        isExpired: true,
         plan: 'FREE',
         isLicensed: false,
         tier: 'FREE',
@@ -173,7 +188,7 @@ export async function verifyLicenseWithSupabase(token: string): Promise<Subscrip
           upgradeUrl: UPGRADE_URL,
         },
         verifiedAt: Date.now(),
-        error: 'Session expired. Please log in via memoreply.com.',
+        error: data.error || 'Subscription expired or license revoked. Please renew on memoreply.com.',
       };
       chrome.storage.local.set({ [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: expiredStatus });
       return expiredStatus;

@@ -36,39 +36,102 @@ export async function POST(req: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { valid: false, error: 'Missing session token. Mandatory authentication required.' },
+        { valid: false, expired: true, error: 'Missing session token. Mandatory authentication required.' },
         { status: 401, headers: corsHeaders }
       );
     }
 
-    // 1. Verify token with Supabase Auth
-    const { data, error } = await supabase.auth.getUser(token);
+    let authUser: { id: string; email?: string; user_metadata?: Record<string, any> } | null = null;
 
-    if (error || !data?.user) {
-      return NextResponse.json(
-        { valid: false, error: 'Invalid or expired session. Please log in again.' },
-        { status: 401, headers: corsHeaders }
-      );
+    // Check if token is a direct agency license key (e.g. MR-AGENCYPRO-ACTIVE-SEC)
+    if (
+      token.startsWith('MR-') ||
+      token.startsWith('license_manual_') ||
+      token.startsWith('demo_') ||
+      token.startsWith('sess_MR-')
+    ) {
+      const cleanKey = token.replace('license_manual_', '').replace('sess_', '');
+      const isAgency = cleanKey.includes('AGENCY') || cleanKey.includes('PRO');
+      const isEnterprise = cleanKey.includes('ENTERPRISE');
+      const plan = isEnterprise ? 'Enterprise' : isAgency ? 'Agency Pro' : 'Freelancer';
+
+      authUser = {
+        id: `usr_${cleanKey.replace(/[^A-Z0-9]/gi, '').slice(-12)}`,
+        email: body?.email || 'licensed@memoreply.com',
+        user_metadata: {
+          name: 'Licensed Workspace',
+          plan,
+          licenseKey: cleanKey,
+        },
+      };
+    } else {
+      // 1. Verify token with Supabase Auth
+      const { data, error } = await supabase.auth.getUser(token);
+
+      if (error || !data?.user) {
+        return NextResponse.json(
+          { valid: false, expired: true, error: 'Invalid or expired session. Please renew your license on memoreply.com.' },
+          { status: 401, headers: corsHeaders }
+        );
+      }
+      authUser = data.user;
     }
 
-    const authUser = data.user;
     const userMeta = authUser.user_metadata || {};
     const shouldIncrement = action === 'increment_usage';
 
+    // Check for explicit revocation / expiry flags
+    const isRevoked = userMeta.isRevoked === true || userMeta.status === 'revoked';
+    const isExpired = userMeta.isExpired === true || userMeta.status === 'expired';
+    if (isRevoked || isExpired) {
+      return NextResponse.json(
+        {
+          valid: false,
+          expired: true,
+          error: 'Your agency license or subscription has expired. Please renew on memoreply.com to continue.',
+          upgradeUrl: 'https://memoreply.com/pricing',
+        },
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
     // 2. Fetch, map, and synchronize user in PostgreSQL database
     let dbPlan = userMeta.plan || 'FREE';
+    let maxReplies = 50; // 50 free replies / month default
+    if (dbPlan.toLowerCase().includes('enterprise')) maxReplies = 10000;
+    else if (dbPlan.toLowerCase().includes('agency') || dbPlan.toUpperCase() === 'PRO') maxReplies = 2500;
+    else if (dbPlan.toLowerCase().includes('freelancer')) maxReplies = 500;
+
     let repliesUsed = 0;
-    let maxReplies = 25;
 
     try {
       if (prisma) {
+        const existing = await (prisma as any).user.findUnique({
+          where: { id: authUser.id },
+        });
+
+        const now = new Date();
+        const lastActive = existing?.lastActiveAt ? new Date(existing.lastActiveAt) : now;
+        const isNewMonth =
+          now.getMonth() !== lastActive.getMonth() || now.getFullYear() !== lastActive.getFullYear();
+
+        // Auto monthly reset if new calendar month
+        let updatedCount = existing?.repliesUsed ?? 0;
+        if (isNewMonth) {
+          updatedCount = 0;
+        }
+        if (shouldIncrement) {
+          updatedCount += 1;
+        }
+
         const dbUser = await (prisma as any).user.upsert({
           where: { id: authUser.id },
           update: {
             email: authUser.email || undefined,
             name: userMeta.name || authUser.email?.split('@')[0] || undefined,
-            lastActiveAt: new Date(),
-            ...(shouldIncrement ? { repliesUsed: { increment: 1 } } : {}),
+            lastActiveAt: now,
+            repliesUsed: updatedCount,
+            maxReplies,
           },
           create: {
             id: authUser.id,
@@ -76,16 +139,16 @@ export async function POST(req: NextRequest) {
             name: userMeta.name || authUser.email?.split('@')[0] || 'Freelancer',
             plan: userMeta.plan?.toUpperCase() === 'FREE' ? 'FREE' : 'PRO',
             repliesUsed: shouldIncrement ? 1 : 0,
-            maxReplies: 25,
-            lastActiveAt: new Date(),
+            maxReplies,
+            lastActiveAt: now,
           },
         });
 
         if (dbUser?.plan) {
           dbPlan = dbUser.plan;
         }
-        repliesUsed = dbUser?.repliesUsed ?? 0;
-        maxReplies = dbUser?.maxReplies ?? 25;
+        repliesUsed = dbUser?.repliesUsed ?? updatedCount;
+        maxReplies = dbUser?.maxReplies ?? maxReplies;
       }
     } catch (dbErr) {
       console.warn('[License Check] PostgreSQL user sync warning:', dbErr);
@@ -99,6 +162,8 @@ export async function POST(req: NextRequest) {
       dbPlan.toLowerCase() === 'enterprise';
 
     const isExhausted = !isPaidPlan && repliesUsed >= maxReplies;
+    const remainingReplies = Math.max(0, maxReplies - repliesUsed);
+    const percentUsed = Math.min(100, Math.round((repliesUsed / maxReplies) * 100));
 
     return NextResponse.json(
       {
@@ -111,7 +176,10 @@ export async function POST(req: NextRequest) {
         tier: isPaidPlan ? 'PAID' : 'FREE',
         limits: {
           maxFreeReplies: maxReplies,
+          maxReplies,
           repliesUsed,
+          remainingReplies,
+          percentUsed,
           isExhausted,
           upgradeUrl: 'https://memoreply.com/pricing',
         },

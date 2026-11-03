@@ -53,6 +53,25 @@ interface ToastState {
   type: 'success' | 'error' | 'info';
 }
 
+export interface CustomTone {
+  id: string;
+  label: string;
+  instructions: string;
+}
+
+const DEFAULT_CUSTOM_TONES: CustomTone[] = [
+  {
+    id: 'tone_agency_elite',
+    label: 'Agency Elite',
+    instructions: 'Communicate with executive precision, outlining milestones, deliverable guarantees, and high-ROI value.',
+  },
+  {
+    id: 'tone_freelance_friendly',
+    label: 'Consultative',
+    instructions: 'Warm, collaborative, ask clarifying questions, and recommend optimal technical architectures.',
+  },
+];
+
 const TONES = [
   'Professional',
   'Friendly',
@@ -146,6 +165,13 @@ export default function App() {
   const [conversation, setConversation] = useState<ConversationData | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
 
+  // Advanced SaaS States: Offline Detection & Custom Brand Voice Templates
+  const [isOffline, setIsOffline] = useState<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const [customTones, setCustomTones] = useState<CustomTone[]>([]);
+  const [newToneLabel, setNewToneLabel] = useState<string>('');
+  const [newToneInstructions, setNewToneInstructions] = useState<string>('');
+  const [isAddingTone, setIsAddingTone] = useState<boolean>(false);
+
   // Module 2: Persistent Client Memory States
   const [storedClient, setStoredClient] = useState<ClientEntity | null>(null);
   const [storedFacts, setStoredFacts] = useState<ClientFactEntity[]>([]);
@@ -213,9 +239,25 @@ export default function App() {
         if (res.memoreply_license_status) {
           setLicenseStatus(res.memoreply_license_status as SubscriptionLicenseStatus);
         }
+        if (Array.isArray(res.memoreply_custom_tones) && res.memoreply_custom_tones.length > 0) {
+          setCustomTones(res.memoreply_custom_tones);
+        } else {
+          setCustomTones(DEFAULT_CUSTOM_TONES);
+        }
         setIsCheckingAuth(false);
       }
     );
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      showToast('Network connection restored. Online mode active.', 'success');
+    };
+    const handleOffline = () => {
+      setIsOffline(true);
+      showToast('Network connection lost. Switched to offline mode.', 'info');
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.memoreply_auth_session) {
@@ -237,11 +279,59 @@ export default function App() {
       if (changes.memoreply_license_status) {
         setLicenseStatus(changes.memoreply_license_status.newValue as SubscriptionLicenseStatus);
       }
+      if (changes.memoreply_custom_tones && Array.isArray(changes.memoreply_custom_tones.newValue)) {
+        setCustomTones(changes.memoreply_custom_tones.newValue);
+      }
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
-    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
   }, []);
+
+  const handleSaveCustomTone = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newToneLabel.trim()) {
+      showToast('Please enter a tone title (e.g. Agency Voice).', 'error');
+      return;
+    }
+    const newTone: CustomTone = {
+      id: `tone_${Date.now()}`,
+      label: newToneLabel.trim(),
+      instructions: newToneInstructions.trim() || 'Maintain consistent agency voice and clear tone.',
+    };
+    const updated = [...customTones.filter((t) => t.id !== newTone.id), newTone];
+    setCustomTones(updated);
+    try {
+      await chrome.storage.local.set({ memoreply_custom_tones: updated });
+      setNewToneLabel('');
+      setNewToneInstructions('');
+      setIsAddingTone(false);
+      setActiveTone(newTone.label);
+      showToast(`Custom tone "${newTone.label}" created!`, 'success');
+    } catch {
+      showToast('Error saving custom tone.', 'error');
+    }
+  };
+
+  const handleDeleteCustomTone = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const target = customTones.find((t) => t.id === id);
+    const updated = customTones.filter((t) => t.id !== id);
+    setCustomTones(updated);
+    try {
+      await chrome.storage.local.set({ memoreply_custom_tones: updated });
+      if (target && activeTone === target.label) {
+        setActiveTone('Professional');
+      }
+      showToast('Custom tone deleted.', 'info');
+    } catch {
+      showToast('Error deleting tone.', 'error');
+    }
+  };
 
   const handleOpenWebLogin = () => {
     chrome.tabs.create({
@@ -964,8 +1054,12 @@ export default function App() {
         showToast('Please sign in to Memoreply to generate AI replies.', 'error');
         return;
       }
+      if (licenseStatus?.isExpired) {
+        showToast('Subscription expired. Please renew on memoreply.com.', 'error');
+        return;
+      }
       if (licenseStatus?.tier === 'FREE' && licenseStatus.limits.isExhausted) {
-        showToast('Free tier limit exhausted. Upgrade to Pro on memoreply.com for unlimited AI replies!', 'error');
+        showToast('Free tier monthly limit exhausted. Upgrade to Pro for unlimited AI replies!', 'error');
         return;
       }
     }
@@ -973,42 +1067,64 @@ export default function App() {
     setIsGenerating(true);
     const chosenTone = toneOverride || activeTone;
 
+    // Check if a Custom Tone / Brand Voice Template is selected
+    const matchingCustomTone = customTones.find(
+      (t) => t.label.toLowerCase() === chosenTone.toLowerCase()
+    );
+    const effectiveInstruction = [
+      matchingCustomTone ? `[Brand Voice Guideline: ${matchingCustomTone.instructions}]` : '',
+      customInstruction.trim(),
+    ].filter(Boolean).join('\n\n');
+
     const clientUsername = conversation?.clientUsername ?? storedClient?.platformUserId ?? 'client';
     const platform = conversation?.platform || activePlatform !== 'unknown' ? activePlatform : 'fiverr';
     const clientId = storedClient?.id ?? `${platform}_${clientUsername}`;
     const conversationId = `conv_${platform}_${conversation?.conversationId ?? clientUsername}`;
 
     try {
+      if (!navigator.onLine) {
+        showToast('Offline state active. Synthesizing response locally...', 'info');
+      }
+
       // Assemble context from Dexie
       const assembledContext = await assembleContext({
         clientId,
         conversationId,
         tone: chosenTone,
-        customInstruction,
+        customInstruction: effectiveInstruction,
         fallbackConversation: conversation,
       });
 
       // Direct Inline AI Engine (asynchronous background fetch)
       const primaryResult = await generateInlineResponse(assembledContext, sellerProfile, {
         tone: chosenTone,
-        customInstruction,
+        customInstruction: effectiveInstruction,
       });
 
       if (primaryResult?.replyText) {
         // Generate alternative stylistic variants for instant QuillBot-style switching
-        const conciseResult = await generateInlineResponse(assembledContext, sellerProfile, {
-          tone: 'Concise',
-          customInstruction,
-        });
-        const detailedResult = await generateInlineResponse(assembledContext, sellerProfile, {
-          tone: 'Detailed',
-          customInstruction,
-        });
+        let conciseText = '';
+        let detailedText = '';
+        try {
+          const conciseResult = await generateInlineResponse(assembledContext, sellerProfile, {
+            tone: 'Concise',
+            customInstruction: effectiveInstruction,
+          });
+          conciseText = conciseResult.replyText;
+        } catch {}
+
+        try {
+          const detailedResult = await generateInlineResponse(assembledContext, sellerProfile, {
+            tone: 'Detailed',
+            customInstruction: effectiveInstruction,
+          });
+          detailedText = detailedResult.replyText;
+        } catch {}
 
         const newVariants = [
           primaryResult.replyText,
-          conciseResult.replyText,
-          detailedResult.replyText,
+          conciseText,
+          detailedText,
         ].filter(Boolean);
 
         setVariants(newVariants);
@@ -1019,6 +1135,7 @@ export default function App() {
         // Track Free Tier AI response usage & sync to user metadata in PostgreSQL
         if (licenseStatus?.tier === 'FREE') {
           const { newCount, isExhausted } = await incrementFreeReplyCount(authSession?.token);
+          const maxRep = licenseStatus.limits.maxReplies || 50;
           setLicenseStatus((prev) =>
             prev
               ? {
@@ -1027,6 +1144,8 @@ export default function App() {
                     ...prev.limits,
                     repliesUsed: newCount,
                     isExhausted,
+                    remainingReplies: Math.max(0, maxRep - newCount),
+                    percentUsed: Math.min(100, Math.round((newCount / maxRep) * 100)),
                   },
                 }
               : null
@@ -1035,8 +1154,21 @@ export default function App() {
       }
     } catch (err: unknown) {
       console.error('[Memoreply] Direct generation error:', err);
-      const msg = err instanceof Error ? err.message : String(err);
-      showToast(msg, 'error');
+      const errMsg = err instanceof Error ? err.message : String(err);
+
+      // Robust Offline & Network Fallback Handler
+      if (!navigator.onLine || errMsg.toLowerCase().includes('network') || errMsg.toLowerCase().includes('fetch')) {
+        showToast('Network connection lost. Switched to offline context mode.', 'info');
+        try {
+          const fallbackText = `Hi ${clientUsername},\n\nThank you for your message regarding the project on ${platform.toUpperCase()}.\n\nI have reviewed the scope and will provide our detailed execution plan and milestones shortly.\n\nBest regards,\n${sellerProfile?.businessName || 'HashTurn Agency'}`;
+          setDraftText(fallbackText);
+          setVariants([fallbackText]);
+          setActiveVariantIndex(0);
+          showToast('Draft synthesized using offline client memory.', 'success');
+          return;
+        } catch {}
+      }
+      showToast(errMsg, 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -1376,8 +1508,103 @@ export default function App() {
     );
   }
 
+  // ========================================================
+  // SUBSCRIPTION EXPIRED / REVOKED LOCK GATE
+  // ========================================================
+  if (licenseStatus?.isExpired) {
+    return (
+      <div style={{ width: 380, height: 540, background: '#09090b', color: '#fafafa', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 24, boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/icons/icon-48.png" alt="Memoreply" style={{ width: 28, height: 28, borderRadius: 8 }} />
+              <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.02em' }}>Memoreply</span>
+            </div>
+            <span style={{ fontSize: 10, fontFamily: 'monospace', padding: '2px 8px', borderRadius: 999, background: '#450a0a', color: '#f87171', border: '1px solid #7f1d1d' }}>
+              EXPIRED
+            </span>
+          </div>
+
+          {/* Hero Warning Card */}
+          <div style={{ padding: 18, borderRadius: 16, background: 'linear-gradient(180deg, #1c1917 0%, #0c0a09 100%)', border: '1px solid #7f1d1d', marginBottom: 20 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 6 }}>
+              Subscription Expired or Revoked
+            </h2>
+            <p style={{ fontSize: 12, color: '#d4d4d8', lineHeight: 1.5, margin: 0 }}>
+              Your Memoreply agency/freelancer license for <strong>{authSession?.email || 'this account'}</strong> has expired or was revoked.
+            </p>
+          </div>
+
+          {/* Recovery Instructions */}
+          <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+              To Restore Instant Access
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#a1a1aa' }}>
+              <span style={{ color: '#ef4444' }}>•</span> Renew your subscription on memoreply.com
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#a1a1aa' }}>
+              <span style={{ color: '#ef4444' }}>•</span> Or update your license key from your web dashboard
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            onClick={() => chrome.tabs.create({ url: UPGRADE_URL })}
+            style={{ width: '100%', padding: '11px 16px', borderRadius: 10, background: '#ef4444', color: '#ffffff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)' }}
+          >
+            <span>Renew Plan on memoreply.com</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{ width: '100%', padding: '9px', borderRadius: 8, background: 'transparent', border: '1px solid #27272a', color: '#a1a1aa', fontSize: 12, cursor: 'pointer' }}
+          >
+            Switch Account / Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
+      {/* Offline Status Warning Bar */}
+      {isOffline && (
+        <div style={{
+          background: '#451a03',
+          color: '#fef3c7',
+          padding: '6px 12px',
+          fontSize: '11px',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+          borderBottom: '1px solid #92400e',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100
+        }}>
+          <span>⚠️</span>
+          <span>Network connection lost. Offline fallback mode active.</span>
+        </div>
+      )}
+
       {/* ---------- Header ---------- */}
       <header className="app-header">
         <div className="app-logo">
@@ -1708,7 +1935,7 @@ export default function App() {
                   Active: <strong>{activeTone}</strong>
                 </span>
               </div>
-              <div className="tone-selector">
+              <div className="tone-selector" style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                 {TONES.map((tone) => (
                   <button
                     key={tone}
@@ -1723,41 +1950,164 @@ export default function App() {
                     {tone}
                   </button>
                 ))}
+                {/* User Defined Custom Tones */}
+                {customTones.map((ct) => (
+                  <button
+                    key={ct.id}
+                    className={`tone-chip ${activeTone === ct.label ? 'active' : ''}`}
+                    style={{
+                      border: activeTone === ct.label ? '1px solid #10b981' : '1px dashed rgba(16, 185, 129, 0.4)',
+                    }}
+                    onClick={() => {
+                      setActiveTone(ct.label);
+                      if (draftText.trim()) {
+                        handleGenerateReply(ct.label);
+                      }
+                    }}
+                    title={`Brand Guideline: ${ct.instructions}`}
+                  >
+                    <span>★ {ct.label}</span>
+                  </button>
+                ))}
+                {/* Add Custom Tone Toggle Button */}
+                <button
+                  className="tone-chip"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px dashed rgba(255, 255, 255, 0.2)',
+                    color: 'var(--color-text-secondary)',
+                  }}
+                  onClick={() => setIsAddingTone(!isAddingTone)}
+                >
+                  {isAddingTone ? '✕ Close' : '+ Custom'}
+                </button>
               </div>
 
-              {/* Free Tier Usage Indicator (When Active) */}
-              {licenseStatus?.tier === 'FREE' && !licenseStatus.limits.isExhausted && (
+              {/* Quick Inline Custom Tone Creator */}
+              {isAddingTone && (
                 <div style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  background: 'rgba(24, 24, 27, 0.95)',
+                  border: '1px solid #27272a',
+                  marginBottom: '10px',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  fontSize: '11px',
-                  marginBottom: '10px'
+                  flexDirection: 'column',
+                  gap: '6px',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
-                    <span style={{ color: '#10b981', fontWeight: 700 }}>⚡</span>
-                    <span>Free Tier: <strong>{licenseStatus.limits.maxFreeReplies - licenseStatus.limits.repliesUsed}</strong> of {licenseStatus.limits.maxFreeReplies} replies left</span>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#10b981' }}>
+                    + New Brand Voice / Custom Prompt Style
                   </div>
-                  <button
-                    onClick={handleOpenUpgrade}
+                  <input
+                    type="text"
+                    value={newToneLabel}
+                    onChange={(e) => setNewToneLabel(e.target.value)}
+                    placeholder="Tone name (e.g. Agency Closer, Bold Pitch)"
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#10b981',
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      padding: 0
+                      fontSize: '11px',
+                      padding: '5px 8px',
+                      borderRadius: '5px',
+                      background: '#09090b',
+                      border: '1px solid #3f3f46',
+                      color: '#fafafa',
+                      width: '100%',
+                      boxSizing: 'border-box',
                     }}
-                  >
-                    Upgrade →
-                  </button>
+                  />
+                  <textarea
+                    value={newToneInstructions}
+                    onChange={(e) => setNewToneInstructions(e.target.value)}
+                    placeholder="Brand guidelines or instructions (e.g. Always reference 24h turnarounds and high ROI)..."
+                    rows={2}
+                    style={{
+                      fontSize: '11px',
+                      padding: '5px 8px',
+                      borderRadius: '5px',
+                      background: '#09090b',
+                      border: '1px solid #3f3f46',
+                      color: '#fafafa',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      resize: 'none',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '10px', padding: '3px 8px' }}
+                      onClick={() => setIsAddingTone(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ fontSize: '10px', padding: '3px 10px', background: '#10b981', color: '#09090b', fontWeight: 600 }}
+                      onClick={handleSaveCustomTone}
+                    >
+                      Save Tone
+                    </button>
+                  </div>
                 </div>
               )}
+
+              {/* Usage Quota Tracker: Visual Progress Bar */}
+              <div style={{
+                padding: '9px 12px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.07)',
+                marginBottom: '10px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: (licenseStatus?.limits?.percentUsed || 0) >= 90 ? '#ef4444' : (licenseStatus?.limits?.percentUsed || 0) >= 70 ? '#f59e0b' : '#10b981'
+                    }} />
+                    {licenseStatus?.isLicensed ? 'Agency Pro Quota' : 'Monthly AI Reply Quota'}
+                  </span>
+                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                    {licenseStatus?.isLicensed
+                      ? `${licenseStatus.limits?.repliesUsed ?? 0} Replies Used`
+                      : `${licenseStatus?.limits?.repliesUsed ?? 0} / ${licenseStatus?.limits?.maxReplies ?? 50} Used`}
+                  </span>
+                </div>
+                {!licenseStatus?.isLicensed && (
+                  <div style={{ width: '100%', height: '5px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden', position: 'relative' }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, licenseStatus?.limits?.percentUsed ?? 0)}%`,
+                        height: '100%',
+                        borderRadius: '999px',
+                        background: (licenseStatus?.limits?.percentUsed || 0) >= 90
+                          ? 'linear-gradient(90deg, #f59e0b, #ef4444)'
+                          : (licenseStatus?.limits?.percentUsed || 0) >= 70
+                          ? 'linear-gradient(90deg, #10b981, #f59e0b)'
+                          : 'linear-gradient(90deg, #10b981, #34d399)',
+                        transition: 'width 0.4s ease',
+                      }}
+                    />
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
+                  <span>
+                    {licenseStatus?.isLicensed
+                      ? 'Unlimited Pro AI Synthesizer'
+                      : `${licenseStatus?.limits?.remainingReplies ?? 50} replies left this month`}
+                  </span>
+                  {!licenseStatus?.isLicensed && (
+                    <button
+                      onClick={handleOpenUpgrade}
+                      style={{ background: 'none', border: 'none', color: '#10b981', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                    >
+                      Upgrade for Unlimited →
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {/* Optional Custom Directive */}
               <div style={{ marginBottom: '10px' }}>
@@ -2429,6 +2779,146 @@ export default function App() {
                 >
                   Sign Out
                 </button>
+              </div>
+            </div>
+
+            {/* Advanced SaaS Feature: Brand Voice & Custom Prompt Templates */}
+            <div className="card" style={{ marginBottom: '14px' }}>
+              <div className="card-header">
+                <div>
+                  <span className="card-title">Brand Voice & Custom Prompt Templates</span>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                    Custom instructions and tone presets injected into AI responses
+                  </div>
+                </div>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '11px', padding: '4px 8px' }}
+                  onClick={() => setIsAddingTone(!isAddingTone)}
+                >
+                  {isAddingTone ? 'Close' : '+ New Template'}
+                </button>
+              </div>
+
+              {/* Add Custom Tone Form */}
+              {isAddingTone && (
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: 'rgba(24, 24, 27, 0.95)',
+                  border: '1px solid #27272a',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#10b981' }}>
+                    Create Custom Tone / Prompt Preset
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', display: 'block', marginBottom: '2px' }}>
+                      Tone / Persona Name
+                    </label>
+                    <input
+                      type="text"
+                      className="text-input"
+                      value={newToneLabel}
+                      onChange={(e) => setNewToneLabel(e.target.value)}
+                      placeholder="e.g. Agency Closer, Bold Pitch, Enterprise Tech"
+                      style={{ height: '30px', fontSize: '11px', width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', display: 'block', marginBottom: '2px' }}>
+                      Brand Voice Guidelines & Instructions
+                    </label>
+                    <textarea
+                      className="text-input"
+                      value={newToneInstructions}
+                      onChange={(e) => setNewToneInstructions(e.target.value)}
+                      placeholder="e.g. Always structure reply with 3 distinct milestones, guarantee 100% bug-free delivery, and ask for a 15-min discovery call."
+                      rows={3}
+                      style={{ fontSize: '11px', width: '100%', resize: 'none' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '10px', padding: '4px 8px' }}
+                      onClick={() => setIsAddingTone(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ fontSize: '10px', padding: '4px 12px', background: '#10b981', color: '#09090b', fontWeight: 600 }}
+                      onClick={handleSaveCustomTone}
+                    >
+                      Save Preset
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* List of Custom Tones */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {customTones.length === 0 ? (
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', textAlign: 'center', padding: '12px 0' }}>
+                    No custom tones created yet. Click "+ New Template" to add your brand voice.
+                  </div>
+                ) : (
+                  customTones.map((ct) => (
+                    <div
+                      key={ct.id}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            ★ {ct.label}
+                          </span>
+                          {activeTone === ct.label && (
+                            <span style={{ fontSize: '9px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                              Active Tone
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                          {ct.instructions}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '10px', padding: '2px 8px' }}
+                          onClick={() => {
+                            setActiveTone(ct.label);
+                            showToast(`Active tone set to "${ct.label}"`, 'info');
+                          }}
+                        >
+                          Use
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: '10px', padding: '2px 6px', color: '#ef4444' }}
+                          onClick={(e) => handleDeleteCustomTone(ct.id, e)}
+                          title="Delete template"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

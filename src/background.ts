@@ -13,6 +13,7 @@ import {
   updateRetentionPolicy,
   getRetentionPolicy,
 } from './utils/localChatStorage';
+import { verifyLicenseWithSupabase } from './utils/licenseManager';
 
 /**
  * Message router — handles communications between side panel and active tab content scripts
@@ -164,6 +165,32 @@ chrome.runtime.onInstalled.addListener((details) => {
   // Run initial retention audit & FIFO quota check
   purgeExpiredChats(30).catch(() => {});
   enforceStorageQuotaFIFO().catch(() => {});
+
+  // Setup periodic 30-minute subscription and license validation alarm
+  try {
+    chrome.alarms?.create('MEMOREPLY_LICENSE_CHECK', { periodInMinutes: 30 });
+  } catch {}
+});
+
+/**
+ * Periodic License Validation via chrome.alarms
+ */
+chrome.alarms?.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === 'MEMOREPLY_LICENSE_CHECK') {
+    try {
+      const stored: Record<string, any> = await chrome.storage.local.get([
+        'memoreply_auth_session',
+        'memoreply_license_key',
+      ]);
+      const session = stored.memoreply_auth_session;
+      const token = session?.token || stored.memoreply_license_key;
+      if (token) {
+        await verifyLicenseWithSupabase(token);
+      }
+    } catch (e) {
+      console.warn('[Memoreply Background] License check alarm error:', e);
+    }
+  }
 });
 
 /**
