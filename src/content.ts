@@ -608,8 +608,12 @@ chrome.runtime.onMessage.addListener(
       case 'EXTRACT_CONVERSATION': {
         try {
           const data = extractCurrentConversation();
-          // Also persist in local storage for instant side panel retrieval
-          chrome.storage.local.set({ currentConversation: data }).catch(() => {});
+          // Persist globally and per-platform for dynamic multi-platform switching
+          const platformKey = `currentConversation_${data.platform || 'fiverr'}`;
+          chrome.storage.local.set({
+            currentConversation: data,
+            [platformKey]: data,
+          }).catch(() => {});
           sendResponse({
             success: true,
             data,
@@ -657,8 +661,12 @@ function checkAndBroadcastConversation(): void {
         `[Memoreply] Auto-detected ${data.messages.length} messages for ${data.clientDisplayName ?? 'Client'} (${data.platform}).`
       );
 
-      // 1. Save directly into chrome.storage.local
-      chrome.storage.local.set({ currentConversation: data }).catch(() => {});
+      // 1. Save directly into chrome.storage.local (globally & per-platform)
+      const platformKey = `currentConversation_${data.platform || 'fiverr'}`;
+      chrome.storage.local.set({
+        currentConversation: data,
+        [platformKey]: data,
+      }).catch(() => {});
 
       // 2. Broadcast to background and side panel via runtime message
       chrome.runtime.sendMessage(

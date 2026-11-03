@@ -433,89 +433,92 @@ export default function App() {
   );
 
   /**
-   * Sync/Extract conversation from the currently active tab
+   * Sync/Extract conversation from the currently active tab dynamically switching platforms
    */
-  const syncFromActiveTab = useCallback(async () => {
+  const syncFromActiveTab = useCallback(async (forcedPlatform?: 'fiverr' | 'upwork' | 'linkedin') => {
     setIsSyncing(true);
     try {
-      // 1. Prioritize active tab in last focused window
-      const [focusedTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-      let targetTab: chrome.tabs.Tab | undefined = focusedTab;
-
-      const isMarketplaceUrl = (url?: string) => {
-        if (!url) return false;
-        const u = url.toLowerCase();
-        return u.includes('fiverr.com') || u.includes('upwork.com') || u.includes('linkedin.com');
-      };
-
-      if (!isMarketplaceUrl(targetTab?.url)) {
-        const allTabs = await chrome.tabs.query({});
-        const marketplaceTab = allTabs.find((t) => isMarketplaceUrl(t.url));
-        if (marketplaceTab) {
-          targetTab = marketplaceTab;
-        }
+      // 1. Detect active tab in the current window (strict active tab detection)
+      let currentTab: chrome.tabs.Tab | undefined;
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        currentTab = tabs[0];
+      } catch {
+        const [focused] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+        currentTab = focused;
       }
 
-      if (!targetTab?.id || !targetTab.url) {
-        setActivePlatform('unknown');
-        setActiveTabUrl('');
+      const currentUrl = currentTab?.url || '';
+      setActiveTabUrl(currentUrl);
+
+      const urlLower = currentUrl.toLowerCase();
+      let detectedPlatform: 'fiverr' | 'upwork' | 'linkedin' | 'unknown' = 'unknown';
+      if (urlLower.includes('fiverr.com')) detectedPlatform = 'fiverr';
+      else if (urlLower.includes('upwork.com')) detectedPlatform = 'upwork';
+      else if (urlLower.includes('linkedin.com')) detectedPlatform = 'linkedin';
+
+      const targetPlatform = forcedPlatform || detectedPlatform;
+      setActivePlatform(targetPlatform);
+
+      // If active tab is not a supported platform (e.g. google.com or any non-marketplace page)
+      if (targetPlatform === 'unknown') {
         setIsSyncing(false);
-        return;
-      }
-
-      setActiveTabUrl(targetTab.url);
-      const isFiverr = targetTab.url.includes('fiverr.com');
-      const isUpwork = targetTab.url.includes('upwork.com');
-      const isLinkedIn = targetTab.url.includes('linkedin.com');
-
-      let platform: 'fiverr' | 'upwork' | 'linkedin' | 'unknown' = 'unknown';
-      if (isFiverr) platform = 'fiverr';
-      else if (isUpwork) platform = 'upwork';
-      else if (isLinkedIn) platform = 'linkedin';
-
-      setActivePlatform(platform);
-
-      if (platform === 'unknown') {
         if (!isUsingMock) {
-          showToast('Open Fiverr, Upwork, or LinkedIn to sync messages, or load sample conversation.', 'info');
+          setConversation(null);
+          setStoredFacts([]);
+          setTotalStoredMessages(0);
         }
-        setIsSyncing(false);
         return;
       }
 
-      // Ping & Extract from active marketplace tab (Fiverr, Upwork, LinkedIn)
-      chrome.tabs.sendMessage(
-        targetTab.id,
-        { type: 'EXTRACT_CONVERSATION' },
-        async (response) => {
-          setIsSyncing(false);
-          if (chrome.runtime.lastError) {
-            console.warn('[Memoreply] Message error:', chrome.runtime.lastError.message);
-            showToast(`${platform.toUpperCase()} tab detected. Please reload (F5) the page once to connect.`, 'info');
-            return;
-          }
+      // 2. Fetch platform-specific scraped chat history from chrome.storage.local
+      const platformStorageKey = `currentConversation_${targetPlatform}`;
+      chrome.storage.local.get([platformStorageKey, 'currentConversation'], async (res: Record<string, any>) => {
+        const platformChat = (res[platformStorageKey] ||
+          (res.currentConversation?.platform === targetPlatform ? res.currentConversation : null)) as ConversationData | null;
 
-          if (response?.success && response.data) {
-            setConversation(response.data);
-            setIsUsingMock(false);
-
-            // Persist to IndexedDB
-            const dbResult = await persistConversationToDb(response.data);
-            if (dbResult) {
-              showToast(
-                `Synced ${response.data.messages.length} messages and ${dbResult.factsCount} context points.`,
-                'success'
-              );
-            }
-          } else {
-            showToast(response?.error ?? 'No active conversation found on this page.', 'error');
-          }
+        if (platformChat && platformChat.messages && platformChat.messages.length > 0) {
+          setConversation(platformChat);
+          setIsUsingMock(false);
+          persistConversationToDb(platformChat);
         }
-      );
+
+        // 3. Trigger live scrape extraction from the active tab content script
+        if (currentTab?.id && detectedPlatform === targetPlatform) {
+          chrome.tabs.sendMessage(
+            currentTab.id,
+            { type: 'EXTRACT_CONVERSATION' },
+            async (response) => {
+              setIsSyncing(false);
+              if (chrome.runtime.lastError) {
+                console.warn('[Memoreply] Message error:', chrome.runtime.lastError.message);
+                return;
+              }
+
+              if (response?.success && response.data) {
+                setConversation(response.data);
+                setIsUsingMock(false);
+                const dbResult = await persistConversationToDb(response.data);
+                chrome.storage.local.set({
+                  currentConversation: response.data,
+                  [platformStorageKey]: response.data,
+                });
+                if (dbResult) {
+                  showToast(
+                    `Synced ${response.data.messages.length} messages from ${targetPlatform.toUpperCase()}.`,
+                    'success'
+                  );
+                }
+              }
+            }
+          );
+        } else {
+          setIsSyncing(false);
+        }
+      });
     } catch (err) {
       console.error('[Memoreply] Sync error:', err);
       setIsSyncing(false);
-      showToast('Error syncing with page: ' + String(err), 'error');
     }
   }, [isUsingMock, persistConversationToDb]);
 
@@ -525,18 +528,28 @@ export default function App() {
     syncFromActiveTab();
     refreshDbStats();
 
-    // 1. Check storage for any previously cached conversation
-    chrome.storage.local.get('currentConversation', async (res) => {
-      if (isMounted && res?.currentConversation) {
-        const cached = res.currentConversation as ConversationData;
-        setConversation((prev) => {
-          if (!prev) {
-            persistConversationToDb(cached);
-            return cached;
+    // 1. Initial storage check for active platform
+    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      if (!tab?.url || !isMounted) return;
+      const u = tab.url.toLowerCase();
+      let p: 'fiverr' | 'upwork' | 'linkedin' | 'unknown' = 'unknown';
+      if (u.includes('fiverr.com')) p = 'fiverr';
+      else if (u.includes('upwork.com')) p = 'upwork';
+      else if (u.includes('linkedin.com')) p = 'linkedin';
+
+      if (p !== 'unknown') {
+        const platformKey = `currentConversation_${p}`;
+        chrome.storage.local.get([platformKey, 'currentConversation'], (res: Record<string, any>) => {
+          if (isMounted) {
+            const cached = (res[platformKey] || (res.currentConversation?.platform === p ? res.currentConversation : null)) as ConversationData | null;
+            if (cached && cached.messages && cached.messages.length > 0) {
+              setConversation(cached);
+              setActivePlatform(p);
+              persistConversationToDb(cached);
+            }
           }
-          return prev;
         });
-      } else if (isMounted && !chrome?.runtime?.id) {
+      } else if (!chrome?.runtime?.id) {
         // Auto-load interactive demo thread on web preview (e.g. Vercel)
         handleLoadMock();
       }
@@ -544,16 +557,32 @@ export default function App() {
 
     // 2. Real-time storage listener: auto-update when content script extracts messages
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.currentConversation?.newValue && isMounted) {
+      if (!isMounted) return;
+      const platforms = ['fiverr', 'upwork', 'linkedin'] as const;
+      for (const p of platforms) {
+        const key = `currentConversation_${p}`;
+        if (changes[key]?.newValue) {
+          const updated = changes[key].newValue as ConversationData;
+          if (updated && updated.messages && updated.messages.length > 0) {
+            if (activePlatform === p || activePlatform === 'unknown') {
+              console.log('[Memoreply] Multi-platform switch updated:', p, updated.clientUsername);
+              setConversation(updated);
+              setActivePlatform(p);
+              setIsUsingMock(false);
+              persistConversationToDb(updated);
+            }
+          }
+        }
+      }
+
+      if (changes.currentConversation?.newValue) {
         const updated = changes.currentConversation.newValue as ConversationData;
         if (updated && updated.messages && updated.messages.length > 0) {
-          console.log('[Memoreply] Auto-synced conversation from storage:', updated.clientUsername, updated.messages.length);
-          setConversation(updated);
-          setIsUsingMock(false);
-          if (updated.platform) {
-            setActivePlatform(updated.platform as any);
+          if (!updated.platform || updated.platform === activePlatform) {
+            setConversation(updated);
+            setIsUsingMock(false);
+            persistConversationToDb(updated);
           }
-          persistConversationToDb(updated);
         }
       }
     };
@@ -564,31 +593,34 @@ export default function App() {
       if (message?.type === 'CONVERSATION_EXTRACTED' && message?.payload && isMounted) {
         const updated = message.payload as ConversationData;
         if (updated && updated.messages && updated.messages.length > 0) {
-          console.log('[Memoreply] Auto-synced CONVERSATION_EXTRACTED message:', updated.clientUsername, updated.messages.length);
-          setConversation(updated);
-          setIsUsingMock(false);
-          if (updated.platform) {
-            setActivePlatform(updated.platform as any);
+          if (!updated.platform || updated.platform === activePlatform || activePlatform === 'unknown') {
+            setConversation(updated);
+            setIsUsingMock(false);
+            if (updated.platform) setActivePlatform(updated.platform as any);
+            persistConversationToDb(updated);
           }
-          persistConversationToDb(updated);
         }
       }
     };
     chrome.runtime.onMessage.addListener(handleRuntimeMessage);
 
-    // 4. Tab change listener: re-sync when switching tabs
+    // 4. Tab change & update listeners: re-sync immediately when switching tabs
     const handleTabActivated = () => {
-      if (isMounted) {
-        syncFromActiveTab();
-      }
+      if (isMounted) syncFromActiveTab();
     };
-    chrome.tabs.onActivated.addListener(handleTabActivated);
+    const handleTabUpdated = (_tabId: number, changeInfo: { url?: string }) => {
+      if (changeInfo.url && isMounted) syncFromActiveTab();
+    };
+
+    chrome.tabs.onActivated?.addListener(handleTabActivated);
+    chrome.tabs.onUpdated?.addListener(handleTabUpdated);
 
     return () => {
       isMounted = false;
       chrome.storage.onChanged.removeListener(handleStorageChange);
       chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
-      chrome.tabs.onActivated.removeListener(handleTabActivated);
+      chrome.tabs.onActivated?.removeListener(handleTabActivated);
+      chrome.tabs.onUpdated?.removeListener(handleTabUpdated);
     };
   }, [syncFromActiveTab, refreshDbStats, persistConversationToDb]);
 
@@ -1399,7 +1431,7 @@ export default function App() {
           </button>
           <button
             className="btn btn-ghost btn-icon"
-            onClick={syncFromActiveTab}
+            onClick={() => syncFromActiveTab()}
             title="Sync active thread"
           >
             {isSyncing ? (
@@ -1442,12 +1474,12 @@ export default function App() {
           {isUsingMock ? (
             <span className="platform-pill mock">Preview Mode (Sample Thread)</span>
           ) : activePlatform !== 'unknown' && conversation?.messages?.length ? (
-            <span className="platform-pill fiverr-active">
-              <span className="status-dot connected" /> Connected: @{conversation.clientUsername ?? `${activePlatform.toUpperCase()} Chat`} ({activePlatform.toUpperCase()})
+            <span className={`platform-pill ${activePlatform}-active`}>
+              <span className="status-dot connected" /> Connected: @{conversation.clientUsername || conversation.clientDisplayName || `${activePlatform.toUpperCase()} Client`} ({activePlatform.toUpperCase()})
             </span>
           ) : activePlatform !== 'unknown' ? (
-            <span className="platform-pill fiverr-idle">
-              <span className="status-dot connected" /> {activePlatform.toUpperCase()} Inbox Active
+            <span className={`platform-pill ${activePlatform}-idle`}>
+              <span className="status-dot connected" /> {activePlatform.toUpperCase()} Active (Awaiting Chat)
             </span>
           ) : (
             <span className="platform-pill offline">
@@ -1457,9 +1489,18 @@ export default function App() {
         </div>
 
         <div>
-          {activePlatform === 'unknown' && (
+          {activePlatform === 'unknown' ? (
             <button className="btn btn-ghost btn-sm" onClick={handleLoadMock}>
               {isUsingMock ? 'Reload Sample' : 'Load Sample Thread'}
+            </button>
+          ) : (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => syncFromActiveTab()}
+              disabled={isSyncing}
+              style={{ fontSize: '11px', padding: '2px 8px' }}
+            >
+              {isSyncing ? 'Syncing...' : '↻ Refresh'}
             </button>
           )}
         </div>
@@ -1498,52 +1539,111 @@ export default function App() {
         {/* ==================== TAB 1: INBOX & REPLY ==================== */}
         {activeTab === 'chat' && (
           <div className="animate-fade-in">
-            {/* Client Info Header Card */}
-            {conversation ? (
-              <div className="card">
-                <div className="client-header" style={{ padding: 0, border: 'none', background: 'transparent' }}>
-                  <div className="client-avatar">
-                    {clientDisplayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="client-info">
-                    <div className="client-name">{clientDisplayName}</div>
-                    <div className="client-meta">
-                      {conversation.clientUsername && `@${conversation.clientUsername} • `}
-                      {totalStoredMessages > 0 ? `${totalStoredMessages} messages in context` : `${messageCount} messages`}
-                    </div>
-                  </div>
+            {!conversation ? (
+              /* Clean Multi-Platform Fallback State */
+              <div className="card" style={{ padding: '28px 18px', textAlign: 'center' }}>
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    background: 'var(--color-bg-secondary)',
+                    border: '1px solid var(--color-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 12px auto',
+                    color: 'var(--color-primary)',
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 6px 0' }}>
+                  {activePlatform !== 'unknown'
+                    ? `${activePlatform.toUpperCase()} Chat Awaiting Sync`
+                    : 'No Active Chat Open'}
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '0 auto 18px auto', maxWidth: '300px', lineHeight: 1.5 }}>
+                  Open Fiverr, Upwork, or LinkedIn chat to sync messages.
+                </p>
+
+                {/* Direct Platform Quick Launch Links */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '280px', margin: '0 auto' }}>
                   <button
                     className="btn btn-secondary btn-sm"
-                    onClick={syncFromActiveTab}
-                    disabled={isSyncing}
+                    onClick={() => chrome.tabs?.create({ url: 'https://www.fiverr.com/inbox' })}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '7px 12px' }}
                   >
-                    {isSyncing ? 'Reading...' : 'Refresh'}
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1dbf73' }} />
+                    <span>Open Fiverr Inbox</span>
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => chrome.tabs?.create({ url: 'https://www.upwork.com/messages' })}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '7px 12px' }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#14a800' }} />
+                    <span>Open Upwork Messages</span>
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => chrome.tabs?.create({ url: 'https://www.linkedin.com/messaging' })}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '7px 12px' }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0a66c2' }} />
+                    <span>Open LinkedIn Messaging</span>
                   </button>
                 </div>
 
-                {/* Persistent Memory Snapshot Strip */}
-                {storedFacts.length > 0 && (
-                  <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid var(--color-border-subtle)' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
-                      Context Snapshot ({storedFacts.length} items):
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {storedFacts.slice(0, 3).map((f) => (
-                        <span key={f.id} className={`fact-badge badge-${f.category}`}>
-                          {f.fact}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="warning-banner">
-                <div className="warning-text">
-                  Open a conversation on <strong>Fiverr</strong>, <strong>Upwork</strong>, or <strong>LinkedIn</strong> to sync messages, or click <strong>Load Sample Thread</strong> above to inspect the workspace ledger.
+                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                  <button className="btn btn-ghost btn-sm" onClick={handleLoadMock} style={{ fontSize: '11px' }}>
+                    Or click here to load sample demo conversation
+                  </button>
                 </div>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Client Info Header Card */}
+                <div className="card">
+                  <div className="client-header" style={{ padding: 0, border: 'none', background: 'transparent' }}>
+                    <div className="client-avatar">
+                      {clientDisplayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="client-info">
+                      <div className="client-name">{clientDisplayName}</div>
+                      <div className="client-meta">
+                        {conversation.clientUsername && `@${conversation.clientUsername} • `}
+                        {totalStoredMessages > 0 ? `${totalStoredMessages} messages in context` : `${messageCount} messages`}
+                        {conversation.platform && ` • ${conversation.platform.toUpperCase()}`}
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => syncFromActiveTab()}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? 'Reading...' : 'Refresh'}
+                    </button>
+                  </div>
+
+                  {/* Persistent Memory Snapshot Strip */}
+                  {storedFacts.length > 0 && (
+                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+                        Context Snapshot ({storedFacts.length} items):
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {storedFacts.slice(0, 3).map((f) => (
+                          <span key={f.id} className={`fact-badge badge-${f.category}`}>
+                            {f.fact}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
             {/* Extracted Chat Messages Stream */}
             <div className="card">
@@ -1853,8 +1953,10 @@ export default function App() {
                 )}
               </div>
             </div>
-          </div>
+          </>
         )}
+      </div>
+    )}
 
         {/* ==================== TAB 2: CLIENT CONTEXT ==================== */}
         {activeTab === 'memory' && (

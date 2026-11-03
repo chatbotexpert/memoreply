@@ -299,6 +299,30 @@ body {
   border-color: var(--color-warning-border);
 }
 
+.platform-pill.upwork-active {
+  background: rgba(20, 168, 0, 0.14);
+  color: #14a800;
+  border-color: rgba(20, 168, 0, 0.3);
+}
+
+.platform-pill.upwork-idle {
+  background: rgba(20, 168, 0, 0.08);
+  color: #14a800;
+  border-color: rgba(20, 168, 0, 0.15);
+}
+
+.platform-pill.linkedin-active {
+  background: rgba(10, 102, 194, 0.14);
+  color: #0a66c2;
+  border-color: rgba(10, 102, 194, 0.3);
+}
+
+.platform-pill.linkedin-idle {
+  background: rgba(10, 102, 194, 0.08);
+  color: #0a66c2;
+  border-color: rgba(10, 102, 194, 0.15);
+}
+
 .platform-pill.offline {
   background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);

@@ -29,14 +29,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     case 'CONVERSATION_EXTRACTED':
     case 'CONVERSATION_DATA': {
       if (message.payload) {
+        const conv = message.payload;
+        const platformKey = `currentConversation_${conv.platform || 'fiverr'}`;
         // Automatically save to chrome.storage.local with FIFO & 30-day purge
-        saveLocalChat(message.payload)
+        saveLocalChat(conv)
           .then((result) => {
-            chrome.storage.local.set({ currentConversation: message.payload });
+            chrome.storage.local.set({
+              currentConversation: conv,
+              [platformKey]: conv,
+            });
             sendResponse({ ...result });
           })
           .catch((error) => {
-            chrome.storage.local.set({ currentConversation: message.payload });
+            chrome.storage.local.set({
+              currentConversation: conv,
+              [platformKey]: conv,
+            });
             sendResponse({ success: false, error: String(error) });
           });
         return true;
@@ -50,6 +58,43 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         .get('currentConversation')
         .then((result) => sendResponse({ success: true, data: result.currentConversation ?? null }))
         .catch((error) => sendResponse({ success: false, error: String(error) }));
+      return true;
+    }
+
+    // Dynamic Multi-Platform Active Tab Switcher Handler
+    case 'GET_ACTIVE_PLATFORM_DATA': {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs[0];
+        if (!activeTab?.url) {
+          sendResponse({ success: true, platform: 'unknown', data: null });
+          return;
+        }
+
+        const url = activeTab.url.toLowerCase();
+        let platform: 'fiverr' | 'upwork' | 'linkedin' | 'unknown' = 'unknown';
+        if (url.includes('fiverr.com')) platform = 'fiverr';
+        else if (url.includes('upwork.com')) platform = 'upwork';
+        else if (url.includes('linkedin.com')) platform = 'linkedin';
+
+        if (platform === 'unknown') {
+          sendResponse({ success: true, platform: 'unknown', data: null, url: activeTab.url });
+          return;
+        }
+
+        const platformKey = `currentConversation_${platform}`;
+        chrome.storage.local.get([platformKey, 'currentConversation'], (result: Record<string, any>) => {
+          const conv =
+            result[platformKey] ||
+            (result.currentConversation?.platform === platform ? result.currentConversation : null);
+          sendResponse({
+            success: true,
+            platform,
+            data: conv || null,
+            url: activeTab.url,
+            tabId: activeTab.id,
+          });
+        });
+      });
       return true;
     }
 
@@ -178,6 +223,41 @@ chrome.runtime.onMessageExternal?.addListener((message, _sender, sendResponse) =
   }
   sendResponse({ success: false, error: 'Unknown payload' });
   return false;
+});
+
+/**
+ * Real-time Active Tab Platform Tracker
+ */
+chrome.tabs.onActivated?.addListener(async (activeInfo) => {
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    if (!tab?.url) return;
+    const url = tab.url.toLowerCase();
+    let platform: 'fiverr' | 'upwork' | 'linkedin' | 'unknown' = 'unknown';
+    if (url.includes('fiverr.com')) platform = 'fiverr';
+    else if (url.includes('upwork.com')) platform = 'upwork';
+    else if (url.includes('linkedin.com')) platform = 'linkedin';
+
+    chrome.storage.local.set({
+      activePlatform: platform,
+      activeTabUrl: tab.url,
+    });
+  } catch {}
+});
+
+chrome.tabs.onUpdated?.addListener((_tabId, changeInfo, tab) => {
+  if (changeInfo.url && tab.active) {
+    const url = changeInfo.url.toLowerCase();
+    let platform: 'fiverr' | 'upwork' | 'linkedin' | 'unknown' = 'unknown';
+    if (url.includes('fiverr.com')) platform = 'fiverr';
+    else if (url.includes('upwork.com')) platform = 'upwork';
+    else if (url.includes('linkedin.com')) platform = 'linkedin';
+
+    chrome.storage.local.set({
+      activePlatform: platform,
+      activeTabUrl: changeInfo.url,
+    });
+  }
 });
 
 export {};
