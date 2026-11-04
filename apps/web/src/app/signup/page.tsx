@@ -80,6 +80,7 @@ function SignUpForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   const { signup } = useAuth();
@@ -104,18 +105,25 @@ function SignUpForm() {
     }
     setIsLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
 
     try {
       await signup(name, agencyName, email, password, selectedPlan);
+      setSuccessMsg(
+        'Account registered! A verification and license welcome email has been dispatched via Resend. Redirecting...'
+      );
+
       const isExtension =
         searchParams.get('source') === 'extension' ||
         (typeof window !== 'undefined' && window.location.search.includes('source=extension'));
 
-      if (isExtension) {
-        router.push('/auth/success');
-      } else {
-        router.push('/dashboard');
-      }
+      setTimeout(() => {
+        if (isExtension) {
+          router.push('/auth/success');
+        } else {
+          router.push('/dashboard');
+        }
+      }, 1200);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to create agency account. Please try again.');
     } finally {
@@ -240,6 +248,12 @@ function SignUpForm() {
           </div>
 
           <form onSubmit={handleRegister} className="space-y-4">
+            {successMsg && (
+              <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-xs text-emerald-300 font-medium">
+                {successMsg}
+              </div>
+            )}
+
             {errorMsg && (
               <div className="p-3 rounded-lg bg-red-950/30 border border-red-800/50 text-xs text-red-300">
                 {errorMsg}

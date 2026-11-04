@@ -83,6 +83,7 @@ interface AuthContextType {
     password: string,
     plan: SaaSPlan
   ) => Promise<boolean>;
+  sendPasswordReset: (email: string) => Promise<boolean>;
   logout: () => void;
   regenerateLicense: () => void;
   revokeSeat: (seatId: string) => void;
@@ -229,6 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: resolvedUser.email,
         name: resolvedUser.name,
         plan: resolvedUser.plan,
+        licenseKey: resolvedUser.licenseKey,
       };
 
       if (typeof window !== 'undefined') {
@@ -282,6 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: resolvedUser.email,
             name: resolvedUser.name,
             plan: resolvedUser.plan,
+            licenseKey: resolvedUser.licenseKey,
           };
 
           if (typeof window !== 'undefined') {
@@ -331,6 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: signUpData.user.email,
               name: resolvedUser.name,
               plan: resolvedUser.plan,
+              licenseKey: resolvedUser.licenseKey,
             };
 
             if (typeof window !== 'undefined') {
@@ -376,6 +380,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.user.email,
           name: resolvedUser.name,
           plan: resolvedUser.plan,
+          licenseKey: resolvedUser.licenseKey,
         };
 
         if (typeof window !== 'undefined') {
@@ -430,6 +435,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(error.message);
     }
 
+    // 2. Dispatch verification & welcome email via Resend in the background
+    try {
+      fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          name,
+          plan,
+          licenseKey,
+          password,
+        }),
+      }).catch((e) => console.warn('[Resend Signup Dispatch Warning]:', e));
+    } catch {}
+
     const newUser: UserProfile = {
       id: data.user?.id || `usr_${Date.now()}`,
       name,
@@ -470,6 +490,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: data.user?.email || newUser.email,
       name: newUser.name,
       plan: newUser.plan,
+      licenseKey: newUser.licenseKey,
     };
 
     if (typeof window !== 'undefined') {
@@ -486,6 +507,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    return true;
+  };
+
+  const sendPasswordReset = async (email: string): Promise<boolean> => {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to dispatch password recovery email.');
+    }
     return true;
   };
 
@@ -535,6 +569,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         login,
         signup,
+        sendPasswordReset,
         logout,
         regenerateLicense,
         revokeSeat,

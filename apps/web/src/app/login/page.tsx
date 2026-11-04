@@ -19,9 +19,37 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const { login } = useAuth();
   const router = useRouter();
+
+  const handleResendEmail = async () => {
+    if (!email) {
+      setErrorMsg('Please enter your email above first.');
+      return;
+    }
+    setIsResending(true);
+    setResendSuccess('');
+    try {
+      const res = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setResendSuccess('Verification email dispatched via Resend! Check your inbox.');
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to resend confirmation email.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,9 +133,28 @@ export default function LoginPage() {
         {/* Auth Card */}
         <div className="rounded-xl border border-zinc-800/90 bg-zinc-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
           <form onSubmit={handleLogin} className="space-y-4">
+            {resendSuccess && (
+              <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-xs text-emerald-300">
+                {resendSuccess}
+              </div>
+            )}
+
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 space-y-1">
+              <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 space-y-2">
                 <p className="font-medium">{errorMsg}</p>
+                {errorMsg.toLowerCase().includes('email not confirmed') && (
+                  <div className="pt-1 flex items-center justify-between border-t border-red-900/40 text-[11px]">
+                    <span className="text-zinc-300">Didn&apos;t receive confirmation?</span>
+                    <button
+                      type="button"
+                      onClick={handleResendEmail}
+                      disabled={isResending}
+                      className="text-emerald-400 font-semibold hover:underline cursor-pointer"
+                    >
+                      {isResending ? 'Dispatching...' : 'Resend Email via Resend →'}
+                    </button>
+                  </div>
+                )}
                 {errorMsg.toLowerCase().includes('invalid login') && (
                   <p className="text-[11px] text-zinc-300 pt-1">
                     Account not registered yet?{' '}
@@ -145,16 +192,12 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-zinc-300">Password</label>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Password reset link has been dispatched to your email.');
-                  }}
+                <Link
+                  href="/forgot-password"
                   className="text-[11px] text-zinc-400 hover:text-white transition-colors"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />

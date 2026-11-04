@@ -44,7 +44,7 @@ if (isAuthHost) {
       isLicensed: isPaid,
       tier: isPaid ? 'PAID' : 'FREE',
       limits: {
-        maxFreeReplies: isPaid ? 999999 : 25,
+        maxFreeReplies: isPaid ? 999999 : 50,
         repliesUsed: 0,
         isExhausted: false,
         upgradeUrl: 'https://memoreply.com/pricing',
