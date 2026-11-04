@@ -25,17 +25,12 @@
     {
       "matches": [
         "*://*.fiverr.com/*",
-        "https://fiverr.com/*",
         "*://*.upwork.com/*",
-        "https://upwork.com/*",
         "*://*.linkedin.com/*",
-        "https://linkedin.com/*",
-        "*://*.memoreply.com/*",
+        "https://*.memoreply.com/*",
         "https://memoreply.com/*",
-        "http://memoreply.com/*",
         "https://*.vercel.app/*",
-        "http://localhost:3000/*",
-        "http://127.0.0.1:3000/*"
+        "http://localhost:3000/*"
       ],
       "js": [
         "src/content.ts"
@@ -54,22 +49,17 @@
     "*://*.fiverr.com/*",
     "*://*.upwork.com/*",
     "*://*.linkedin.com/*",
-    "*://*.chatgpt.com/*",
-    "*://*.openai.com/*",
-    "https://*.vercel.app/*",
-    "*://*.memoreply.com/*",
+    "https://*.memoreply.com/*",
     "https://memoreply.com/*",
-    "http://memoreply.com/*",
-    "http://localhost:3000/*",
-    "http://127.0.0.1:3000/*"
+    "https://*.vercel.app/*",
+    "http://localhost:3000/*"
   ],
   "externally_connectable": {
     "matches": [
-      "*://*.memoreply.com/*",
+      "https://*.memoreply.com/*",
       "https://memoreply.com/*",
       "https://*.vercel.app/*",
-      "http://localhost:3000/*",
-      "http://127.0.0.1:3000/*"
+      "http://localhost:3000/*"
     ]
   },
   "content_security_policy": {
