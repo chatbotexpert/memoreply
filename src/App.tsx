@@ -37,6 +37,7 @@ import {
   incrementFreeReplyCount,
   isCoreFeatureLocked,
   activateWithLicenseKey,
+  loginDirectlyInExtension,
   type SubscriptionLicenseStatus,
   UPGRADE_URL,
 } from './utils/licenseManager';
@@ -148,6 +149,13 @@ export default function App() {
   const [isActivatingKey, setIsActivatingKey] = useState<boolean>(false);
   const [manualKeyError, setManualKeyError] = useState<string>('');
   const [activeStoredKey, setActiveStoredKey] = useState<string>('');
+
+  // In-Extension Direct Authentication States
+  const [authViewTab, setAuthViewTab] = useState<'signin' | 'license' | 'web'>('signin');
+  const [extLoginEmail, setExtLoginEmail] = useState<string>('');
+  const [extLoginPassword, setExtLoginPassword] = useState<string>('');
+  const [isExtLoggingIn, setIsExtLoggingIn] = useState<boolean>(false);
+  const [extLoginError, setExtLoginError] = useState<string>('');
 
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -363,6 +371,35 @@ export default function App() {
       setManualKeyError(err.message || 'Failed to activate key.');
     } finally {
       setIsActivatingKey(false);
+    }
+  };
+
+  const handleInExtensionSignIn = async (e?: React.FormEvent, overrideEmail?: string) => {
+    if (e) e.preventDefault();
+    const emailToUse = overrideEmail || extLoginEmail;
+    if (!emailToUse.trim()) {
+      setExtLoginError('Please enter your work email.');
+      return;
+    }
+    setIsExtLoggingIn(true);
+    setExtLoginError('');
+    try {
+      const result = await loginDirectlyInExtension(emailToUse, overrideEmail ? '' : extLoginPassword);
+      setAuthSession({
+        token: result.session.token,
+        email: result.session.email,
+        name: result.session.name,
+        plan: result.session.plan,
+      });
+      setLicenseStatus(result.status);
+      setActiveStoredKey(result.session.licenseKey);
+      showToast(`Welcome! Signed in as ${result.session.email}`, 'success');
+      setExtLoginEmail('');
+      setExtLoginPassword('');
+    } catch (err: any) {
+      setExtLoginError(err.message || 'Unable to sign in. Please verify credentials.');
+    } finally {
+      setIsExtLoggingIn(false);
     }
   };
 
@@ -1381,16 +1418,16 @@ export default function App() {
   }
 
   // ========================================================
-  // MANDATORY AUTH GUARD: Unauthenticated User Screen
+  // MANDATORY AUTH GUARD: In-Extension Authentication Screen
   // ========================================================
   if (!authSession) {
     return (
-      <div style={{ width: 380, height: 540, background: '#09090b', color: '#fafafa', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 24, boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div style={{ width: 380, minHeight: 540, background: '#09090b', color: '#fafafa', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 20, boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img src="/icons/icon-48.png" alt="Memoreply" style={{ width: 28, height: 28, borderRadius: 8 }} />
+              <img src="/icons/icon-48.png" alt="Memoreply" style={{ width: 26, height: 26, borderRadius: 7 }} />
               <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.02em' }}>Memoreply</span>
             </div>
             <span style={{ fontSize: 10, fontFamily: 'monospace', padding: '2px 8px', borderRadius: 999, background: '#18181b', color: '#a1a1aa', border: '1px solid #27272a' }}>
@@ -1398,111 +1435,330 @@ export default function App() {
             </span>
           </div>
 
-          {/* Hero Card */}
-          <div style={{ padding: 18, borderRadius: 16, background: 'linear-gradient(180deg, #18181b 0%, #09090b 100%)', border: '1px solid #27272a', marginBottom: 20 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-            </div>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 6 }}>
-              Sign In to Activate
-            </h2>
-            <p style={{ fontSize: 12, color: '#a1a1aa', lineHeight: 1.5, margin: 0 }}>
-              Connect your free Memoreply account to unlock client context memory, scope ledger, and response composer.
-            </p>
-          </div>
-
-          {/* Feature List */}
-          <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-              Free Tier Includes
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#d4d4d8' }}>
-              <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> 50 Context AI Replies / Month
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#d4d4d8' }}>
-              <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Upwork, Fiverr & LinkedIn Floating Bar
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#d4d4d8' }}>
-              <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Cloud Database Sync with memoreply.com
-            </div>
-          </div>
-        </div>
-
-        {/* Action Button & Manual Key Input Fallback */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 14 }}>
-          <button
-            onClick={handleOpenWebLogin}
-            style={{ width: '100%', padding: '11px 16px', borderRadius: 10, background: '#10b981', color: '#09090b', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)' }}
-          >
-            <span>Login via Web App</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </button>
-
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0' }}>
-            <div style={{ flex: 1, height: 1, background: '#27272a' }} />
-            <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#71717a', textTransform: 'uppercase' }}>
-              OR ACTIVATE WITH LICENSE KEY
-            </span>
-            <div style={{ flex: 1, height: 1, background: '#27272a' }} />
-          </div>
-
-          {/* Manual License Key Form */}
-          <form onSubmit={handleActivateManualKey} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <input
-              type="text"
-              value={manualLicenseKey}
-              onChange={(e) => setManualLicenseKey(e.target.value)}
-              placeholder="Paste Key (e.g. MR-AGENCYPRO-ACTIVE-SEC)"
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                borderRadius: 8,
-                background: '#18181b',
-                border: '1px solid #3f3f46',
-                color: '#ffffff',
-                fontSize: 11,
-                fontFamily: 'monospace',
-                boxSizing: 'border-box',
-                outline: 'none',
-              }}
-            />
-            {manualKeyError && (
-              <p style={{ color: '#ef4444', fontSize: 11, margin: 0 }}>{manualKeyError}</p>
-            )}
+          {/* Mode Tabs */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4, background: '#18181b', padding: 3, borderRadius: 10, border: '1px solid #27272a', marginBottom: 16 }}>
             <button
-              type="submit"
-              disabled={isActivatingKey}
+              type="button"
+              onClick={() => { setAuthViewTab('signin'); setExtLoginError(''); }}
               style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: 8,
-                background: '#27272a',
-                color: '#ffffff',
-                border: '1px solid #3f3f46',
-                fontSize: 12,
+                padding: '6px 8px',
+                borderRadius: 7,
+                fontSize: 11,
                 fontWeight: 600,
+                border: 'none',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
+                background: authViewTab === 'signin' ? '#27272a' : 'transparent',
+                color: authViewTab === 'signin' ? '#ffffff' : '#71717a',
+                transition: 'all 0.15s ease',
               }}
             >
-              <span>{isActivatingKey ? 'Activating Key...' : 'Activate with License Key'}</span>
-              <span style={{ color: '#10b981' }}>→</span>
+              Sign In
             </button>
-          </form>
-          <p style={{ fontSize: 10, color: '#71717a', textAlign: 'center', margin: 0 }}>
-            Find your key anytime at <strong>memoreply.com/dashboard</strong>
-          </p>
+            <button
+              type="button"
+              onClick={() => { setAuthViewTab('license'); setManualKeyError(''); }}
+              style={{
+                padding: '6px 8px',
+                borderRadius: 7,
+                fontSize: 11,
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                background: authViewTab === 'license' ? '#27272a' : 'transparent',
+                color: authViewTab === 'license' ? '#ffffff' : '#71717a',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              License Key
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthViewTab('web')}
+              style={{
+                padding: '6px 8px',
+                borderRadius: 7,
+                fontSize: 11,
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                background: authViewTab === 'web' ? '#27272a' : 'transparent',
+                color: authViewTab === 'web' ? '#ffffff' : '#71717a',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Web Sync
+            </button>
+          </div>
+
+          {/* TAB 1: In-Extension Direct Sign In */}
+          {authViewTab === 'signin' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <form onSubmit={handleInExtensionSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {extLoginError && (
+                  <div style={{ padding: '8px 10px', borderRadius: 8, background: '#450a0a', border: '1px solid #7f1d1d', color: '#fca5a5', fontSize: 11, lineHeight: 1.4 }}>
+                    {extLoginError}
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ fontSize: 10, fontWeight: 600, color: '#a1a1aa', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Agency Work Email
+                  </label>
+                  <input
+                    type="email"
+                    value={extLoginEmail}
+                    onChange={(e) => setExtLoginEmail(e.target.value)}
+                    placeholder="seller@agency.com"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      background: '#18181b',
+                      border: '1px solid #3f3f46',
+                      color: '#ffffff',
+                      fontSize: 12,
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={{ fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Password
+                    </label>
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        chrome.tabs.create({ url: 'https://memoreply.com/forgot-password' });
+                      }}
+                      style={{ fontSize: 10, color: '#71717a', textDecoration: 'none' }}
+                    >
+                      Forgot?
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={extLoginPassword}
+                    onChange={(e) => setExtLoginPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      background: '#18181b',
+                      border: '1px solid #3f3f46',
+                      color: '#ffffff',
+                      fontSize: 12,
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isExtLoggingIn}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    background: '#10b981',
+                    color: '#09090b',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    marginTop: 2,
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                  }}
+                >
+                  <span>{isExtLoggingIn ? 'Verifying Account...' : 'Sign In to Workspace'}</span>
+                  <span>→</span>
+                </button>
+              </form>
+
+              {/* Instant 1-Click Demo Section */}
+              <div style={{ borderTop: '1px solid #27272a', paddingTop: 10, marginTop: 2 }}>
+                <span style={{ fontSize: 10, color: '#71717a', display: 'block', textAlign: 'center', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  1-Click Instant Demo Access
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleInExtensionSignIn(undefined, 'agency@hashturn.com')}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      background: '#18181b',
+                      border: '1px solid #27272a',
+                      color: '#a1a1aa',
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span>🔑</span>
+                    <span>Agency Pro</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInExtensionSignIn(undefined, 'freelancer@alexmiller.io')}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      background: '#18181b',
+                      border: '1px solid #27272a',
+                      color: '#a1a1aa',
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span>⚡</span>
+                    <span>Freelancer</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: License Key Activation */}
+          {authViewTab === 'license' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ padding: 12, borderRadius: 10, background: '#18181b', border: '1px solid #27272a' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#ffffff', display: 'block', marginBottom: 4 }}>
+                  Activate via License Key
+                </span>
+                <p style={{ fontSize: 11, color: '#a1a1aa', margin: 0, lineHeight: 1.4 }}>
+                  Paste the agency key assigned to your seat from <strong>memoreply.com/dashboard</strong>.
+                </p>
+              </div>
+
+              <form onSubmit={handleActivateManualKey} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input
+                  type="text"
+                  value={manualLicenseKey}
+                  onChange={(e) => setManualLicenseKey(e.target.value)}
+                  placeholder="e.g. MR-AGENCYPRO-ACTIVE-SEC"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    background: '#18181b',
+                    border: '1px solid #3f3f46',
+                    color: '#ffffff',
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                />
+                {manualKeyError && (
+                  <p style={{ color: '#ef4444', fontSize: 11, margin: 0 }}>{manualKeyError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={isActivatingKey}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    background: '#ffffff',
+                    color: '#09090b',
+                    border: 'none',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>{isActivatingKey ? 'Activating Key...' : 'Activate License'}</span>
+                  <span>→</span>
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* TAB 3: Web Dashboard Sync */}
+          {authViewTab === 'web' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ padding: 14, borderRadius: 10, background: '#18181b', border: '1px solid #27272a', textAlign: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#ffffff', display: 'block', marginBottom: 6 }}>
+                  Sync from Browser Session
+                </span>
+                <p style={{ fontSize: 11, color: '#a1a1aa', margin: 0, lineHeight: 1.5 }}>
+                  If you are already logged in to your agency workspace on <strong>memoreply.com</strong>, click below to bridge your session automatically.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenWebLogin}
+                style={{
+                  width: '100%',
+                  padding: '11px 16px',
+                  borderRadius: 10,
+                  background: '#10b981',
+                  color: '#09090b',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                }}
+              >
+                <span>Open memoreply.com Dashboard</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Link & Features */}
+        <div style={{ borderTop: '1px solid #27272a', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+            <span style={{ color: '#71717a' }}>Need an agency account?</span>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                chrome.tabs.create({ url: 'https://memoreply.com/signup' });
+              }}
+              style={{ color: '#10b981', fontWeight: 600, textDecoration: 'none' }}
+            >
+              Sign Up on Web →
+            </a>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, fontSize: 10, color: '#52525b', paddingTop: 4 }}>
+            <span>✓ 50 Free AI Replies</span>
+            <span>✓ Fiverr & Upwork Bar</span>
+            <span>✓ Local Ledger</span>
+          </div>
         </div>
       </div>
     );

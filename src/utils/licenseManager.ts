@@ -286,6 +286,148 @@ export async function activateWithLicenseKey(licenseKey: string): Promise<Subscr
 }
 
 /**
+ * Direct In-Extension Login via Supabase Auth & Demo Accounts
+ */
+export async function loginDirectlyInExtension(
+  email: string,
+  password?: string
+): Promise<{ success: boolean; session: any; status: SubscriptionLicenseStatus }> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error('Please enter your work email.');
+  }
+
+  // 1. Instant Demo Access Handler
+  const isDemo =
+    !password ||
+    password === '••••••••••••' ||
+    cleanEmail.includes('agency@hashturn.com') ||
+    cleanEmail.includes('freelancer@alexmiller.io') ||
+    cleanEmail.includes('seller@hashturn.com') ||
+    cleanEmail.includes('demo@');
+
+  if (isDemo) {
+    const isAgency = cleanEmail.includes('agency') || cleanEmail.includes('seller');
+    const plan = isAgency ? 'Agency Pro' : 'Freelancer';
+    const licenseKey = `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
+
+    const sessionObj = {
+      token: `demo_ext_jwt_${Date.now()}`,
+      refreshToken: '',
+      userId: `usr_demo_${Date.now()}`,
+      email: cleanEmail,
+      name: cleanEmail.split('@')[0].toUpperCase(),
+      plan,
+      licenseKey,
+      authenticatedAt: Date.now(),
+    };
+
+    const statusObj: SubscriptionLicenseStatus = {
+      valid: true,
+      userId: sessionObj.userId,
+      email: sessionObj.email,
+      name: sessionObj.name,
+      plan,
+      isLicensed: true,
+      tier: 'PAID',
+      limits: {
+        maxFreeReplies: 999999,
+        repliesUsed: 0,
+        isExhausted: false,
+        upgradeUrl: UPGRADE_URL,
+      },
+      verifiedAt: Date.now(),
+    };
+
+    await new Promise<void>((resolve) => {
+      chrome.storage.local.set(
+        {
+          [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
+          [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
+          memoreply_license_key: licenseKey,
+        },
+        () => resolve()
+      );
+    });
+
+    return { success: true, session: sessionObj, status: statusObj };
+  }
+
+  // 2. Real Authenticate with Supabase Auth API
+  const supabaseUrl = 'https://eewlqgzjxomhvveetrft.supabase.co';
+  const supabaseAnonKey = 'sb_publishable_kDm42e9Og9Vp_brZA_CjBg_8IRHNJAB';
+
+  const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: supabaseAnonKey,
+    },
+    body: JSON.stringify({
+      email: cleanEmail,
+      password,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    const errMsg = data.error_description || data.msg || data.error || 'Invalid login credentials.';
+    if (errMsg.toLowerCase().includes('email not confirmed')) {
+      throw new Error('Email not confirmed. Check inbox or use 1-click Demo below.');
+    }
+    throw new Error(errMsg);
+  }
+
+  const userMeta = data.user?.user_metadata || {};
+  const plan = userMeta.plan || 'Agency Pro';
+  const cleanKey = userMeta.licenseKey || `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
+
+  const sessionObj = {
+    token: data.access_token,
+    refreshToken: data.refresh_token,
+    userId: data.user?.id || `usr_${Date.now()}`,
+    email: data.user?.email || cleanEmail,
+    name: userMeta.name || cleanEmail.split('@')[0],
+    plan,
+    licenseKey: cleanKey,
+    authenticatedAt: Date.now(),
+  };
+
+  const isPaid = plan.toUpperCase() !== 'FREE';
+
+  const statusObj: SubscriptionLicenseStatus = {
+    valid: true,
+    userId: sessionObj.userId,
+    email: sessionObj.email,
+    name: sessionObj.name,
+    plan,
+    isLicensed: isPaid,
+    tier: isPaid ? 'PAID' : 'FREE',
+    limits: {
+      maxFreeReplies: isPaid ? 999999 : DEFAULT_FREE_REPLY_LIMIT,
+      repliesUsed: 0,
+      isExhausted: false,
+      upgradeUrl: UPGRADE_URL,
+    },
+    verifiedAt: Date.now(),
+  };
+
+  await new Promise<void>((resolve) => {
+    chrome.storage.local.set(
+      {
+        [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
+        [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
+        memoreply_license_key: cleanKey,
+      },
+      () => resolve()
+    );
+  });
+
+  return { success: true, session: sessionObj, status: statusObj };
+}
+
+/**
  * Check if core features should be locked.
  * Features are locked if:
  * 1. User has not logged in / no valid token.
