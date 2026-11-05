@@ -14,14 +14,43 @@ export default function ResetPasswordPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
 
-  // Listen for recovery session from URL hash
+  // Listen for recovery session from URL query params or URL hash
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    const handleRecoverySession = async () => {
+      if (typeof window === 'undefined') return;
+      try {
+        const url = new URL(window.location.href);
+        const tokenHash = url.searchParams.get('token_hash') || url.searchParams.get('token');
+        const type = (url.searchParams.get('type') as any) || 'recovery';
+
+        if (tokenHash) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type === 'recovery' ? 'recovery' : 'email',
+          });
+          if (error) {
+            console.warn('[Recovery Verification Warning]:', error.message);
+          } else {
+            console.log('[Recovery Session]: Token verified successfully');
+          }
+        }
+      } catch (err) {
+        console.error('[Recovery Error]:', err);
+      }
+    };
+
+    handleRecoverySession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
         // Active recovery session established
         console.log('[Auth] Password recovery session active');
       }
     });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {

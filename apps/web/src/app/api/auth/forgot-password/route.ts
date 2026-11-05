@@ -54,7 +54,9 @@ export async function POST(req: Request) {
         );
       }
 
-      if (recoveryData?.properties?.action_link) {
+      if (recoveryData?.properties?.hashed_token) {
+        resetUrl = `${resetRedirect}?token_hash=${recoveryData.properties.hashed_token}&type=recovery`;
+      } else if (recoveryData?.properties?.action_link) {
         resetUrl = recoveryData.properties.action_link;
       }
     } catch (genErr) {
