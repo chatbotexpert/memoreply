@@ -41,8 +41,34 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const isClerkReady =
+    Boolean(clerkPublishableKey) &&
+    !clerkPublishableKey?.includes('dummy') &&
+    clerkPublishableKey?.startsWith('pk_');
+
+  const content = (
+    <html
+      lang="en"
+      className={`h-full antialiased dark ${inter.variable}`}
+      style={{ colorScheme: 'dark' }}
+    >
+      {/* Brand bg: #09090b Jet Black — exact brand token */}
+      <body
+        className={`${inter.className} min-h-full bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-[#fafafa] antialiased transition-colors duration-200`}
+      >
+        <AppLayoutWrapper>{children}</AppLayoutWrapper>
+      </body>
+    </html>
+  );
+
+  if (!isClerkReady) {
+    return content;
+  }
+
   return (
     <ClerkProvider
+      publishableKey={clerkPublishableKey}
       appearance={{
         variables: {
           colorPrimary: '#10b981',
@@ -64,18 +90,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html
-        lang="en"
-        className={`h-full antialiased dark ${inter.variable}`}
-        style={{ colorScheme: 'dark' }}
-      >
-        {/* Brand bg: #09090b Jet Black — exact brand token */}
-        <body
-          className={`${inter.className} min-h-full bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-[#fafafa] antialiased transition-colors duration-200`}
-        >
-          <AppLayoutWrapper>{children}</AppLayoutWrapper>
-        </body>
-      </html>
+      {content}
     </ClerkProvider>
   );
 }

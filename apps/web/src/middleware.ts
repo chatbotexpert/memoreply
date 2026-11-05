@@ -1,7 +1,18 @@
+import { NextResponse, type NextRequest } from 'next/server';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-// ── Define Public Routes ──────────────────────────────────────────
-// Public pages: Landing page, Pricing, Ungated Extension Download, Auth pages
+// Check if valid Clerk credentials are provided
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+
+const isClerkReady =
+  Boolean(clerkPublishableKey) &&
+  !clerkPublishableKey?.includes('dummy') &&
+  clerkPublishableKey?.startsWith('pk_') &&
+  Boolean(clerkSecretKey) &&
+  !clerkSecretKey?.includes('demo') &&
+  clerkSecretKey?.startsWith('sk_');
+
 const isPublicRoute = createRouteMatcher([
   '/',
   '/pricing(.*)',
@@ -18,15 +29,26 @@ const isPublicRoute = createRouteMatcher([
   '/logo.png',
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
-  // If route is private (e.g. /dashboard, /clients, /context-vault, /settings, /memory), protect it
-  if (!isPublicRoute(request)) {
-    // Only enforce auth if keys are present, otherwise allow smooth local dev inspection
-    if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('dummy')) {
-      await auth.protect();
+const clerkHandler = isClerkReady
+  ? clerkMiddleware(async (auth, request) => {
+      if (!isPublicRoute(request)) {
+        await auth.protect();
+      }
+    })
+  : null;
+
+export default function middleware(request: NextRequest, event: any) {
+  // Graceful fallback: If Clerk credentials are not yet configured or throw on edge, proceed safely
+  if (clerkHandler) {
+    try {
+      return clerkHandler(request, event);
+    } catch (err) {
+      console.warn('[Clerk Middleware Graceful Fallback]:', err);
+      return NextResponse.next();
     }
   }
-});
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

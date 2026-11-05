@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { supabase } from '@/lib/supabase';
@@ -92,18 +92,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(DEFAULT_USER);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const router = useRouter();
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const isClerkReady =
+  Boolean(clerkPublishableKey) &&
+  !clerkPublishableKey?.includes('dummy') &&
+  clerkPublishableKey?.startsWith('pk_');
 
-  // Clerk Authentication Hooks
-  const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
-  const { signOut: clerkSignOut } = useClerk();
+/**
+ * Isolated Clerk sync component that only mounts when ClerkProvider is present
+ */
+function ClerkUserSync({ onSyncUser }: { onSyncUser: (u: UserProfile) => void }) {
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
 
-  // 1. Sync Clerk User to Memoreply State & Chrome Extension Bridge
   useEffect(() => {
-    if (isClerkLoaded && isClerkSignedIn && clerkUser) {
+    if (isLoaded && isSignedIn && clerkUser) {
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       const name =
         clerkUser.fullName ||
@@ -141,14 +143,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ],
       };
 
-      setUser(activeUser);
-      setIsAuthenticated(true);
+      onSyncUser(activeUser);
 
       try {
         localStorage.setItem('memoreply_auth_user', JSON.stringify(activeUser));
       } catch {}
 
-      // Broadcast auth payload for Chrome Extension handshake
       const authPayload = {
         token: `clerk_${clerkUser.id}`,
         userId: clerkUser.id,
@@ -167,27 +167,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
         }
       }
-      return;
     }
+  }, [isLoaded, isSignedIn, clerkUser, onSyncUser]);
 
-    if (isClerkLoaded && !isClerkSignedIn) {
-      // Check for stored local/offline session fallback
-      const stored = localStorage.getItem('memoreply_auth_user');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setUser(parsed);
-          setIsAuthenticated(true);
-        } catch {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-    }
-  }, [isClerkLoaded, isClerkSignedIn, clerkUser]);
+  return null;
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<UserProfile | null>(DEFAULT_USER);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const router = useRouter();
+
+  const handleClerkSync = useCallback((syncedUser: UserProfile) => {
+    setUser(syncedUser);
+    setIsAuthenticated(true);
+  }, []);
 
   // Sync Supabase Auth session on mount (Legacy / Dual compatibility)
   useEffect(() => {
@@ -618,9 +612,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await clerkSignOut();
-    } catch {}
-    try {
       await supabase.auth.signOut();
     } catch {}
     setUser(null);
@@ -680,6 +671,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         revokeSeat,
       }}
     >
+      {isClerkReady && <ClerkUserSync onSyncUser={handleClerkSync} />}
       {children}
     </AuthContext.Provider>
   );

@@ -1,11 +1,45 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SignUp } from '@clerk/nextjs';
-import { ShieldCheck, Sparkles, Download, ArrowRight, Check } from 'lucide-react';
+import { ShieldCheck, Sparkles, Download, ArrowRight, Check, Lock, Mail, User } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 function SignUpContent() {
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const isClerkReady =
+    Boolean(clerkPublishableKey) &&
+    !clerkPublishableKey?.includes('dummy') &&
+    clerkPublishableKey?.startsWith('pk_');
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const { signup } = useAuth();
+  const router = useRouter();
+
+  const handleFallbackSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMsg('Please enter your email and password.');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      await signup(name || email.split('@')[0], `${name || 'Agency'} Workspace`, email, password, 'Agency Pro');
+      router.push('/dashboard');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Unable to create account.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Ambient background glows */}
@@ -56,40 +90,106 @@ function SignUpContent() {
           </div>
         </div>
 
-        {/* Clerk Sign-Up Component */}
+        {/* Authentication Card */}
         <div className="flex justify-center w-full">
-          <SignUp
-            routing="hash"
-            signInUrl="/login"
-            fallbackRedirectUrl="/dashboard"
-            appearance={{
-              variables: {
-                colorPrimary: '#10b981',
-                colorBackground: '#18181b',
-                colorForeground: '#f4f4f5',
-                colorMutedForeground: '#a1a1aa',
-              },
-              elements: {
-                rootBox: 'w-full shadow-2xl',
-                card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
-                headerTitle: 'text-zinc-100 font-bold text-lg',
-                headerSubtitle: 'text-zinc-400 text-xs',
-                socialButtonsBlockButton:
-                  'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
-                socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
-                dividerLine: 'bg-zinc-800',
-                dividerText: 'text-zinc-500 text-xs uppercase',
-                formFieldLabel: 'text-zinc-300 text-xs font-semibold',
-                formFieldInput:
-                  'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
-                formButtonPrimary:
-                  'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
-                footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
-                identityPreviewText: 'text-zinc-200',
-                identityPreviewEditButtonIcon: 'text-emerald-400',
-              },
-            }}
-          />
+          {isClerkReady ? (
+            <SignUp
+              routing="hash"
+              signInUrl="/login"
+              fallbackRedirectUrl="/dashboard"
+              appearance={{
+                variables: {
+                  colorPrimary: '#10b981',
+                  colorBackground: '#18181b',
+                  colorForeground: '#f4f4f5',
+                  colorMutedForeground: '#a1a1aa',
+                },
+                elements: {
+                  rootBox: 'w-full shadow-2xl',
+                  card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
+                  headerTitle: 'text-zinc-100 font-bold text-lg',
+                  headerSubtitle: 'text-zinc-400 text-xs',
+                  socialButtonsBlockButton:
+                    'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
+                  socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
+                  dividerLine: 'bg-zinc-800',
+                  dividerText: 'text-zinc-500 text-xs uppercase',
+                  formFieldLabel: 'text-zinc-300 text-xs font-semibold',
+                  formFieldInput:
+                    'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
+                  formButtonPrimary:
+                    'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
+                  footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
+                  identityPreviewText: 'text-zinc-200',
+                  identityPreviewEditButtonIcon: 'text-emerald-400',
+                },
+              }}
+            />
+          ) : (
+            <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6 space-y-4">
+              <form onSubmit={handleFallbackSignup} className="space-y-4">
+                <div>
+                  <label className="text-zinc-300 text-xs font-semibold block mb-1.5">
+                    Your Name
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Alex Miller"
+                      className="w-full bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm rounded-lg pl-9 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-zinc-300 text-xs font-semibold block mb-1.5">
+                    Agency Work Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="alex@agency.com"
+                      className="w-full bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm rounded-lg pl-9 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-zinc-300 text-xs font-semibold block mb-1.5">
+                    Create Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm rounded-lg pl-9 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {errorMsg && (
+                  <p className="text-red-400 text-xs">{errorMsg}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold py-2.5 rounded-lg text-sm transition-all"
+                >
+                  {isLoading ? 'Creating Account...' : 'Get Started Free'}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
 
         {/* Public Extension Download Callout */}

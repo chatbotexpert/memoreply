@@ -1,11 +1,57 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SignIn } from '@clerk/nextjs';
-import { ShieldCheck, Sparkles, Download, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Sparkles, Download, ArrowRight, Lock, Mail } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const isClerkReady =
+    Boolean(clerkPublishableKey) &&
+    !clerkPublishableKey?.includes('dummy') &&
+    clerkPublishableKey?.startsWith('pk_');
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const handleFallbackLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setErrorMsg('Please enter your work email.');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      await login(email, password);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Unable to sign in. Please verify your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuickDemo = async (demoEmail: string) => {
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      await login(demoEmail);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Demo sign in failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Ambient background glows */}
@@ -40,40 +86,118 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Clerk Sign-In Component */}
+        {/* Authentication Card */}
         <div className="flex justify-center w-full">
-          <SignIn
-            routing="hash"
-            signUpUrl="/signup"
-            fallbackRedirectUrl="/dashboard"
-            appearance={{
-              variables: {
-                colorPrimary: '#10b981',
-                colorBackground: '#18181b',
-                colorForeground: '#f4f4f5',
-                colorMutedForeground: '#a1a1aa',
-              },
-              elements: {
-                rootBox: 'w-full shadow-2xl',
-                card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
-                headerTitle: 'text-zinc-100 font-bold text-lg',
-                headerSubtitle: 'text-zinc-400 text-xs',
-                socialButtonsBlockButton:
-                  'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
-                socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
-                dividerLine: 'bg-zinc-800',
-                dividerText: 'text-zinc-500 text-xs uppercase',
-                formFieldLabel: 'text-zinc-300 text-xs font-semibold',
-                formFieldInput:
-                  'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
-                formButtonPrimary:
-                  'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
-                footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
-                identityPreviewText: 'text-zinc-200',
-                identityPreviewEditButtonIcon: 'text-emerald-400',
-              },
-            }}
-          />
+          {isClerkReady ? (
+            <SignIn
+              routing="hash"
+              signUpUrl="/signup"
+              fallbackRedirectUrl="/dashboard"
+              appearance={{
+                variables: {
+                  colorPrimary: '#10b981',
+                  colorBackground: '#18181b',
+                  colorForeground: '#f4f4f5',
+                  colorMutedForeground: '#a1a1aa',
+                },
+                elements: {
+                  rootBox: 'w-full shadow-2xl',
+                  card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
+                  headerTitle: 'text-zinc-100 font-bold text-lg',
+                  headerSubtitle: 'text-zinc-400 text-xs',
+                  socialButtonsBlockButton:
+                    'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
+                  socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
+                  dividerLine: 'bg-zinc-800',
+                  dividerText: 'text-zinc-500 text-xs uppercase',
+                  formFieldLabel: 'text-zinc-300 text-xs font-semibold',
+                  formFieldInput:
+                    'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
+                  formButtonPrimary:
+                    'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
+                  footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
+                  identityPreviewText: 'text-zinc-200',
+                  identityPreviewEditButtonIcon: 'text-emerald-400',
+                },
+              }}
+            />
+          ) : (
+            <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6 space-y-4">
+              <form onSubmit={handleFallbackLogin} className="space-y-4">
+                <div>
+                  <label className="text-zinc-300 text-xs font-semibold block mb-1.5">
+                    Work Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="seller@memoreply.com"
+                      className="w-full bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm rounded-lg pl-9 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-zinc-300 text-xs font-semibold block mb-1.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm rounded-lg pl-9 pr-3 py-2.5 focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {errorMsg && (
+                  <p className="text-red-400 text-xs">{errorMsg}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold py-2.5 rounded-lg text-sm transition-all"
+                >
+                  {isLoading ? 'Signing In...' : 'Sign In'}
+                </button>
+              </form>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-800" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase">
+                  <span className="bg-zinc-900 px-2 text-zinc-500">1-Click Instant Demo</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemo('agency@hashturn.com')}
+                  disabled={isLoading}
+                  className="bg-zinc-800 hover:bg-zinc-750 text-zinc-200 text-xs py-2 px-3 rounded-lg border border-zinc-700 transition-colors"
+                >
+                  Agency Pro Demo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemo('freelancer@alexmiller.io')}
+                  disabled={isLoading}
+                  className="bg-zinc-800 hover:bg-zinc-750 text-zinc-200 text-xs py-2 px-3 rounded-lg border border-zinc-700 transition-colors"
+                >
+                  Freelancer Demo
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Public Extension Download Callout */}
