@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser, useClerk } from '@clerk/nextjs';
 import { supabase } from '@/lib/supabase';
 
 export type SaaSPlan = 'Freelancer' | 'Agency Pro' | 'Enterprise';
@@ -96,7 +97,99 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const router = useRouter();
 
-  // Sync Supabase Auth session on mount
+  // Clerk Authentication Hooks
+  const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
+
+  // 1. Sync Clerk User to Memoreply State & Chrome Extension Bridge
+  useEffect(() => {
+    if (isClerkLoaded && isClerkSignedIn && clerkUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const name =
+        clerkUser.fullName ||
+        clerkUser.firstName ||
+        email.split('@')[0].replace(/[._-]/g, ' ') ||
+        'Agency User';
+      const userMeta = (clerkUser.publicMetadata || {}) as Record<string, any>;
+      const plan: SaaSPlan = (userMeta.plan as SaaSPlan) || 'Agency Pro';
+      const cleanKey =
+        userMeta.licenseKey ||
+        `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
+      const maxSeats = plan === 'Freelancer' ? 1 : plan === 'Agency Pro' ? 5 : 20;
+
+      const activeUser: UserProfile = {
+        id: clerkUser.id,
+        name,
+        agencyName: (userMeta.agencyName as string) || `${name}'s Workspace`,
+        email,
+        plan,
+        licenseKey: cleanKey,
+        activeSeats: 1,
+        maxSeats,
+        renewalDate: 'Monthly Plan',
+        isLicensed: true,
+        seats: [
+          {
+            id: `seat_${clerkUser.id.substring(0, 8)}`,
+            deviceName: 'Active Chrome Browser',
+            browser: 'Chrome (MV3)',
+            platform: 'Multi',
+            lastPing: 'Just now',
+            ipAddress: '127.0.0.1',
+            status: 'active',
+          },
+        ],
+      };
+
+      setUser(activeUser);
+      setIsAuthenticated(true);
+
+      try {
+        localStorage.setItem('memoreply_auth_user', JSON.stringify(activeUser));
+      } catch {}
+
+      // Broadcast auth payload for Chrome Extension handshake
+      const authPayload = {
+        token: `clerk_${clerkUser.id}`,
+        userId: clerkUser.id,
+        email,
+        name,
+        plan,
+        licenseKey: cleanKey,
+      };
+
+      if (typeof window !== 'undefined') {
+        window.postMessage(
+          { type: 'MEMOREPLY_AUTH_PAYLOAD', payload: authPayload },
+          window.location.origin
+        );
+        if (document.body) {
+          document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
+        }
+      }
+      return;
+    }
+
+    if (isClerkLoaded && !isClerkSignedIn) {
+      // Check for stored local/offline session fallback
+      const stored = localStorage.getItem('memoreply_auth_user');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setUser(parsed);
+          setIsAuthenticated(true);
+        } catch {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    }
+  }, [isClerkLoaded, isClerkSignedIn, clerkUser]);
+
+  // Sync Supabase Auth session on mount (Legacy / Dual compatibility)
   useEffect(() => {
     async function initSupabaseAuth() {
       try {
@@ -525,12 +618,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      await clerkSignOut();
+    } catch {}
+    try {
       await supabase.auth.signOut();
     } catch {}
     setUser(null);
     setIsAuthenticated(false);
     try {
       localStorage.removeItem('memoreply_auth_user');
+      if (document.body) {
+        document.body.removeAttribute('data-memoreply-auth');
+      }
+      if (typeof window !== 'undefined') {
+        window.postMessage(
+          { type: 'MEMOREPLY_AUTH_PAYLOAD', payload: null },
+          window.location.origin
+        );
+      }
     } catch {}
     router.push('/login');
   };

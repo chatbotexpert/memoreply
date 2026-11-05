@@ -15,7 +15,7 @@ const isAuthHost =
 
 if (isAuthHost) {
   const syncSessionToStorage = (auth: Record<string, any>) => {
-    if (!auth || (!auth.token && !auth.licenseKey)) return;
+    if (!auth || (!auth.token && !auth.licenseKey && !auth.userId)) return;
 
     const plan = auth.plan || 'Agency Pro';
     const cleanKey =
@@ -23,7 +23,7 @@ if (isAuthHost) {
       `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
 
     const sessionObj = {
-      token: auth.token || `token_${cleanKey}`,
+      token: auth.token || `clerk_${auth.userId || cleanKey}`,
       refreshToken: auth.refreshToken || '',
       userId: auth.userId || `usr_${Date.now()}`,
       email: auth.email || 'seller@memoreply.com',

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 import { AppLayoutWrapper } from '@/components/AppLayoutWrapper';
 
@@ -41,18 +42,41 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`h-full antialiased dark ${inter.variable}`}
-      style={{ colorScheme: 'dark' }}
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: '#10b981',
+          colorBackground: '#18181b',
+          colorForeground: '#f4f4f5',
+          colorMutedForeground: '#a1a1aa',
+        },
+        elements: {
+          card: 'bg-zinc-900 border border-zinc-800 shadow-2xl text-zinc-100 rounded-2xl',
+          formButtonPrimary: 'bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-semibold transition-colors',
+          headerTitle: 'text-zinc-100 font-bold',
+          headerSubtitle: 'text-zinc-400',
+          socialButtonsBlockButton: 'bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-750 transition-colors',
+          formFieldLabel: 'text-zinc-300 font-medium',
+          formFieldInput: 'bg-zinc-950 border-zinc-800 text-zinc-100 focus:border-emerald-500',
+          footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-medium',
+          identityPreviewText: 'text-zinc-200',
+          identityPreviewEditButtonIcon: 'text-emerald-400',
+        },
+      }}
     >
-      {/* Brand bg: #09090b Jet Black — exact brand token */}
-      <body
-        className={`${inter.className} min-h-full bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-[#fafafa] antialiased transition-colors duration-200`}
+      <html
+        lang="en"
+        className={`h-full antialiased dark ${inter.variable}`}
+        style={{ colorScheme: 'dark' }}
       >
-        <AppLayoutWrapper>{children}</AppLayoutWrapper>
-      </body>
-    </html>
+        {/* Brand bg: #09090b Jet Black — exact brand token */}
+        <body
+          className={`${inter.className} min-h-full bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-[#fafafa] antialiased transition-colors duration-200`}
+        >
+          <AppLayoutWrapper>{children}</AppLayoutWrapper>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
 

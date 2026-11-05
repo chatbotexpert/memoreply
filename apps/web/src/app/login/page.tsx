@@ -1,280 +1,110 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import {
-  ShieldCheck,
-  ArrowRight,
-  Lock,
-  Mail,
-  KeyRound,
-  CheckCircle2,
-  Sparkles,
-} from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { SignIn } from '@clerk/nextjs';
+import { ShieldCheck, Sparkles, Download, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const { login } = useAuth();
-  const router = useRouter();
-
-  const handleResendEmail = async () => {
-    if (!email) {
-      setErrorMsg('Please enter your email above first.');
-      return;
-    }
-    setIsResending(true);
-    setResendSuccess('');
-    try {
-      const res = await fetch('/api/auth/send-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setResendSuccess('Verification email dispatched via Resend! Check your inbox.');
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to resend confirmation email.');
-    } finally {
-      setIsResending(false);
-    }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      setErrorMsg('Please enter your agency work email.');
-      return;
-    }
-    setIsLoading(true);
-    setErrorMsg('');
-
-    try {
-      await login(email, password);
-      // If user came from extension, redirect to extension success page
-      if (typeof window !== 'undefined' && window.location.search.includes('source=extension')) {
-        router.push('/auth/success');
-      } else if (typeof window !== 'undefined' && window.location.search.includes('redirect=download')) {
-        router.push('/#download');
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to sign in. Please verify your credentials.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickDemo = async (demoEmail: string) => {
-    setIsLoading(true);
-    setErrorMsg('');
-    try {
-      await login(demoEmail);
-      if (typeof window !== 'undefined' && window.location.search.includes('source=extension')) {
-        router.push('/auth/success');
-      } else if (typeof window !== 'undefined' && window.location.search.includes('redirect=download')) {
-        router.push('/#download');
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Demo sign in failed.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 selection:bg-zinc-800 selection:text-white relative overflow-hidden">
-      {/* Background Decorative Gradients */}
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Ambient background glows */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-b from-zinc-800/20 via-zinc-900/10 to-transparent blur-3xl opacity-50" />
-        <div className="absolute top-[10%] right-[15%] w-[300px] h-[250px] bg-emerald-950/10 blur-[120px] opacity-30" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[650px] h-[380px] bg-gradient-to-b from-emerald-500/10 via-zinc-900/10 to-transparent blur-3xl opacity-60" />
+        <div className="absolute top-[10%] right-[15%] w-[320px] h-[280px] bg-cyan-950/15 blur-[120px] opacity-40" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md space-y-8">
+      <div className="relative z-10 w-full max-w-md space-y-6 my-8">
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
             <img
               src="/logo.png"
               alt="Memoreply"
-              className="w-9 h-9 rounded-lg object-contain shadow-xs group-hover:scale-105 transition-transform"
+              className="w-10 h-10 rounded-xl object-contain shadow-md group-hover:scale-105 transition-transform"
             />
             <div className="text-left">
-              <span className="font-semibold text-lg tracking-tight text-white block">
+              <span className="text-lg font-bold tracking-tight text-white block leading-none">
                 Memoreply
               </span>
-              <span className="text-[10px] font-mono text-zinc-500 block -mt-1">
+              <span className="text-[10px] font-semibold text-emerald-400 tracking-wider uppercase block mt-0.5">
                 Agency & Workspace Cloud
               </span>
             </div>
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-white pt-2">
-            Sign in to your agency workspace
+          <h1 className="text-2xl font-bold tracking-tight text-white mt-4">
+            Sign In to Workspace
           </h1>
           <p className="text-xs text-zinc-400">
-            Manage your extension licenses, team seats, and client memory ledgers.
+            Access client memory, conversation ledgers, and license seats
           </p>
         </div>
 
-        {/* Auth Card */}
-        <div className="rounded-xl border border-zinc-800/90 bg-zinc-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-          <form onSubmit={handleLogin} className="space-y-4">
-            {resendSuccess && (
-              <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-xs text-emerald-300">
-                {resendSuccess}
-              </div>
-            )}
-
-            {errorMsg && (
-              <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 space-y-2">
-                <p className="font-medium">{errorMsg}</p>
-                {errorMsg.toLowerCase().includes('email not confirmed') && (
-                  <div className="pt-1 flex items-center justify-between border-t border-red-900/40 text-[11px]">
-                    <span className="text-zinc-300">Didn&apos;t receive confirmation?</span>
-                    <button
-                      type="button"
-                      onClick={handleResendEmail}
-                      disabled={isResending}
-                      className="text-emerald-400 font-semibold hover:underline cursor-pointer"
-                    >
-                      {isResending ? 'Dispatching...' : 'Resend Email via Resend →'}
-                    </button>
-                  </div>
-                )}
-                {errorMsg.toLowerCase().includes('invalid login') && (
-                  <p className="text-[11px] text-zinc-300 pt-1">
-                    Account not registered yet?{' '}
-                    <Link
-                      href={email ? `/signup?email=${encodeURIComponent(email)}` : '/signup'}
-                      className="text-white underline font-semibold hover:text-emerald-400"
-                    >
-                      Click here to Sign Up
-                    </Link>{' '}
-                    or use 1-Click Instant Demo below.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Email Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-300 block">
-                Agency Work Email
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seller@agency.com"
-                  required
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-zinc-300">Password</label>
-                <Link
-                  href="/forgot-password"
-                  className="text-[11px] text-zinc-400 hover:text-white transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Remember Me */}
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded bg-zinc-950 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-xs text-zinc-400">Remember this device</span>
-              </label>
-
-              <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" />
-                SSO Encrypted
-              </span>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-4 py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60"
-            >
-              <span>{isLoading ? 'Verifying Session...' : 'Sign In to Workspace'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </form>
-
-          {/* Quick Demo Fillers for Instant Review */}
-          <div className="mt-6 pt-5 border-t border-zinc-850">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 block mb-2 text-center">
-              1-Click Instant Demo Access:
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('agency@hashturn.com')}
-                className="py-1.5 px-2.5 rounded bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-[11px] text-zinc-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <KeyRound className="w-3 h-3 text-indigo-400" />
-                <span>Agency Pro</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('freelancer@alexmiller.io')}
-                className="py-1.5 px-2.5 rounded bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-[11px] text-zinc-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <KeyRound className="w-3 h-3 text-emerald-400" />
-                <span>Freelancer Tier</span>
-              </button>
-            </div>
-          </div>
+        {/* Clerk Sign-In Component */}
+        <div className="flex justify-center w-full">
+          <SignIn
+            routing="hash"
+            signUpUrl="/signup"
+            fallbackRedirectUrl="/dashboard"
+            appearance={{
+              variables: {
+                colorPrimary: '#10b981',
+                colorBackground: '#18181b',
+                colorForeground: '#f4f4f5',
+                colorMutedForeground: '#a1a1aa',
+              },
+              elements: {
+                rootBox: 'w-full shadow-2xl',
+                card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
+                headerTitle: 'text-zinc-100 font-bold text-lg',
+                headerSubtitle: 'text-zinc-400 text-xs',
+                socialButtonsBlockButton:
+                  'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
+                socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
+                dividerLine: 'bg-zinc-800',
+                dividerText: 'text-zinc-500 text-xs uppercase',
+                formFieldLabel: 'text-zinc-300 text-xs font-semibold',
+                formFieldInput:
+                  'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
+                formButtonPrimary:
+                  'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
+                footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
+                identityPreviewText: 'text-zinc-200',
+                identityPreviewEditButtonIcon: 'text-emerald-400',
+              },
+            }}
+          />
         </div>
 
-        {/* Footer Link */}
-        <div className="text-center text-xs text-zinc-400">
-          <span>Don&apos;t have an active agency license? </span>
-          <Link
-            href="/signup"
-            className="font-medium text-white hover:underline underline-offset-4"
+        {/* Public Extension Download Callout */}
+        <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-3.5 text-center backdrop-blur-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-left">
+            <Download className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-zinc-200">Just need the Chrome Extension?</p>
+              <p className="text-[11px] text-zinc-400">Download directly without signing in</p>
+            </div>
+          </div>
+          <a
+            href="/api/download"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 shrink-0 px-2.5 py-1 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors"
           >
-            Get Started & Buy Access →
-          </Link>
+            Download ZIP
+            <ArrowRight className="w-3 h-3" />
+          </a>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="flex items-center justify-center gap-4 text-[11px] text-zinc-400 pt-2">
+          <span className="flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            Clerk & Supabase Secured
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            Zero-Cloud Local Privacy
+          </span>
         </div>
       </div>
     </div>

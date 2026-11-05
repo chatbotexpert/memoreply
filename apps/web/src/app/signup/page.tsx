@@ -1,364 +1,126 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  ShieldCheck,
-  ArrowRight,
-  Check,
-  Building2,
-  Mail,
-  Lock,
-  User,
-  Zap,
-} from 'lucide-react';
-import { useAuth, SaaSPlan } from '@/context/AuthContext';
+import { SignUp } from '@clerk/nextjs';
+import { ShieldCheck, Sparkles, Download, ArrowRight, Check } from 'lucide-react';
 
-interface PlanOption {
-  id: SaaSPlan;
-  name: string;
-  price: string;
-  billing: string;
-  badge?: string;
-  seats: string;
-  features: string[];
-}
-
-const PLANS: PlanOption[] = [
-  {
-    id: 'Freelancer',
-    name: 'Freelancer',
-    price: '$29',
-    billing: 'per month',
-    seats: '1 Extension License Seat',
-    features: [
-      'Unlimited client context extraction',
-      'Fiverr, Upwork & LinkedIn adapters',
-      'IndexedDB + Cloud mirror backup',
-      'Contradiction detection shield',
-    ],
-  },
-  {
-    id: 'Agency Pro',
-    name: 'Agency Pro',
-    price: '$79',
-    billing: 'per month',
-    badge: 'Most Popular',
-    seats: '5 Extension License Seats',
-    features: [
-      'All Freelancer features included',
-      '5 concurrent extension seats',
-      'Centralized agency team dashboard',
-      'Cross-platform memory sync pool',
-      'Priority Cloud Gateway access',
-    ],
-  },
-  {
-    id: 'Enterprise',
-    name: 'Enterprise Agency',
-    price: '$199',
-    billing: 'per month',
-    seats: '20 Extension License Seats',
-    features: [
-      'All Agency Pro features included',
-      '20 concurrent team seats',
-      'Custom CRM / Webhook streaming',
-      'Dedicated cloud database mirror',
-      'SLA & 24/7 technical support',
-    ],
-  },
-];
-
-function SignUpForm() {
-  const searchParams = useSearchParams();
-  const planQuery = searchParams.get('plan');
-
-  const [selectedPlan, setSelectedPlan] = useState<SaaSPlan>('Agency Pro');
-  const [name, setName] = useState('');
-  const [agencyName, setAgencyName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const { signup } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (planQuery) {
-      const match = PLANS.find(
-        (p) => p.id.toLowerCase() === planQuery.toLowerCase()
-      );
-      if (match) {
-        setSelectedPlan(match.id);
-      }
-    }
-  }, [planQuery]);
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !agencyName) {
-      setErrorMsg('Please fill in all agency registration fields.');
-      return;
-    }
-    setIsLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    try {
-      await signup(name, agencyName, email, password, selectedPlan);
-      setSuccessMsg(
-        'Account registered! A verification and license welcome email has been dispatched via Resend. Redirecting...'
-      );
-
-      const isExtension =
-        searchParams.get('source') === 'extension' ||
-        (typeof window !== 'undefined' && window.location.search.includes('source=extension'));
-
-      setTimeout(() => {
-        if (isExtension) {
-          router.push('/auth/success');
-        } else {
-          router.push('/dashboard');
-        }
-      }, 1200);
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to create agency account. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+function SignUpContent() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 py-12 px-4 sm:px-6 lg:px-8 selection:bg-zinc-800 selection:text-white relative overflow-hidden">
-      {/* Background Gradients */}
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Ambient background glows */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-zinc-800/20 via-zinc-900/10 to-transparent blur-3xl opacity-50" />
-        <div className="absolute top-[25%] left-[10%] w-[350px] h-[280px] bg-indigo-950/15 blur-[130px] opacity-30" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-gradient-to-b from-emerald-500/10 via-zinc-900/10 to-transparent blur-3xl opacity-60" />
+        <div className="absolute top-[10%] left-[15%] w-[320px] h-[280px] bg-emerald-950/20 blur-[120px] opacity-40" />
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto space-y-10">
+      <div className="relative z-10 w-full max-w-md space-y-6 my-8">
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
             <img
               src="/logo.png"
               alt="Memoreply"
-              className="w-9 h-9 rounded-lg object-contain shadow-xs group-hover:scale-105 transition-transform"
+              className="w-10 h-10 rounded-xl object-contain shadow-md group-hover:scale-105 transition-transform"
             />
             <div className="text-left">
-              <span className="font-semibold text-lg tracking-tight text-white block">
+              <span className="text-lg font-bold tracking-tight text-white block leading-none">
                 Memoreply
               </span>
-              <span className="text-[10px] font-mono text-zinc-500 block -mt-1">
-                Commercial Agency Platform
+              <span className="text-[10px] font-semibold text-emerald-400 tracking-wider uppercase block mt-0.5">
+                Agency & Workspace Cloud
               </span>
             </div>
           </Link>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white pt-2">
-            Get started with Memoreply Workspace
+          <h1 className="text-2xl font-bold tracking-tight text-white mt-4">
+            Create Agency Account
           </h1>
-          <p className="text-sm text-zinc-400 max-w-lg mx-auto">
-            Choose your agency tier, register your team, and receive instant extension license keys.
+          <p className="text-xs text-zinc-400">
+            Start 14-day trial with full access to AI Memory & Platform Adapters
           </p>
         </div>
 
-        {/* Plan Selector Grid */}
-        <div className="space-y-3">
-          <div className="text-center">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-              Step 1: Select Your License Tier
-            </span>
+        {/* Feature Highlights Pills */}
+        <div className="grid grid-cols-3 gap-2 text-center text-[11px] text-zinc-300">
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-2 flex items-center justify-center gap-1.5">
+            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span>Fiverr & Upwork</span>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {PLANS.map((plan) => {
-              const isSelected = selectedPlan === plan.id;
-              return (
-                <div
-                  key={plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
-                  className={`p-5 rounded-xl border transition-all cursor-pointer relative flex flex-col justify-between ${
-                    isSelected
-                      ? 'bg-zinc-900 border-zinc-500 ring-2 ring-zinc-500/20 shadow-xl'
-                      : 'bg-zinc-950/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40'
-                  }`}
-                >
-                  {plan.badge && (
-                    <span className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white text-zinc-950 shadow-xs">
-                      {plan.badge}
-                    </span>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-sm text-white">{plan.name}</h3>
-                      <div
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          isSelected
-                            ? 'border-white bg-white text-zinc-950'
-                            : 'border-zinc-700 bg-zinc-900'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-2.5 h-2.5" />}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-white font-mono">{plan.price}</span>
-                      <span className="text-xs text-zinc-400">/{plan.billing}</span>
-                    </div>
-
-                    <span className="mt-2 inline-block px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-850 text-zinc-300 border border-zinc-750">
-                      {plan.seats}
-                    </span>
-
-                    <ul className="mt-4 space-y-2 text-xs text-zinc-300">
-                      {plan.features.map((feat) => (
-                        <li key={feat} className="flex items-start gap-2">
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                          <span>{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="mt-5 pt-3 border-t border-zinc-850 text-[11px] font-medium text-center">
-                    <span className={isSelected ? 'text-white' : 'text-zinc-500'}>
-                      {isSelected ? '✓ Selected Plan' : 'Click to Select'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-2 flex items-center justify-center gap-1.5">
+            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span>Client Memory</span>
+          </div>
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-2 flex items-center justify-center gap-1.5">
+            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span>Smart Replies</span>
           </div>
         </div>
 
-        {/* Step 2: Registration Form */}
-        <div className="max-w-xl mx-auto rounded-xl border border-zinc-800 bg-zinc-900/80 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
-          <div className="border-b border-zinc-800 pb-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold block">
-              Step 2: Agency Account Details
-            </span>
-            <p className="text-xs text-zinc-400 mt-1">
-              Your license key and workspace dashboard will be provisioned immediately.
-            </p>
+        {/* Clerk Sign-Up Component */}
+        <div className="flex justify-center w-full">
+          <SignUp
+            routing="hash"
+            signInUrl="/login"
+            fallbackRedirectUrl="/dashboard"
+            appearance={{
+              variables: {
+                colorPrimary: '#10b981',
+                colorBackground: '#18181b',
+                colorForeground: '#f4f4f5',
+                colorMutedForeground: '#a1a1aa',
+              },
+              elements: {
+                rootBox: 'w-full shadow-2xl',
+                card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
+                headerTitle: 'text-zinc-100 font-bold text-lg',
+                headerSubtitle: 'text-zinc-400 text-xs',
+                socialButtonsBlockButton:
+                  'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
+                socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
+                dividerLine: 'bg-zinc-800',
+                dividerText: 'text-zinc-500 text-xs uppercase',
+                formFieldLabel: 'text-zinc-300 text-xs font-semibold',
+                formFieldInput:
+                  'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
+                formButtonPrimary:
+                  'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
+                footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
+                identityPreviewText: 'text-zinc-200',
+                identityPreviewEditButtonIcon: 'text-emerald-400',
+              },
+            }}
+          />
+        </div>
+
+        {/* Public Extension Download Callout */}
+        <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-3.5 text-center backdrop-blur-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-left">
+            <Download className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-zinc-200">Want to test the extension first?</p>
+              <p className="text-[11px] text-zinc-400">Download ZIP without registration</p>
+            </div>
           </div>
+          <a
+            href="/api/download"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 shrink-0 px-2.5 py-1 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors"
+          >
+            Download ZIP
+            <ArrowRight className="w-3 h-3" />
+          </a>
+        </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            {successMsg && (
-              <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-xs text-emerald-300 font-medium">
-                {successMsg}
-              </div>
-            )}
-
-            {errorMsg && (
-              <div className="p-3 rounded-lg bg-red-950/30 border border-red-800/50 text-xs text-red-300">
-                {errorMsg}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Full Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300 block">Lead Contact Name</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Hassaan HashTurn"
-                    required
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Agency Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300 block">
-                  Agency / Studio Name
-                </label>
-                <div className="relative">
-                  <Building2 className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={agencyName}
-                    onChange={(e) => setAgencyName(e.target.value)}
-                    placeholder="HashTurn Digital Solutions"
-                    required
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Email Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-300 block">Agency Work Email</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seller@hashturn.com"
-                  required
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-300 block">Password</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a strong password (8+ chars)"
-                  required
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* License Guarantee */}
-            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
-              <div className="flex items-center gap-2 text-zinc-200 font-medium">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>Instant License Provisioning</span>
-              </div>
-              <p>
-                Selected: <span className="text-white font-semibold">{selectedPlan}</span>. You will receive an immediate license key to unlock your Chrome MV3 extension.
-              </p>
-            </div>
-
-            {/* Submit Action */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60"
-            >
-              <span>{isLoading ? 'Issuing License...' : `Buy Access & Issue License Key`}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </form>
-
-          <div className="pt-2 text-center text-xs text-zinc-400 border-t border-zinc-850">
-            <span>Already have an active agency account? </span>
-            <Link
-              href={searchParams.get('source') === 'extension' ? '/login?source=extension' : '/login'}
-              className="font-medium text-white hover:underline underline-offset-4"
-            >
-              Sign In to Workspace →
-            </Link>
-          </div>
+        {/* Trust Badges */}
+        <div className="flex items-center justify-center gap-4 text-[11px] text-zinc-400 pt-2">
+          <span className="flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            Clerk & Supabase Secured
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            Zero-Cloud Local Privacy
+          </span>
         </div>
       </div>
     </div>
@@ -367,14 +129,8 @@ function SignUpForm() {
 
 export default function SignUpPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono text-xs">
-          Loading workspace provisioning...
-        </div>
-      }
-    >
-      <SignUpForm />
+    <Suspense fallback={<div className="min-h-screen bg-[#09090b] flex items-center justify-center text-zinc-400">Loading...</div>}>
+      <SignUpContent />
     </Suspense>
   );
 }
