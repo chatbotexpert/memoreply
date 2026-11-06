@@ -11,6 +11,10 @@ interface ThreadMessage {
   senderName: string;
   text: string;
   timestamp: string;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  driveFileId?: string | null;
 }
 
 interface ConversationItem {
@@ -352,7 +356,21 @@ export default function ConversationsPage() {
                             : 'bg-white text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border border-zinc-200/90 dark:border-zinc-700/80 shadow-2xs'
                         }`}
                       >
-                        {msg.text}
+                        <div>{msg.text}</div>
+                        {msg.attachmentUrl && (
+                          <div className={`mt-2 pt-2 border-t flex items-center gap-1.5 ${isSeller ? 'border-zinc-700/60' : 'border-zinc-200 dark:border-zinc-700'}`}>
+                            <ExternalLink className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                            <a
+                              href={msg.attachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-medium text-blue-500 hover:underline flex items-center gap-1 truncate"
+                            >
+                              <span>{msg.attachmentName || 'Google Drive Document'}</span>
+                              <span className="text-[9px] opacity-75 font-mono">(Google Drive)</span>
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

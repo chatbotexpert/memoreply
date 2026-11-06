@@ -11,6 +11,11 @@ export interface ExtractedMessage {
   text: string;
   timestamp: string | null;
   isOwn: boolean;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  attachmentSize?: number | null;
+  driveFileId?: string | null;
 }
 
 export type SupportedPlatform = 'fiverr' | 'upwork' | 'linkedin';

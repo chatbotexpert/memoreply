@@ -7,6 +7,11 @@ export interface SyncMessagePayload {
   senderName: string;
   text: string;
   timestamp: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
+  attachmentSize?: number;
+  driveFileId?: string;
 }
 
 export interface SyncFactPayload {

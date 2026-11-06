@@ -10,12 +10,13 @@ At HashTurn, your privacy, data security, and client confidentiality are our hig
 
 ## 1. Core Privacy Principles
 
-1. **Local-First Privacy Architecture (Zero-Cloud Chat Storage):** All sensitive client chat histories (conversations on platforms like Fiverr, Upwork, and LinkedIn) are stored **exclusively inside the browser** using `chrome.storage.local` and IndexedDB. Raw client message texts are **NEVER uploaded or stored in any central cloud database**, ensuring strict confidentiality and user privacy.
-2. **Automated Data Retention & Auto-Purge:** Memoreply automatically purges conversation threads older than 30 to 60 days (user configurable), preventing unnecessary persistent storage of historical client chats.
-3. **10MB Quota Guard & FIFO Eviction:** To prevent browser storage exhaustion, Memoreply continuously monitors the 10MB `chrome.storage.local` quota and enforces a strict First-In, First-Out (FIFO) eviction strategy before usage exceeds limits.
-4. **Zero Auto-Sending:** Memoreply strictly inserts draft replies into the message box for your manual review and approval. It never automatically sends messages, preserving complete user oversight and compliance with platform terms of service.
-5. **No Unrelated Tab Access:** Memoreply's permissions are restricted strictly to active freelancing message surfaces (`*://*.fiverr.com/*`, `*://*.upwork.com/*`, `*://*.linkedin.com/*`). It never monitors or accesses unrelated websites, tabs, or browsing activity.
-6. **No Third-Party Data Selling or Advertising:** We do not monetize your data, sell client information to brokers, or use private client conversations for advertising.
+1. **Cloud Architecture & Seamless Cross-Device Synchronization:** To ensure your conversations and client history are immediately accessible when switching between your laptop, desktop, and web dashboard, chat histories, extracted client memory, and facts are persisted securely in your dedicated Supabase PostgreSQL cloud database.
+2. **Optimized Google Drive File Storage:** To maintain database performance and privacy compliance, heavy files, documents, attachments, and images are never stored directly in the database. Instead, they are securely uploaded to Google Drive, and only verified, secure file reference URLs and metadata are stored in Supabase.
+3. **Strict Multi-Tenant Isolation:** Every client record, conversation stream, and memory fact is strictly partitioned by your unique tenant user ID (`userId`), guaranteeing that your client data is completely isolated from other freelancers.
+4. **Automated Data Retention & Auto-Purge:** Memoreply allows configurable data retention (30 to 60 days) to prevent unnecessary long-term storage of stale client conversations.
+5. **Zero Auto-Sending:** Memoreply strictly inserts draft replies into the message box for your manual review and approval. It never automatically sends messages, preserving complete user oversight and compliance with platform terms of service.
+6. **No Unrelated Tab Access:** Memoreply's permissions are restricted strictly to active freelancing message surfaces (`*://*.fiverr.com/*`, `*://*.upwork.com/*`, `*://*.linkedin.com/*`). It never monitors or accesses unrelated websites, tabs, or browsing activity.
+7. **No Third-Party Data Selling or Advertising:** We do not monetize your data, sell client information to brokers, or use private client conversations for advertising.
 
 ---
 

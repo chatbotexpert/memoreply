@@ -105,10 +105,20 @@ export async function pushConversationToCloud(
         status: conversation.status,
         url: conversation.url,
         clientEmail: conversation.clientEmail || null,
-        // ZERO-CLOUD PRIVACY ENFORCEMENT:
-        // Sensitive client chat histories (Fiverr, Upwork, LinkedIn) are strictly kept local
-        // inside chrome.storage.local. Raw message texts are NEVER uploaded to the central database.
-        messages: [],
+        // Cross-Device Synchronization:
+        // Persists full chat stream and Google Drive attachment references directly into Supabase PostgreSQL.
+        messages: (conversation.messages || []).map((m) => ({
+          messageId: m.id,
+          senderRole: m.senderRole,
+          senderName: m.sender,
+          text: m.text,
+          timestamp: m.timestamp || new Date().toISOString(),
+          attachmentUrl: m.attachmentUrl || null,
+          attachmentName: m.attachmentName || null,
+          attachmentType: m.attachmentType || null,
+          attachmentSize: m.attachmentSize || null,
+          driveFileId: m.driveFileId || null,
+        })),
       },
       facts: (facts || []).map((f) => ({
         category: f.category,
@@ -270,3 +280,67 @@ if (typeof window !== 'undefined') {
     flushOfflineSyncQueue();
   });
 }
+
+/**
+ * Upload a heavy attachment, image, or document to Google Drive via Memoreply Cloud
+ * and receive back the secure Google Drive view URL and file ID.
+ */
+export async function uploadAttachmentToDrive(filePayload: {
+  fileName: string;
+  mimeType: string;
+  base64Data: string;
+  conversationId?: string;
+  clientId?: string;
+  userId?: string;
+}): Promise<{ success: boolean; attachment?: any; error?: string }> {
+  try {
+    const settings = await getCloudSyncSettings();
+    const driveEndpoint = settings.syncEndpoint.replace('/api/sync', '/api/upload/drive');
+
+    const res = await fetch(driveEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${settings.apiToken}`,
+      },
+      body: JSON.stringify(filePayload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return { success: false, error: errText };
+    }
+
+    const data = await res.json();
+    return { success: true, attachment: data.attachment };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * Fetch synchronized cross-device conversations directly from Supabase PostgreSQL cloud
+ */
+export async function fetchConversationsFromCloud(userId?: string): Promise<any[]> {
+  try {
+    const settings = await getCloudSyncSettings();
+    const url = new URL(settings.syncEndpoint.replace('/api/sync', '/api/conversations'));
+    if (userId) {
+      url.searchParams.set('userId', userId);
+    }
+
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${settings.apiToken}`,
+      },
+    });
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.conversations || [];
+  } catch (err) {
+    console.warn('[Memoreply Cloud Sync] Failed to fetch cloud conversations:', err);
+    return [];
+  }
+}
+

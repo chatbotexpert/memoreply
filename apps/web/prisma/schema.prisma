@@ -140,9 +140,41 @@ model Message {
   sentAt            DateTime     @default(now())
   deduplicationHash String
 
+  // Google Drive & Attachment Reference Optimization (Heavy files stored in Google Drive)
+  attachmentUrl     String?      @db.Text
+  attachmentName    String?
+  attachmentType    String?
+  attachmentSize    Int?
+  driveFileId       String?
+
   @@unique([conversationId, deduplicationHash])
   @@index([conversationId, sentAt])
   @@map("messages")
+}
+
+// ------------------------------------------------------------
+// 4b. File Attachment Entity (Google Drive Storage Optimization)
+// Heavy files, documents, and images are stored in Google Drive;
+// only secure references and metadata are stored in Supabase PostgreSQL.
+// ------------------------------------------------------------
+model FileAttachment {
+  id               String       @id @default(uuid())
+  userId           String
+  conversationId   String?
+  clientId         String?
+  messageId        String?
+  fileName         String
+  fileSize         Int
+  mimeType         String
+  driveFileId      String       // Google Drive File ID
+  driveViewUrl     String       @db.Text // Secure Google Drive View URL
+  driveDownloadUrl String?      @db.Text // Secure Direct Download URL
+  uploadedAt       DateTime     @default(now())
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([clientId])
+  @@map("file_attachments")
 }
 
 enum SenderRole {

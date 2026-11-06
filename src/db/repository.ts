@@ -159,6 +159,11 @@ export async function saveExtractedConversation(conversationData: ConversationDa
     timestamp: m.timestamp,
     isOwn: m.isOwn,
     extractedAt: conversationData.extractedAt ?? now,
+    attachmentUrl: m.attachmentUrl || null,
+    attachmentName: m.attachmentName || null,
+    attachmentType: m.attachmentType || null,
+    attachmentSize: m.attachmentSize || null,
+    driveFileId: m.driveFileId || null,
   }));
 
   if (messageEntities.length > 0) {
@@ -220,18 +225,17 @@ export async function saveExtractedConversation(conversationData: ConversationDa
     }
   }
 
-  // 5. Local-First Privacy Storage: Persist chat history into chrome.storage.local
-  // Enforces 30-day auto-purge and 10MB FIFO quota limit.
-  try {
-    saveLocalChat(conversationData).catch((localErr) => {
-      console.warn('[Memoreply Local Storage Guard] Error saving to chrome.storage.local:', localErr);
-    });
-  } catch {}
-
-  // 6. Cloud Auto-Sync: Asynchronously push metadata (ZERO raw message texts) to Next.js dashboard
+  // 5. Cloud Auto-Sync: Asynchronously push full chat history and Google Drive attachment references to Supabase PostgreSQL
   try {
     pushConversationToCloud(conversationData, client, heuristicFacts).catch((cloudErr) => {
       console.warn('[Memoreply Cloud Auto-Sync] Background push error:', cloudErr);
+    });
+  } catch {}
+
+  // 6. Fast Local Cache: Retain local copy for offline readiness and fast UI rendering
+  try {
+    saveLocalChat(conversationData).catch((localErr) => {
+      console.warn('[Memoreply Local Storage Guard] Warning caching to chrome.storage.local:', localErr);
     });
   } catch {}
 

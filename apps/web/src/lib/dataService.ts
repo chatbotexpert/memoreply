@@ -6,6 +6,7 @@
 // ============================================================
 
 import { prisma } from './prisma';
+import crypto from 'crypto';
 
 export interface LiveClient {
   id: string;
@@ -27,6 +28,11 @@ export interface LiveThreadMessage {
   senderName: string;
   text: string;
   timestamp: string;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  attachmentSize?: number | null;
+  driveFileId?: string | null;
 }
 
 export interface LiveConversation {
@@ -491,7 +497,7 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
 
       if (convData && clientRecord) {
         // Dedicated Conversations table: Strictly isolated per client and per user
-        await (prisma as any).conversation.upsert({
+        const convRecord = await (prisma as any).conversation.upsert({
           where: {
             userId_platform_conversationId: {
               userId: targetUserId,
@@ -514,11 +520,51 @@ export async function saveLiveSyncData(payload: any): Promise<void> {
           },
         });
 
-        // ZERO-CLOUD PRIVACY ENFORCEMENT:
-        // Sensitive client chat histories (Fiverr, Upwork, LinkedIn) are strictly kept local
-        // inside the user's browser (chrome.storage.local).
-        // Message text bodies are NEVER persisted to the central cloud PostgreSQL database.
-        // The cloud maintains only client metadata & client memory facts.
+        // Cross-Device Chat Synchronization:
+        // All chat messages are persisted into Supabase PostgreSQL for seamless synchronization across devices.
+        // Heavy attachments/documents are saved to Google Drive and only secure URLs are referenced.
+        if (Array.isArray(convData.messages) && convData.messages.length > 0 && convRecord) {
+          const clientDisplayName = clientData?.displayName || clientRecord?.displayName || 'Client';
+          for (const msg of convData.messages) {
+            if (!msg.text && !msg.attachmentUrl) continue;
+            const senderRole = msg.senderRole?.toUpperCase() === 'CLIENT' ? 'CLIENT' : 'SELLER';
+            // Compute deterministic deduplication hash to prevent duplicate message rows
+            const dedupInput = `${convRecord.id}_${msg.senderRole}_${msg.timestamp}_${msg.text || ''}`;
+            const deduplicationHash = crypto.createHash('sha256').update(dedupInput).digest('hex');
+
+            await (prisma as any).message.upsert({
+              where: {
+                conversationId_deduplicationHash: {
+                  conversationId: convRecord.id,
+                  deduplicationHash,
+                },
+              },
+              update: {
+                text: msg.text || '',
+                timestamp: msg.timestamp || new Date().toISOString(),
+                attachmentUrl: msg.attachmentUrl || null,
+                attachmentName: msg.attachmentName || null,
+                attachmentType: msg.attachmentType || null,
+                attachmentSize: msg.attachmentSize || null,
+                driveFileId: msg.driveFileId || null,
+              },
+              create: {
+                conversationId: convRecord.id,
+                messageId: msg.messageId || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                senderRole,
+                senderName: msg.senderName || (senderRole === 'CLIENT' ? clientDisplayName : 'Me'),
+                text: msg.text || '',
+                timestamp: msg.timestamp || new Date().toISOString(),
+                deduplicationHash,
+                attachmentUrl: msg.attachmentUrl || null,
+                attachmentName: msg.attachmentName || null,
+                attachmentType: msg.attachmentType || null,
+                attachmentSize: msg.attachmentSize || null,
+                driveFileId: msg.driveFileId || null,
+              },
+            });
+          }
+        }
       }
 
       if (Array.isArray(factsData) && clientRecord) {
@@ -623,6 +669,11 @@ export async function fetchLiveConversations(platform?: string, userId?: string)
             senderName: m.senderName || (m.senderRole === 'SELLER' ? 'Me' : c.client?.displayName || 'Client'),
             text: m.text,
             timestamp: m.timestamp || new Date(m.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            attachmentUrl: m.attachmentUrl || null,
+            attachmentName: m.attachmentName || null,
+            attachmentType: m.attachmentType || null,
+            attachmentSize: m.attachmentSize || null,
+            driveFileId: m.driveFileId || null,
           })),
         }));
       }

@@ -39,6 +39,11 @@ export interface MessageEntity {
   timestamp: string | null;
   isOwn: boolean;
   extractedAt: string;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  attachmentSize?: number | null;
+  driveFileId?: string | null;
 }
 
 export type FactCategory =

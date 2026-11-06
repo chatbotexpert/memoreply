@@ -3385,24 +3385,36 @@ export default function App() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
                     </svg>
-                    <span className="font-semibold" style={{ fontSize: '12px' }}>Local-First Privacy Guard</span>
+                    <span className="font-semibold" style={{ fontSize: '12px' }}>Cloud Architecture & Storage</span>
                   </div>
-                  <span style={{
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: '#10b981',
-                    fontWeight: 600
-                  }}>
-                    Zero Cloud Upload
-                  </span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: '#10b981',
+                      fontWeight: 600
+                    }}>
+                      Supabase Cloud Active
+                    </span>
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      color: '#3b82f6',
+                      fontWeight: 600
+                    }}>
+                      Google Drive Linked
+                    </span>
+                  </div>
                 </div>
 
                 <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: '0 0 12px 0', lineHeight: 1.45 }}>
-                  Conversations on Fiverr & Upwork are stored exclusively inside your browser (<strong>chrome.storage.local</strong>). Raw message text is never sent to central servers.
+                  Chat history & client interactions are persisted directly to <strong>Supabase PostgreSQL</strong> for cross-device sync. Heavy media, attachments, and documents are offloaded to <strong>Google Drive</strong> with secure reference URLs.
                 </p>
 
                 {/* 10MB Quota & FIFO Gauge */}
