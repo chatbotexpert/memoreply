@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     let resetUrl = resetRedirect;
 
     // 1. Generate password recovery link via Supabase Auth Admin
+    let hasSupabaseAccount = false;
     try {
       const { data: recoveryData, error: recoveryError } =
         await admin.auth.admin.generateLink({
@@ -43,21 +44,13 @@ export async function POST(req: Request) {
 
       if (recoveryError) {
         console.warn('[Supabase Recovery Link Error]:', recoveryError.message);
-        // If user not found, still return standard message to prevent user enumeration
-        return NextResponse.json(
-          {
-            success: true,
-            message:
-              'If an account exists with this email, a secure password reset link has been dispatched via Resend.',
-          },
-          { status: 200, headers: corsHeaders }
-        );
-      }
-
-      if (recoveryData?.properties?.hashed_token) {
-        resetUrl = `${resetRedirect}?token_hash=${recoveryData.properties.hashed_token}&type=recovery`;
-      } else if (recoveryData?.properties?.action_link) {
-        resetUrl = recoveryData.properties.action_link;
+      } else {
+        hasSupabaseAccount = true;
+        if (recoveryData?.properties?.hashed_token) {
+          resetUrl = `${resetRedirect}?token_hash=${recoveryData.properties.hashed_token}&type=recovery`;
+        } else if (recoveryData?.properties?.action_link) {
+          resetUrl = recoveryData.properties.action_link;
+        }
       }
     } catch (genErr) {
       console.warn('[Admin Recovery Link Gen Warning]:', genErr);
@@ -70,11 +63,26 @@ export async function POST(req: Request) {
       resetUrl,
     });
 
+    const isSandboxRestricted =
+      !emailResult.success &&
+      typeof emailResult.error === 'string' &&
+      (emailResult.error.includes('testing emails to your own email address') ||
+        emailResult.error.includes('resend.com/domains') ||
+        emailResult.error.includes('Invalid `to` field'));
+
     return NextResponse.json(
       {
         success: true,
-        message:
-          'A secure password reset link has been dispatched to your email via Resend.',
+        delivered: emailResult.success,
+        hasSupabaseAccount,
+        message: emailResult.success
+          ? 'A secure password reset link has been dispatched to your email via Resend.'
+          : isSandboxRestricted
+          ? 'Notice: Resend sandbox restricts email delivery to the account owner (memoreplyext@gmail.com). We have generated your direct reset link below.'
+          : 'Password reset link prepared.',
+        resetUrl,
+        isSandboxRestricted,
+        resendError: emailResult.error,
         delivery: emailResult,
       },
       { status: 200, headers: corsHeaders }

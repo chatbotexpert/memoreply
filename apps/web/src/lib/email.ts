@@ -146,13 +146,24 @@ export async function sendVerificationEmail({
   }
 
   try {
-    const data = await resend.emails.send({
+    const response = await resend.emails.send({
       from: SENDER_EMAIL,
       to: [email],
       subject: 'Verify your Memoreply Agency Workspace & License Key',
       html,
     });
-    return { success: true, data };
+
+    if (response.error) {
+      console.warn('[Resend API Warning] Failed to dispatch verification email:', response.error);
+      return {
+        success: false,
+        error: response.error.message,
+        statusCode: (response.error as any).statusCode,
+        fallbackUrl: confirmUrl,
+      };
+    }
+
+    return { success: true, data: response.data };
   } catch (error: any) {
     console.error('[Resend Error] Failed to send verification email:', error);
     // If domain sending is restricted on Resend free tier to personal email, return fallback
@@ -210,13 +221,24 @@ export async function sendPasswordResetEmail({
   }
 
   try {
-    const data = await resend.emails.send({
+    const response = await resend.emails.send({
       from: SENDER_EMAIL,
       to: [email],
       subject: 'Reset your Memoreply account password',
       html,
     });
-    return { success: true, data };
+
+    if (response.error) {
+      console.warn('[Resend API Warning] Failed to dispatch password reset email:', response.error);
+      return {
+        success: false,
+        error: response.error.message,
+        statusCode: (response.error as any).statusCode,
+        fallbackUrl: resetUrl,
+      };
+    }
+
+    return { success: true, data: response.data };
   } catch (error: any) {
     console.error('[Resend Error] Failed to send password reset email:', error);
     return { success: false, error: error.message || String(error), fallbackUrl: resetUrl };

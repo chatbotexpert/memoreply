@@ -9,6 +9,9 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [directResetUrl, setDirectResetUrl] = useState('');
+  const [isSandboxRestricted, setIsSandboxRestricted] = useState(false);
+  const [isDelivered, setIsDelivered] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +23,9 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     setErrorMsg('');
     setSuccessMsg('');
+    setDirectResetUrl('');
+    setIsSandboxRestricted(false);
+    setIsDelivered(false);
 
     try {
       const response = await fetch('/api/auth/forgot-password', {
@@ -36,8 +42,15 @@ export default function ForgotPasswordPage() {
 
       setSuccessMsg(
         data.message ||
-          'A secure password reset link has been dispatched to your email via Resend. Please check your inbox.'
+          'A secure password reset link has been dispatched to your email via Resend.'
       );
+      if (data.resetUrl) {
+        setDirectResetUrl(data.resetUrl);
+      }
+      if (data.isSandboxRestricted) {
+        setIsSandboxRestricted(true);
+      }
+      setIsDelivered(Boolean(data.delivered));
     } catch (err: any) {
       setErrorMsg(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -87,15 +100,62 @@ export default function ForgotPasswordPage() {
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-white">Recovery Email Dispatched</h3>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  {successMsg}
-                </p>
+                <h3 className="text-sm font-semibold text-white">
+                  {isDelivered ? 'Recovery Email Dispatched' : 'Password Reset Ready'}
+                </h3>
+                <p className="text-xs text-zinc-300 leading-relaxed">{successMsg}</p>
               </div>
-              <div className="p-3 rounded-lg bg-zinc-950/80 border border-zinc-800 text-[11px] text-zinc-400 text-left space-y-1">
-                <div className="font-medium text-zinc-300">Didn&apos;t receive the email?</div>
-                <div>Check your spam/promotions folder, or request another link in 2 minutes.</div>
+
+              {/* Direct Access Fallback Button */}
+              {directResetUrl && (
+                <div className="space-y-2 p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/60 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-emerald-300">
+                      Direct Password Reset Link
+                    </span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 leading-normal">
+                    You can set your new password immediately by clicking the button below:
+                  </p>
+                  <a
+                    href={directResetUrl}
+                    className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm"
+                  >
+                    <span>Open Reset Password Form</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+
+              {/* Resend Sandbox Notice */}
+              {isSandboxRestricted && (
+                <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-800/50 text-[11px] text-amber-300/90 text-left space-y-1">
+                  <div className="font-semibold text-amber-200">Resend Sandbox Limitation</div>
+                  <div>
+                    Resend free test domain (<code>onboarding@resend.dev</code>) only delivers to{' '}
+                    <strong>memoreplyext@gmail.com</strong> until a domain (e.g. <code>memoreply.com</code>) is verified on resend.com. Use the direct link above to reset your password now.
+                  </div>
+                </div>
+              )}
+
+              {/* Clerk Alternative */}
+              <div className="p-3 rounded-lg bg-zinc-950/80 border border-zinc-800 text-[11px] text-zinc-400 text-left space-y-1.5">
+                <div className="font-medium text-zinc-300">Signed up via Clerk or Google?</div>
+                <div>
+                  You can also get an instant 6-digit verification code directly on the Sign-In page by clicking &quot;Forgot password?&quot; inside Clerk.
+                </div>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-semibold text-[11px] pt-0.5"
+                >
+                  <span>Go to Clerk Sign-In</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
               </div>
+
               <div className="pt-2">
                 <Link
                   href="/login"
