@@ -272,14 +272,16 @@ export async function activateWithLicenseKey(licenseKey: string): Promise<Subscr
   };
 
   await new Promise<void>((resolve) => {
-    chrome.storage.local.set(
-      {
-        [LICENSE_STORAGE_KEYS.AUTH_SESSION]: authSession,
-        [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: status,
-        memoreply_license_key: cleanKey,
-      },
-      () => resolve()
-    );
+    chrome.storage.local.remove(['memoreply_logged_out'], () => {
+      chrome.storage.local.set(
+        {
+          [LICENSE_STORAGE_KEYS.AUTH_SESSION]: authSession,
+          [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: status,
+          memoreply_license_key: cleanKey,
+        },
+        () => resolve()
+      );
+    });
   });
 
   return status;
@@ -340,14 +342,16 @@ export async function loginDirectlyInExtension(
     };
 
     await new Promise<void>((resolve) => {
-      chrome.storage.local.set(
-        {
-          [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
-          [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
-          memoreply_license_key: licenseKey,
-        },
-        () => resolve()
-      );
+      chrome.storage.local.remove(['memoreply_logged_out'], () => {
+        chrome.storage.local.set(
+          {
+            [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
+            [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
+            memoreply_license_key: licenseKey,
+          },
+          () => resolve()
+        );
+      });
     });
 
     return { success: true, session: sessionObj, status: statusObj };
@@ -414,14 +418,16 @@ export async function loginDirectlyInExtension(
   };
 
   await new Promise<void>((resolve) => {
-    chrome.storage.local.set(
-      {
-        [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
-        [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
-        memoreply_license_key: cleanKey,
-      },
-      () => resolve()
-    );
+    chrome.storage.local.remove(['memoreply_logged_out'], () => {
+      chrome.storage.local.set(
+        {
+          [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
+          [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
+          memoreply_license_key: cleanKey,
+        },
+        () => resolve()
+      );
+    });
   });
 
   return { success: true, session: sessionObj, status: statusObj };

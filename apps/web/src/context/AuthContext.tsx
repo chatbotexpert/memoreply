@@ -174,11 +174,14 @@ function ClerkUserSync({ onSyncUser }: { onSyncUser: (u: UserProfile) => void })
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(DEFAULT_USER);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const router = useRouter();
 
   const handleClerkSync = useCallback((syncedUser: UserProfile) => {
+    try {
+      localStorage.removeItem('memoreply_logged_out');
+    } catch {}
     setUser(syncedUser);
     setIsAuthenticated(true);
   }, []);
@@ -186,6 +189,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sync Supabase Auth session on mount (Legacy / Dual compatibility)
   useEffect(() => {
     async function initSupabaseAuth() {
+      // If user explicitly logged out, skip restoring stored session
+      try {
+        if (localStorage.getItem('memoreply_logged_out') === 'true') {
+          setUser(null);
+          setIsAuthenticated(false);
+          return;
+        }
+      } catch {}
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session && session.user) {
@@ -211,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true);
           try {
             localStorage.setItem('memoreply_auth_user', JSON.stringify(activeUser));
+            localStorage.removeItem('memoreply_logged_out');
           } catch {}
           return;
         }
@@ -219,8 +232,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem('memoreply_auth_user');
         if (stored) {
           const parsed = JSON.parse(stored);
-          setUser(parsed);
-          setIsAuthenticated(true);
+          if (parsed && parsed.email && parsed.email !== 'seller@hashturn.com') {
+            setUser(parsed);
+            setIsAuthenticated(true);
+          } else {
+            setUser(null);
+            setIsAuthenticated(false);
+          }
         } else {
           setUser(null);
           setIsAuthenticated(false);
@@ -228,8 +246,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         const stored = localStorage.getItem('memoreply_auth_user');
         if (stored) {
-          setUser(JSON.parse(stored));
-          setIsAuthenticated(true);
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed && parsed.email && parsed.email !== 'seller@hashturn.com') {
+              setUser(parsed);
+              setIsAuthenticated(true);
+            } else {
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          } catch {
+            setUser(null);
+            setIsAuthenticated(false);
+          }
         } else {
           setUser(null);
           setIsAuthenticated(false);
@@ -271,6 +300,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(false);
           try {
             localStorage.removeItem('memoreply_auth_user');
+            localStorage.setItem('memoreply_logged_out', 'true');
           } catch {}
         }
       }
@@ -282,6 +312,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password?: string): Promise<boolean> => {
+    try {
+      localStorage.removeItem('memoreply_logged_out');
+    } catch {}
     const isDemo =
       !password ||
       password === '••••••••••••' ||
@@ -500,6 +533,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     plan: SaaSPlan
   ): Promise<boolean> => {
+    try {
+      localStorage.removeItem('memoreply_logged_out');
+    } catch {}
     const maxSeats = plan === 'Freelancer' ? 1 : plan === 'Agency Pro' ? 5 : 20;
     const randomHex = Math.random().toString(36).substring(2, 7).toUpperCase();
     const licenseKey = `MR-${plan.toUpperCase().replace(/\s+/g, '')}-${randomHex}-SEC`;
@@ -618,10 +654,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
     try {
       localStorage.removeItem('memoreply_auth_user');
+      localStorage.removeItem('memoreply_auth_session');
+      localStorage.setItem('memoreply_logged_out', 'true');
       if (document.body) {
         document.body.removeAttribute('data-memoreply-auth');
       }
       if (typeof window !== 'undefined') {
+        window.postMessage(
+          { type: 'MEMOREPLY_AUTH_LOGOUT' },
+          window.location.origin
+        );
         window.postMessage(
           { type: 'MEMOREPLY_AUTH_PAYLOAD', payload: null },
           window.location.origin

@@ -35,7 +35,8 @@ export type ExtensionMessageType =
   | 'CONVERSATION_EXTRACTED'
   | 'CONVERSATION_DATA'
   | 'INSERT_DRAFT'
-  | 'GET_STORED_CONVERSATION';
+  | 'GET_STORED_CONVERSATION'
+  | 'AUTH_LOGOUT';
 
 export interface ExtensionMessage<T = unknown> {
   type: ExtensionMessageType;

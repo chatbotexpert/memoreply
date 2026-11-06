@@ -17,6 +17,12 @@ if (isAuthHost) {
   const syncSessionToStorage = (auth: Record<string, any>) => {
     if (!auth || (!auth.token && !auth.licenseKey && !auth.userId)) return;
 
+    try {
+      if (localStorage.getItem('memoreply_logged_out') === 'true') {
+        return;
+      }
+    } catch {}
+
     const plan = auth.plan || 'Agency Pro';
     const cleanKey =
       auth.licenseKey ||
@@ -52,6 +58,7 @@ if (isAuthHost) {
       verifiedAt: Date.now(),
     };
 
+    chrome.storage.local.remove(['memoreply_logged_out']);
     chrome.storage.local
       .set({
         memoreply_auth_session: sessionObj,
@@ -70,22 +77,57 @@ if (isAuthHost) {
       });
   };
 
+  const clearSessionFromStorage = () => {
+    try {
+      localStorage.removeItem('memoreply_auth_user');
+      localStorage.removeItem('memoreply_auth_session');
+      localStorage.setItem('memoreply_logged_out', 'true');
+      document.body?.removeAttribute('data-memoreply-auth');
+    } catch {}
+    chrome.storage.local.remove([
+      'memoreply_auth_session',
+      'memoreply_license_status',
+      'memoreply_license_key',
+      'memoreply_user',
+      'memoreply_token',
+      'memoreply_free_usage_count',
+    ]);
+    chrome.storage.local.set({ memoreply_logged_out: true });
+    console.log('[Memoreply Extension Bridge] Session cleared on logout.');
+  };
+
   // 1. Listen for window messages from React apps
   window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin) return;
+    if (
+      event.data?.type === 'MEMOREPLY_AUTH_LOGOUT' ||
+      (event.data?.type === 'MEMOREPLY_AUTH_PAYLOAD' && !event.data?.payload)
+    ) {
+      clearSessionFromStorage();
+      return;
+    }
     if (event.data?.type === 'MEMOREPLY_AUTH_PAYLOAD' && event.data?.payload) {
+      try {
+        localStorage.removeItem('memoreply_logged_out');
+      } catch {}
       syncSessionToStorage(event.data.payload);
     }
   });
 
   // 2. Continuous check of DOM attributes and localStorage
   const inspectPageAuth = () => {
+    try {
+      if (localStorage.getItem('memoreply_logged_out') === 'true') {
+        return;
+      }
+    } catch {}
+
     // Check DOM data attribute
     const authAttr = document.body?.getAttribute('data-memoreply-auth');
     if (authAttr) {
       try {
         const parsed = JSON.parse(authAttr);
-        if (parsed.token || parsed.licenseKey) {
+        if (parsed && (parsed.token || parsed.licenseKey)) {
           syncSessionToStorage(parsed);
           return;
         }
@@ -97,7 +139,7 @@ if (isAuthHost) {
       const stored = localStorage.getItem('memoreply_auth_user');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && (parsed.email || parsed.licenseKey)) {
+        if (parsed && (parsed.email || parsed.licenseKey) && parsed.email !== 'seller@hashturn.com') {
           syncSessionToStorage({
             token: parsed.licenseKey ? `sess_${parsed.licenseKey}` : `web_sess_${parsed.id || Date.now()}`,
             userId: parsed.id,
@@ -602,6 +644,26 @@ chrome.runtime.onMessage.addListener(
             url: window.location.href,
           },
         });
+        return false;
+      }
+
+      case 'AUTH_LOGOUT': {
+        try {
+          localStorage.removeItem('memoreply_auth_user');
+          localStorage.removeItem('memoreply_auth_session');
+          localStorage.setItem('memoreply_logged_out', 'true');
+          document.body?.removeAttribute('data-memoreply-auth');
+        } catch {}
+        chrome.storage.local.remove([
+          'memoreply_auth_session',
+          'memoreply_license_status',
+          'memoreply_license_key',
+          'memoreply_user',
+          'memoreply_token',
+          'memoreply_free_usage_count',
+        ]);
+        chrome.storage.local.set({ memoreply_logged_out: true });
+        sendResponse({ success: true, message: 'Auth session purged.' });
         return false;
       }
 

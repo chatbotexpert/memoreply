@@ -230,8 +230,23 @@ export default function App() {
   // Initial Web Session Check & Reactive Storage Listener
   useEffect(() => {
     chrome.storage.local.get(
-      ['memoreply_auth_session', 'memoreply_license_key', 'memoreply_license_status'],
+      [
+        'memoreply_auth_session',
+        'memoreply_license_key',
+        'memoreply_license_status',
+        'memoreply_logged_out',
+        'memoreply_custom_tones',
+      ],
       (res: Record<string, any>) => {
+        // If user explicitly logged out, ensure clean state
+        if (res.memoreply_logged_out === true) {
+          setAuthSession(null);
+          setLicenseStatus(null);
+          setActiveStoredKey('');
+          setIsCheckingAuth(false);
+          return;
+        }
+
         const sess = res.memoreply_auth_session;
         if (sess && typeof sess === 'object' && (sess.token || sess.licenseKey)) {
           setAuthSession({
@@ -240,12 +255,16 @@ export default function App() {
             name: String(sess.name || 'Freelancer'),
             plan: String(sess.plan || 'Free'),
           });
-        }
-        if (res.memoreply_license_key) {
-          setActiveStoredKey(String(res.memoreply_license_key));
-        }
-        if (res.memoreply_license_status) {
-          setLicenseStatus(res.memoreply_license_status as SubscriptionLicenseStatus);
+          if (res.memoreply_license_key) {
+            setActiveStoredKey(String(res.memoreply_license_key));
+          }
+          if (res.memoreply_license_status) {
+            setLicenseStatus(res.memoreply_license_status as SubscriptionLicenseStatus);
+          }
+        } else {
+          setAuthSession(null);
+          setLicenseStatus(null);
+          setActiveStoredKey('');
         }
         if (Array.isArray(res.memoreply_custom_tones) && res.memoreply_custom_tones.length > 0) {
           setCustomTones(res.memoreply_custom_tones);
@@ -268,6 +287,12 @@ export default function App() {
     window.addEventListener('offline', handleOffline);
 
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.memoreply_logged_out && changes.memoreply_logged_out.newValue === true) {
+        setAuthSession(null);
+        setLicenseStatus(null);
+        setActiveStoredKey('');
+        return;
+      }
       if (changes.memoreply_auth_session) {
         const newVal = changes.memoreply_auth_session.newValue as Record<string, any> | undefined;
         if (newVal && typeof newVal === 'object' && (newVal.token || newVal.licenseKey)) {
@@ -279,13 +304,15 @@ export default function App() {
           });
         } else {
           setAuthSession(null);
+          setLicenseStatus(null);
+          setActiveStoredKey('');
         }
       }
       if (changes.memoreply_license_key) {
         setActiveStoredKey(String(changes.memoreply_license_key.newValue || ''));
       }
       if (changes.memoreply_license_status) {
-        setLicenseStatus(changes.memoreply_license_status.newValue as SubscriptionLicenseStatus);
+        setLicenseStatus((changes.memoreply_license_status.newValue as SubscriptionLicenseStatus) || null);
       }
       if (changes.memoreply_custom_tones && Array.isArray(changes.memoreply_custom_tones.newValue)) {
         setCustomTones(changes.memoreply_custom_tones.newValue);
@@ -356,6 +383,9 @@ export default function App() {
     setIsActivatingKey(true);
     setManualKeyError('');
     try {
+      try {
+        await chrome.storage.local.remove(['memoreply_logged_out']);
+      } catch {}
       const status = await activateWithLicenseKey(manualLicenseKey.trim());
       setLicenseStatus(status);
       setActiveStoredKey(manualLicenseKey.trim().toUpperCase());
@@ -384,6 +414,9 @@ export default function App() {
     setIsExtLoggingIn(true);
     setExtLoginError('');
     try {
+      try {
+        await chrome.storage.local.remove(['memoreply_logged_out']);
+      } catch {}
       const result = await loginDirectlyInExtension(emailToUse, overrideEmail ? '' : extLoginPassword);
       setAuthSession({
         token: result.session.token,
@@ -432,9 +465,33 @@ export default function App() {
   }, [authSession?.token, refreshLicenseStatus]);
 
   const handleLogout = async () => {
-    await chrome.storage.local.remove(['memoreply_auth_session', 'memoreply_license_status']);
+    try {
+      await chrome.storage.local.remove([
+        'memoreply_auth_session',
+        'memoreply_license_status',
+        'memoreply_license_key',
+        'memoreply_user',
+        'memoreply_token',
+        'memoreply_free_usage_count',
+      ]);
+      await chrome.storage.local.set({ memoreply_logged_out: true });
+    } catch {}
+
     setAuthSession(null);
     setLicenseStatus(null);
+    setActiveStoredKey('');
+
+    // Broadcast logout to all browser tabs so open memoreply.com / localhost tabs clear their local storage
+    try {
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+          if (tab.id) {
+            chrome.tabs.sendMessage(tab.id, { type: 'AUTH_LOGOUT' }).catch(() => {});
+          }
+        });
+      });
+    } catch {}
+
     showToast('Signed out of Memoreply.', 'info');
   };
 
