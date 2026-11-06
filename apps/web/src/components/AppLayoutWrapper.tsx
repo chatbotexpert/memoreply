@@ -14,7 +14,9 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     pathname === '/' ||
     pathname === '/login' ||
     pathname === '/signup' ||
-    pathname === '/pricing';
+    pathname === '/pricing' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password';
 
   return (
     <ThemeProvider>

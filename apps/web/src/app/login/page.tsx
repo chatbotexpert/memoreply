@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { SignIn } from '@clerk/nextjs';
-import { ShieldCheck, Sparkles, Download, ArrowRight, Lock, Mail } from 'lucide-react';
+import { SignIn, Show } from '@clerk/nextjs';
+import { ShieldCheck, Sparkles, Download, ArrowRight, Lock, Mail, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const { login } = useAuth();
+  const { login, logout, user, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const handleFallbackLogin = async (e: React.FormEvent) => {
@@ -89,38 +89,101 @@ export default function LoginPage() {
         {/* Authentication Card */}
         <div className="flex justify-center w-full">
           {isClerkReady ? (
-            <SignIn
-              routing="hash"
-              signUpUrl="/signup"
-              fallbackRedirectUrl="/dashboard"
-              appearance={{
-                variables: {
-                  colorPrimary: '#10b981',
-                  colorBackground: '#18181b',
-                  colorForeground: '#f4f4f5',
-                  colorMutedForeground: '#a1a1aa',
-                },
-                elements: {
-                  rootBox: 'w-full shadow-2xl',
-                  card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
-                  headerTitle: 'text-zinc-100 font-bold text-lg',
-                  headerSubtitle: 'text-zinc-400 text-xs',
-                  socialButtonsBlockButton:
-                    'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
-                  socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
-                  dividerLine: 'bg-zinc-800',
-                  dividerText: 'text-zinc-500 text-xs uppercase',
-                  formFieldLabel: 'text-zinc-300 text-xs font-semibold',
-                  formFieldInput:
-                    'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
-                  formButtonPrimary:
-                    'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
-                  footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
-                  identityPreviewText: 'text-zinc-200',
-                  identityPreviewEditButtonIcon: 'text-emerald-400',
-                },
-              }}
-            />
+            <>
+              <Show when="signed-in">
+                <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6 text-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mx-auto flex items-center justify-center">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-semibold text-white">Active Session Detected</h3>
+                    <p className="text-xs text-zinc-400">
+                      You are already signed in to your Memoreply workspace.
+                    </p>
+                  </div>
+                  <div className="pt-2 space-y-2">
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm transition-all shadow-lg shadow-emerald-500/20"
+                    >
+                      <span>Continue to Dashboard</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => logout()}
+                      className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-medium text-xs transition-colors border border-zinc-700/60 cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out & Switch Account</span>
+                    </button>
+                  </div>
+                </div>
+              </Show>
+              <Show when="signed-out">
+                <SignIn
+                  routing="hash"
+                  signUpUrl="/signup"
+                  fallbackRedirectUrl="/dashboard"
+                  appearance={{
+                    variables: {
+                      colorPrimary: '#10b981',
+                      colorBackground: '#18181b',
+                      colorForeground: '#f4f4f5',
+                      colorMutedForeground: '#a1a1aa',
+                    },
+                    elements: {
+                      rootBox: 'w-full shadow-2xl',
+                      card: 'bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6',
+                      headerTitle: 'text-zinc-100 font-bold text-lg',
+                      headerSubtitle: 'text-zinc-400 text-xs',
+                      socialButtonsBlockButton:
+                        'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/80 text-zinc-100 text-sm font-medium transition-colors',
+                      socialButtonsBlockButtonText: 'text-zinc-100 font-medium',
+                      dividerLine: 'bg-zinc-800',
+                      dividerText: 'text-zinc-500 text-xs uppercase',
+                      formFieldLabel: 'text-zinc-300 text-xs font-semibold',
+                      formFieldInput:
+                        'bg-zinc-950 border-zinc-800 text-zinc-100 text-sm rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500',
+                      formButtonPrimary:
+                        'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold py-2.5 rounded-lg shadow-lg shadow-emerald-500/20 transition-all',
+                      footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-semibold',
+                      identityPreviewText: 'text-zinc-200',
+                      identityPreviewEditButtonIcon: 'text-emerald-400',
+                    },
+                  }}
+                />
+              </Show>
+            </>
+          ) : isAuthenticated && user ? (
+            <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mx-auto flex items-center justify-center">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-white">Signed in as {user.name || user.email}</h3>
+                <p className="text-xs text-zinc-400">
+                  {user.agencyName || user.email}
+                </p>
+              </div>
+              <div className="pt-2 space-y-2">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm transition-all shadow-lg shadow-emerald-500/20"
+                >
+                  <span>Continue to Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-4 rounded-lg bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-medium text-xs transition-colors border border-zinc-700/60 cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out & Switch Account</span>
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl shadow-2xl rounded-2xl w-full p-6 space-y-4">
               <form onSubmit={handleFallbackLogin} className="space-y-4">
