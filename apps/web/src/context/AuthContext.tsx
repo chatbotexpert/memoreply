@@ -101,10 +101,36 @@ const isClerkReady =
 /**
  * Isolated Clerk sync component that only mounts when ClerkProvider is present
  */
-function ClerkUserSync({ onSyncUser }: { onSyncUser: (u: UserProfile) => void }) {
+function ClerkUserSync({
+  onSyncUser,
+  onRegisterSignOut,
+}: {
+  onSyncUser: (u: UserProfile) => void;
+  onRegisterSignOut?: (fn: () => Promise<void>) => void;
+}) {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
 
   useEffect(() => {
+    if (onRegisterSignOut) {
+      onRegisterSignOut(async () => {
+        try {
+          await signOut();
+        } catch (err) {
+          console.warn('[Clerk SignOut Warning]:', err);
+        }
+      });
+    }
+  }, [signOut, onRegisterSignOut]);
+
+  useEffect(() => {
+    // If user explicitly logged out, skip auto-restoration
+    try {
+      if (localStorage.getItem('memoreply_logged_out') === 'true') {
+        return;
+      }
+    } catch {}
+
     if (isLoaded && isSignedIn && clerkUser) {
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       const name =
@@ -177,6 +203,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const router = useRouter();
+  const clerkSignOutRef = React.useRef<(() => Promise<void>) | null>(null);
+
+  const handleRegisterSignOut = useCallback((fn: () => Promise<void>) => {
+    clerkSignOutRef.current = fn;
+  }, []);
 
   const handleClerkSync = useCallback((syncedUser: UserProfile) => {
     try {
@@ -648,6 +679,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      if (clerkSignOutRef.current) {
+        await clerkSignOutRef.current();
+      }
+    } catch {}
+    try {
       await supabase.auth.signOut();
     } catch {}
     setUser(null);
@@ -713,7 +749,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         revokeSeat,
       }}
     >
-      {isClerkReady && <ClerkUserSync onSyncUser={handleClerkSync} />}
+      {isClerkReady && (
+        <ClerkUserSync
+          onSyncUser={handleClerkSync}
+          onRegisterSignOut={handleRegisterSignOut}
+        />
+      )}
       {children}
     </AuthContext.Provider>
   );

@@ -187,6 +187,15 @@ function SignUpContent() {
                 >
                   {isLoading ? 'Creating Account...' : 'Get Started Free'}
                 </button>
+
+                <div className="text-center pt-1">
+                  <p className="text-xs text-zinc-400">
+                    Already have an account?{' '}
+                    <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+                      Sign in
+                    </Link>
+                  </p>
+                </div>
               </form>
             </div>
           )}

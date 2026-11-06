@@ -141,9 +141,17 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label className="text-zinc-300 text-xs font-semibold block mb-1.5">
-                    Password
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-zinc-300 text-xs font-semibold block">
+                      Password
+                    </label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -167,6 +175,15 @@ export default function LoginPage() {
                 >
                   {isLoading ? 'Signing In...' : 'Sign In'}
                 </button>
+
+                <div className="text-center pt-1">
+                  <p className="text-xs text-zinc-400">
+                    Don&apos;t have an account?{' '}
+                    <Link href="/signup" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+                      Sign up free
+                    </Link>
+                  </p>
+                </div>
               </form>
 
               <div className="relative my-4">
