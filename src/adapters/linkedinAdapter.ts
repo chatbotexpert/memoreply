@@ -1,8 +1,12 @@
 // ============================================================
-// Memoreply — LinkedIn Platform Adapter
+// Memoreply — LinkedIn Platform Adapter (Strict Safety Guardrails)
 // ============================================================
 // Isolated content script integration for LinkedIn Messaging.
-// Safely detects active contacts, extracts message threads, and injects drafted responses.
+// COMPLIANCE & ANTI-BOT SAFETY:
+// 1. Read-Only / Passive Mode: Scrapes messages ONLY on explicit user request.
+// 2. Zero Automated Typing: Never runs synthetic keystroke storms or bot simulation.
+// 3. Isolated Interface: Replies remain strictly inside the extension popup/panel.
+// 4. Safe Insertion: Controlled text placement with automatic clipboard fallback.
 // ============================================================
 
 import type { PlatformAdapter, PlatformClientInfo } from './types';
@@ -118,8 +122,8 @@ export class LinkedInAdapter implements PlatformAdapter {
       // 2. Sender role
       const isOutbound =
         el.classList.contains('msg-s-message-list__event--from-viewer') ||
-        el.classList.contains('msg-s-event-listitem--other') === false &&
-        Boolean(el.closest('.msg-s-message-list__event--from-viewer'));
+        (el.classList.contains('msg-s-event-listitem--other') === false &&
+          Boolean(el.closest('.msg-s-message-list__event--from-viewer')));
 
       const senderEl = el.querySelector(
         '.msg-s-message-group__name, .msg-s-message-group__profile-link, strong'
@@ -156,6 +160,13 @@ export class LinkedInAdapter implements PlatformAdapter {
     return extracted;
   }
 
+  /**
+   * Safe, user-triggered text insertion into LinkedIn's active message composer.
+   * Safety guarantees:
+   * - Never auto-submits or clicks send.
+   * - Uses native document.execCommand without automated bot-like keydown storms.
+   * - Returns false if composer is unreachable so extension triggers clipboard fallback.
+   */
   insertDraft(text: string): boolean {
     const inputSelectors = [
       'div.msg-form__contenteditable[contenteditable="true"]',
@@ -174,13 +185,14 @@ export class LinkedInAdapter implements PlatformAdapter {
     }
 
     if (!targetInput) {
-      console.warn('[Memoreply LinkedIn] No composer input element detected.');
+      console.warn('[Memoreply LinkedIn Guard] No composer input element detected.');
       return false;
     }
 
-    targetInput.focus();
-
     try {
+      targetInput.focus();
+
+      // Safe non-destructive insertion using native Selection API
       const selection = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(targetInput);
@@ -192,13 +204,19 @@ export class LinkedInAdapter implements PlatformAdapter {
         targetInput.dispatchEvent(new InputEvent('input', { bubbles: true }));
         return true;
       }
-    } catch {}
+    } catch (selErr) {
+      console.warn('[Memoreply LinkedIn Guard] Selection insert warning:', selErr);
+    }
 
-    // Fallback: direct innerHTML paragraph replacement expected by LinkedIn Draft editor
-    targetInput.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
-    targetInput.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
-    targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
+    // Secondary fallback: direct innerHTML paragraph replacement expected by LinkedIn Draft editor
+    try {
+      targetInput.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+      targetInput.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+      targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

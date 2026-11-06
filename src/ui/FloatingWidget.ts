@@ -84,6 +84,15 @@ export class MemoreplyFloatingWidget {
    * Mounts the widget into the page via Shadow DOM
    */
   public mount(): void {
+    // STRICT ANTI-BOT SAFETY: Never mount injected DOM widgets on LinkedIn
+    if (
+      this.options.platform === 'linkedin' ||
+      (typeof window !== 'undefined' && window.location.hostname.toLowerCase().includes('linkedin.com'))
+    ) {
+      console.log('[Memoreply LinkedIn Guard] Floating widget injection disabled to protect user account.');
+      return;
+    }
+
     // Avoid duplicate mount
     if (document.getElementById('memoreply-floating-root')) {
       return;

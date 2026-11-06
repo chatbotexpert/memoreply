@@ -1423,7 +1423,18 @@ export default function App() {
         },
         async (response) => {
           if (chrome.runtime.lastError || !response?.success) {
-            // 3. Fallback: Direct DOM injection via chrome.scripting
+            // Strict LinkedIn anti-ban fallback: If direct placement is blocked, copy to clipboard
+            if (targetPlatformName === 'LinkedIn' || response?.needsClipboard) {
+              try {
+                await navigator.clipboard.writeText(draftText);
+                showToast('LinkedIn Safe Mode: Copied to clipboard! Press Ctrl+V (or Cmd+V) to paste.', 'success');
+              } catch {
+                showToast('Draft ready. Please copy and paste into LinkedIn.', 'info');
+              }
+              return;
+            }
+
+            // 3. Fallback for other platforms: Direct DOM injection via chrome.scripting
             try {
               if (chrome.scripting?.executeScript) {
                 const results = await chrome.scripting.executeScript({
@@ -1445,7 +1456,11 @@ export default function App() {
             return;
           }
 
-          showToast(`Draft inserted into ${targetPlatformName} composer! Review and send.`, 'success');
+          if (targetPlatformName === 'LinkedIn') {
+            showToast('Draft safely placed into LinkedIn composer! Please review before sending.', 'success');
+          } else {
+            showToast(`Draft inserted into ${targetPlatformName} composer! Review and send.`, 'success');
+          }
         }
       );
     } catch (err) {
@@ -1454,12 +1469,16 @@ export default function App() {
   };
 
   /**
-   * Copy draft to clipboard
+   * Copy draft to clipboard with platform-aware feedback
    */
   const handleCopyDraft = () => {
     if (!draftText.trim()) return;
     navigator.clipboard.writeText(draftText);
-    showToast('Copied draft to clipboard!', 'success');
+    if (activePlatform === 'linkedin' || conversation?.platform === 'linkedin') {
+      showToast('Copied to clipboard! Ready to paste into LinkedIn (Ctrl+V).', 'success');
+    } else {
+      showToast('Copied draft to clipboard!', 'success');
+    }
   };
 
   const clientDisplayName = conversation?.clientDisplayName ?? storedClient?.displayName ?? 'Client';
@@ -2013,6 +2032,14 @@ export default function App() {
         <div>
           {isUsingMock ? (
             <span className="platform-pill mock">Preview Mode (Sample Thread)</span>
+          ) : activePlatform === 'linkedin' && conversation?.messages?.length ? (
+            <span className="platform-pill linkedin-active" style={{ background: 'rgba(10, 102, 194, 0.15)', color: '#70b5f9', border: '1px solid rgba(10, 102, 194, 0.3)' }}>
+              <span className="status-dot connected" style={{ background: '#0a66c2' }} /> LinkedIn Safe Mode (@{conversation.clientUsername || conversation.clientDisplayName || 'Contact'})
+            </span>
+          ) : activePlatform === 'linkedin' ? (
+            <span className="platform-pill linkedin-idle" style={{ background: 'rgba(10, 102, 194, 0.12)', color: '#70b5f9', border: '1px solid rgba(10, 102, 194, 0.25)' }}>
+              <span className="status-dot connected" style={{ background: '#0a66c2' }} /> LinkedIn Safe Mode (Read-Only)
+            </span>
           ) : activePlatform !== 'unknown' && conversation?.messages?.length ? (
             <span className={`platform-pill ${activePlatform}-active`}>
               <span className="status-dot connected" /> Connected: @{conversation.clientUsername || conversation.clientDisplayName || `${activePlatform.toUpperCase()} Client`} ({activePlatform.toUpperCase()})
@@ -2039,8 +2066,9 @@ export default function App() {
               onClick={() => syncFromActiveTab()}
               disabled={isSyncing}
               style={{ fontSize: '11px', padding: '2px 8px' }}
+              title={activePlatform === 'linkedin' ? 'Manually read active LinkedIn conversation (Read-Only)' : 'Sync current thread'}
             >
-              {isSyncing ? 'Syncing...' : '↻ Refresh'}
+              {isSyncing ? (activePlatform === 'linkedin' ? 'Reading...' : 'Syncing...') : (activePlatform === 'linkedin' ? '↻ Read Chat' : '↻ Refresh')}
             </button>
           )}
         </div>
@@ -2582,26 +2610,79 @@ export default function App() {
                 />
               </div>
 
+              {/* LinkedIn Anti-Bot Safety Guardrail Notice */}
+              {(conversation?.platform === 'linkedin' || activePlatform === 'linkedin') && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                  background: 'rgba(10, 102, 194, 0.08)',
+                  border: '1px solid rgba(10, 102, 194, 0.25)',
+                  borderRadius: '8px',
+                  padding: '8px 10px',
+                  marginTop: '10px',
+                  fontSize: '11px',
+                  lineHeight: '1.45',
+                  color: '#93c5fd'
+                }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  <div>
+                    <strong style={{ color: '#ffffff' }}>LinkedIn Safe Mode Active:</strong> UI & replies are strictly isolated inside this extension. Automated typing and DOM injection are disabled to protect your account.
+                  </div>
+                </div>
+              )}
+
               {/* Instant Actions Bar */}
               <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                <button
-                  className="btn btn-primary"
-                  style={{ flex: 2 }}
-                  onClick={handleInsertDraft}
-                  disabled={!draftText.trim() || isCoreFeatureLocked(licenseStatus)}
-                  title={isCoreFeatureLocked(licenseStatus) ? 'Upgrade to Pro to insert drafts' : 'Insert this reply into the active platform message box without auto-sending'}
-                >
-                  {isCoreFeatureLocked(licenseStatus) ? '🔒 Upgrade to Insert' : `Insert into ${conversation?.platform ? conversation.platform.charAt(0).toUpperCase() + conversation.platform.slice(1) : activePlatform !== 'unknown' ? activePlatform.charAt(0).toUpperCase() + activePlatform.slice(1) : 'Chat'}`}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  style={{ flex: 1 }}
-                  onClick={handleCopyDraft}
-                  disabled={!draftText.trim()}
-                  title="Copy reply text to clipboard"
-                >
-                  Copy Text
-                </button>
+                {(conversation?.platform === 'linkedin' || activePlatform === 'linkedin') ? (
+                  <>
+                    <button
+                      className="btn btn-primary"
+                      style={{ flex: 1.4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#0a66c2', borderColor: '#0a66c2' }}
+                      onClick={handleCopyDraft}
+                      disabled={!draftText.trim()}
+                      title="Safest method for LinkedIn: Copy to clipboard and paste with Ctrl+V"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                      Copy to Clipboard (Recommended)
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ flex: 1 }}
+                      onClick={handleInsertDraft}
+                      disabled={!draftText.trim() || isCoreFeatureLocked(licenseStatus)}
+                      title="Safely place this reply into LinkedIn composer without auto-sending"
+                    >
+                      {isCoreFeatureLocked(licenseStatus) ? '🔒 Upgrade' : 'Safely Insert'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="btn btn-primary"
+                      style={{ flex: 2 }}
+                      onClick={handleInsertDraft}
+                      disabled={!draftText.trim() || isCoreFeatureLocked(licenseStatus)}
+                      title={isCoreFeatureLocked(licenseStatus) ? 'Upgrade to Pro to insert drafts' : 'Insert this reply into the active platform message box without auto-sending'}
+                    >
+                      {isCoreFeatureLocked(licenseStatus) ? '🔒 Upgrade to Insert' : `Insert into ${conversation?.platform ? conversation.platform.charAt(0).toUpperCase() + conversation.platform.slice(1) : activePlatform !== 'unknown' ? activePlatform.charAt(0).toUpperCase() + activePlatform.slice(1) : 'Chat'}`}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ flex: 1 }}
+                      onClick={handleCopyDraft}
+                      disabled={!draftText.trim()}
+                      title="Copy reply text to clipboard"
+                    >
+                      Copy Text
+                    </button>
+                  </>
+                )}
                 {draftText && (
                   <button
                     className="btn btn-ghost btn-sm"

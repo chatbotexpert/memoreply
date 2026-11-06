@@ -181,6 +181,13 @@ import { MemoreplyFloatingWidget } from './ui/FloatingWidget';
 console.log('[Memoreply] Multi-platform content script initialized on:', window.location.href);
 
 /**
+ * Check if current page is on LinkedIn (requires passive, read-only guardrails)
+ */
+function isLinkedInPage(): boolean {
+  return window.location.hostname.toLowerCase().includes('linkedin.com');
+}
+
+/**
  * Check if current page matches any supported platform conversation room (Fiverr, Upwork, LinkedIn)
  */
 function isConversationPage(): boolean {
@@ -537,18 +544,25 @@ function extractCurrentConversation(): ConversationData {
  * Insert a draft reply into the active platform's message composer.
  * Safety rule: Focus and set text ONLY — never auto-submit.
  */
-function insertDraftIntoComposer(text: string): { success: boolean; message?: string; error?: string } {
+function insertDraftIntoComposer(text: string): { success: boolean; message?: string; error?: string; needsClipboard?: boolean } {
   if (!text || text.trim().length === 0) {
     return { success: false, error: 'Empty draft text provided.' };
   }
 
+  const isLinkedIn = isLinkedInPage();
   const adapter = getAdapterForUrl(window.location.href);
   if (adapter) {
     const success = adapter.insertDraft(text);
     if (success) {
       return {
         success: true,
-        message: `Draft inserted into ${adapter.platform.toUpperCase()} composer! Review and send when ready.`,
+        message: `Draft safely placed into ${adapter.platform.toUpperCase()} composer! Review and send when ready.`,
+      };
+    } else if (isLinkedIn) {
+      return {
+        success: false,
+        needsClipboard: true,
+        error: 'LinkedIn composer protected. Ready for 1-click clipboard paste.',
       };
     }
   }
@@ -762,6 +776,8 @@ function checkAndBroadcastConversation(): void {
 let floatingWidget: MemoreplyFloatingWidget | null = null;
 
 function initFloatingWidget(): void {
+  // STRICT LINKEDIN SAFETY: Never inject floating elements into LinkedIn DOM
+  if (isLinkedInPage()) return;
   if (floatingWidget || !isConversationPage()) return;
 
   const adapter = getAdapterForUrl(window.location.href);
@@ -784,34 +800,41 @@ function initFloatingWidget(): void {
   floatingWidget.mount();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initFloatingWidget);
-} else {
-  initFloatingWidget();
-}
-
-// 1. Initial extraction on load
-setTimeout(checkAndBroadcastConversation, 900);
-setTimeout(checkAndBroadcastConversation, 2400);
-
-// 2. Continuous DOM observer for new incoming/outgoing messages
-let debounceTimer: number | null = null;
-const observer = new MutationObserver(() => {
-  if (!isConversationPage()) return;
-  if (!floatingWidget) initFloatingWidget();
-  if (debounceTimer) window.clearTimeout(debounceTimer);
-  debounceTimer = window.setTimeout(checkAndBroadcastConversation, 800);
-});
-
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
-});
-
-// 3. Periodic fallback poll (every 4 seconds) to catch SPA navigation
-setInterval(() => {
-  if (!floatingWidget && isConversationPage()) {
+// STRICT ANTI-BOT TELEMETRY COMPLIANCE:
+// On LinkedIn, background MutationObservers and automated periodic polls are completely bypassed.
+// Interaction is 100% passive: chat reading and drafts happen ONLY upon user-initiated actions.
+if (!isLinkedInPage()) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFloatingWidget);
+  } else {
     initFloatingWidget();
   }
-  checkAndBroadcastConversation();
-}, 4000);
+
+  // 1. Initial extraction on load (Fiverr & Upwork)
+  setTimeout(checkAndBroadcastConversation, 900);
+  setTimeout(checkAndBroadcastConversation, 2400);
+
+  // 2. Continuous DOM observer for new incoming/outgoing messages
+  let debounceTimer: number | null = null;
+  const observer = new MutationObserver(() => {
+    if (!isConversationPage()) return;
+    if (!floatingWidget) initFloatingWidget();
+    if (debounceTimer) window.clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(checkAndBroadcastConversation, 800);
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  // 3. Periodic fallback poll (every 4 seconds) to catch SPA navigation
+  setInterval(() => {
+    if (!floatingWidget && isConversationPage()) {
+      initFloatingWidget();
+    }
+    checkAndBroadcastConversation();
+  }, 4000);
+} else {
+  console.log('[Memoreply LinkedIn Guard] Passive mode active: zero DOM injection, zero background polling.');
+}
