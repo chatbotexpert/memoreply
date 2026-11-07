@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs/legacy';
+import { useClerk, useUser } from '@clerk/nextjs';
 import {
   Mail,
   Lock,
@@ -18,6 +19,8 @@ import {
 
 export default function ForgotPasswordPage() {
   const { isLoaded, signIn, setActive } = useSignIn();
+  const { signOut } = useClerk();
+  const { isSignedIn, user: currentClerkUser } = useUser();
   const router = useRouter();
 
   const [step, setStep] = useState<'request' | 'verify' | 'success'>('request');
@@ -47,6 +50,11 @@ export default function ForgotPasswordPage() {
     setResendStatus('');
 
     try {
+      // If user is currently signed in, sign out first so Clerk allows resetting password
+      if (isSignedIn) {
+        await signOut().catch(() => {});
+      }
+
       await signIn.create({
         strategy: 'reset_password_email_code',
         identifier: email.trim(),
@@ -54,6 +62,31 @@ export default function ForgotPasswordPage() {
       setStep('verify');
     } catch (err: any) {
       console.error('[Clerk Password Reset Error]:', err);
+
+      const isAlreadySignedIn =
+        err?.errors?.[0]?.message?.toLowerCase().includes('already signed in') ||
+        err?.message?.toLowerCase().includes('already signed in');
+
+      if (isAlreadySignedIn) {
+        try {
+          await signOut().catch(() => {});
+          await signIn.create({
+            strategy: 'reset_password_email_code',
+            identifier: email.trim(),
+          });
+          setStep('verify');
+          return;
+        } catch (retryErr: any) {
+          const retryMessage =
+            retryErr?.errors?.[0]?.longMessage ||
+            retryErr?.errors?.[0]?.message ||
+            retryErr?.message ||
+            'Please sign out first, then try resetting your password.';
+          setErrorMsg(retryMessage);
+          return;
+        }
+      }
+
       const message =
         err?.errors?.[0]?.longMessage ||
         err?.errors?.[0]?.message ||
@@ -72,6 +105,9 @@ export default function ForgotPasswordPage() {
     setErrorMsg('');
     setResendStatus('');
     try {
+      if (isSignedIn) {
+        await signOut().catch(() => {});
+      }
       await signIn.create({
         strategy: 'reset_password_email_code',
         identifier: email.trim(),
@@ -198,6 +234,21 @@ export default function ForgotPasswordPage() {
 
         {/* Main Card */}
         <div className="rounded-xl border border-zinc-800/90 bg-zinc-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          {isSignedIn && (
+            <div className="p-3 mb-4 rounded-lg bg-zinc-800/80 border border-zinc-700/80 text-xs text-zinc-300 flex items-center justify-between gap-2">
+              <span>
+                Active session detected{currentClerkUser?.primaryEmailAddress?.emailAddress ? ` (${currentClerkUser.primaryEmailAddress.emailAddress})` : ''}.
+              </span>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline shrink-0 cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3 mb-4 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
