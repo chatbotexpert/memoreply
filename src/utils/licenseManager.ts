@@ -305,8 +305,8 @@ export async function loginDirectlyInExtension(
   }
 
   // Real Authenticate with Supabase Auth API
-  const supabaseUrl = 'https://eewlqgzjxomhvveetrft.supabase.co';
-  const supabaseAnonKey = 'sb_publishable_kDm42e9Og9Vp_brZA_CjBg_8IRHNJAB';
+  const supabaseUrl = 'https://kpsmcotpselybmcaqbde.supabase.co';
+  const supabaseAnonKey = 'sb_publishable_KRPpl1MkIVYDDN6IaH9bzg_X1GfPw5A';
 
   const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
     method: 'POST',
