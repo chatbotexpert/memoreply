@@ -288,8 +288,8 @@ export async function activateWithLicenseKey(licenseKey: string): Promise<Subscr
 }
 
 /**
- * Direct In-Extension Login via Supabase Auth
- * Enforces strict credentials check — requires valid email and password.
+ * Direct In-Extension Login via Web API (Clerk + Supabase)
+ * Validates credentials across Clerk and Supabase, and provisions local session.
  */
 export async function loginDirectlyInExtension(
   email: string,
@@ -304,80 +304,144 @@ export async function loginDirectlyInExtension(
     throw new Error('Please enter your account password.');
   }
 
-  // Real Authenticate with Supabase Auth API
-  const supabaseUrl = 'https://kpsmcotpselybmcaqbde.supabase.co';
-  const supabaseAnonKey = 'sb_publishable_KRPpl1MkIVYDDN6IaH9bzg_X1GfPw5A';
+  const cleanPassword = password.trim();
+  let sessionObj: any = null;
+  let statusObj: SubscriptionLicenseStatus | null = null;
 
-  const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: supabaseAnonKey,
-    },
-    body: JSON.stringify({
-      email: cleanEmail,
-      password: password.trim(),
-    }),
-  });
+  // 1. First, attempt login via Web API (which checks Clerk and Supabase)
+  try {
+    const apiRes = await fetch('https://memoreply.com/api/auth/extension-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
+    });
 
-  const data = await res.json();
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      if (data.success) {
+        sessionObj = {
+          token: data.token,
+          refreshToken: '',
+          userId: data.userId,
+          email: data.email,
+          name: data.name,
+          plan: data.plan,
+          licenseKey: data.licenseKey,
+          authenticatedAt: Date.now(),
+        };
 
-  if (!res.ok) {
-    const errMsg = data.error_description || data.msg || data.error || 'Invalid login credentials.';
-    if (errMsg.toLowerCase().includes('email not confirmed')) {
-      throw new Error('Email not confirmed. Please check your inbox for the confirmation link.');
+        const isPaid = data.plan.toUpperCase() !== 'FREE';
+        statusObj = {
+          valid: true,
+          userId: data.userId,
+          email: data.email,
+          name: data.name,
+          plan: data.plan,
+          isLicensed: isPaid,
+          tier: isPaid ? 'PAID' : 'FREE',
+          limits: data.limits || {
+            maxFreeReplies: isPaid ? 999999 : DEFAULT_FREE_REPLY_LIMIT,
+            repliesUsed: 0,
+            isExhausted: false,
+            upgradeUrl: UPGRADE_URL,
+          },
+          verifiedAt: Date.now(),
+        };
+      }
+    } else if (apiRes.status === 401) {
+      const errData = await apiRes.json().catch(() => ({}));
+      throw new Error(errData.error || 'Invalid login credentials.');
     }
-    throw new Error(errMsg);
+  } catch (apiErr: any) {
+    if (apiErr.message?.toLowerCase().includes('invalid login credentials')) {
+      throw apiErr;
+    }
+    console.warn('[Extension Login] Web API fallback to direct Supabase:', apiErr);
   }
 
-  const userMeta = data.user?.user_metadata || {};
-  const plan = userMeta.plan || 'Agency Pro';
-  const cleanKey = userMeta.licenseKey || `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
+  // 2. Direct Supabase Auth API Fallback (if Web API is offline)
+  if (!sessionObj) {
+    const supabaseUrl = 'https://kpsmcotpselybmcaqbde.supabase.co';
+    const supabaseAnonKey = 'sb_publishable_KRPpl1MkIVYDDN6IaH9bzg_X1GfPw5A';
 
-  const sessionObj = {
-    token: data.access_token,
-    refreshToken: data.refresh_token,
-    userId: data.user?.id || `usr_${Date.now()}`,
-    email: data.user?.email || cleanEmail,
-    name: userMeta.name || cleanEmail.split('@')[0],
-    plan,
-    licenseKey: cleanKey,
-    authenticatedAt: Date.now(),
-  };
+    const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: supabaseAnonKey,
+      },
+      body: JSON.stringify({
+        email: cleanEmail,
+        password: cleanPassword,
+      }),
+    });
 
-  const isPaid = plan.toUpperCase() !== 'FREE';
+    const data = await res.json();
 
-  const statusObj: SubscriptionLicenseStatus = {
-    valid: true,
-    userId: sessionObj.userId,
-    email: sessionObj.email,
-    name: sessionObj.name,
-    plan,
-    isLicensed: isPaid,
-    tier: isPaid ? 'PAID' : 'FREE',
-    limits: {
-      maxFreeReplies: isPaid ? 999999 : DEFAULT_FREE_REPLY_LIMIT,
-      repliesUsed: 0,
-      isExhausted: false,
-      upgradeUrl: UPGRADE_URL,
-    },
-    verifiedAt: Date.now(),
-  };
+    if (!res.ok) {
+      const errMsg = data.error_description || data.msg || data.error || 'Invalid login credentials.';
+      if (errMsg.toLowerCase().includes('email not confirmed')) {
+        throw new Error('Email not confirmed. Please check your inbox for the confirmation link.');
+      }
+      throw new Error(errMsg);
+    }
+
+    const userMeta = data.user?.user_metadata || {};
+    const plan = userMeta.plan || 'Agency Pro';
+    const cleanKey = userMeta.licenseKey || `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
+
+    sessionObj = {
+      token: data.access_token,
+      refreshToken: data.refresh_token,
+      userId: data.user?.id || `usr_${Date.now()}`,
+      email: data.user?.email || cleanEmail,
+      name: userMeta.name || cleanEmail.split('@')[0],
+      plan,
+      licenseKey: cleanKey,
+      authenticatedAt: Date.now(),
+    };
+
+    const isPaid = plan.toUpperCase() !== 'FREE';
+
+    statusObj = {
+      valid: true,
+      userId: sessionObj.userId,
+      email: sessionObj.email,
+      name: sessionObj.name,
+      plan,
+      isLicensed: isPaid,
+      tier: isPaid ? 'PAID' : 'FREE',
+      limits: {
+        maxFreeReplies: isPaid ? 999999 : DEFAULT_FREE_REPLY_LIMIT,
+        repliesUsed: 0,
+        isExhausted: false,
+        upgradeUrl: UPGRADE_URL,
+      },
+      verifiedAt: Date.now(),
+    };
+  }
+
+  if (!sessionObj || !statusObj) {
+    throw new Error('Authentication failed. Please verify your credentials.');
+  }
+
+  const finalLicenseKey = sessionObj.licenseKey || 'MR-AGENCYPRO-ACTIVE-SEC';
+  const finalStatus: SubscriptionLicenseStatus = statusObj;
 
   await new Promise<void>((resolve) => {
     chrome.storage.local.remove(['memoreply_logged_out'], () => {
       chrome.storage.local.set(
         {
           [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
-          [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
-          memoreply_license_key: cleanKey,
+          [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: finalStatus,
+          memoreply_license_key: finalLicenseKey,
         },
         () => resolve()
       );
     });
   });
 
-  return { success: true, session: sessionObj, status: statusObj };
+  return { success: true, session: sessionObj, status: finalStatus };
 }
 
 /**
