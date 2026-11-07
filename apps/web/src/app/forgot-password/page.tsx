@@ -59,6 +59,9 @@ export default function ForgotPasswordPage() {
         strategy: 'reset_password_email_code',
         identifier: email.trim(),
       });
+      setCode('');
+      setPassword('');
+      setConfirmPassword('');
       setStep('verify');
     } catch (err: any) {
       console.error('[Clerk Password Reset Error]:', err);
@@ -74,6 +77,9 @@ export default function ForgotPasswordPage() {
             strategy: 'reset_password_email_code',
             identifier: email.trim(),
           });
+          setCode('');
+          setPassword('');
+          setConfirmPassword('');
           setStep('verify');
           return;
         } catch (retryErr: any) {
@@ -112,6 +118,9 @@ export default function ForgotPasswordPage() {
         strategy: 'reset_password_email_code',
         identifier: email.trim(),
       });
+      setCode('');
+      setPassword('');
+      setConfirmPassword('');
       setResendStatus('A fresh 6-digit verification code has been sent to your inbox.');
     } catch (err: any) {
       setErrorMsg(err?.errors?.[0]?.message || 'Failed to resend code.');
@@ -338,6 +347,8 @@ export default function ForgotPasswordPage() {
                   <KeyRound className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
+                    name="otp"
+                    autoComplete="one-time-code"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     placeholder="123456"
@@ -398,7 +409,14 @@ export default function ForgotPasswordPage() {
               <div className="pt-2 text-center">
                 <button
                   type="button"
-                  onClick={() => setStep('request')}
+                  onClick={() => {
+                    setCode('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    setErrorMsg('');
+                    setResendStatus('');
+                    setStep('request');
+                  }}
                   className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3 h-3" />
