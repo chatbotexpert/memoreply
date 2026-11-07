@@ -192,6 +192,27 @@ function ClerkUserSync({
         if (document.body) {
           document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
         }
+
+        // Auto-sync Clerk authenticated user to Supabase Auth (auth.users) & DB
+        const lastSyncedEmail = sessionStorage.getItem('memoreply_last_synced_email');
+        if (email && lastSyncedEmail !== email) {
+          fetch('/api/auth/sync-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email,
+              name,
+              clerkId: clerkUser.id,
+              plan,
+            }),
+          })
+            .then(() => {
+              sessionStorage.setItem('memoreply_last_synced_email', email);
+            })
+            .catch((err) => {
+              console.warn('[Supabase Sync User Warning]:', err);
+            });
+        }
       }
     }
   }, [isLoaded, isSignedIn, clerkUser, onSyncUser]);
