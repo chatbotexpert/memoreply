@@ -10,6 +10,7 @@ export default function ForgotPasswordPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [directResetUrl, setDirectResetUrl] = useState('');
+  const [clerkMagicUrl, setClerkMagicUrl] = useState('');
   const [isSandboxRestricted, setIsSandboxRestricted] = useState(false);
   const [isDelivered, setIsDelivered] = useState(false);
 
@@ -24,6 +25,7 @@ export default function ForgotPasswordPage() {
     setErrorMsg('');
     setSuccessMsg('');
     setDirectResetUrl('');
+    setClerkMagicUrl('');
     setIsSandboxRestricted(false);
     setIsDelivered(false);
 
@@ -42,12 +44,15 @@ export default function ForgotPasswordPage() {
 
       setSuccessMsg(
         data.message ||
-          'A secure password reset link has been dispatched to your email via Resend.'
+          'A secure password reset link has been dispatched to your email.'
       );
       if (data.resetUrl) {
         setDirectResetUrl(data.resetUrl);
       }
-      if (data.isSandboxRestricted) {
+      if (data.clerkMagicUrl) {
+        setClerkMagicUrl(data.clerkMagicUrl);
+      }
+      if (data.isSandboxRestricted && !data.emailDispatchedViaSupabase) {
         setIsSandboxRestricted(true);
       }
       setIsDelivered(Boolean(data.delivered));
@@ -125,6 +130,30 @@ export default function ForgotPasswordPage() {
                     className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm"
                   >
                     <span>Open Reset Password Form</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+
+              {/* Clerk Magic Link Button */}
+              {clerkMagicUrl && (
+                <div className="space-y-2 p-3.5 rounded-xl bg-purple-950/30 border border-purple-800/60 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-purple-300">
+                      Clerk 1-Click Access Ticket
+                    </span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-mono">
+                      Clerk Ready
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 leading-normal">
+                    Account detected in Clerk. You can sign in immediately with one click:
+                  </p>
+                  <a
+                    href={clerkMagicUrl}
+                    className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-colors shadow-sm"
+                  >
+                    <span>Instant Clerk Magic Sign-In</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                 </div>

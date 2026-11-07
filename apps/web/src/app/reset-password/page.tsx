@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Lock, ArrowRight, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, ArrowRight, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function ResetPasswordPage() {
+  const [accountEmail, setAccountEmail] = useState('');
+  const [tokenHash, setTokenHash] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,12 +22,17 @@ export default function ResetPasswordPage() {
       if (typeof window === 'undefined') return;
       try {
         const url = new URL(window.location.href);
-        const tokenHash = url.searchParams.get('token_hash') || url.searchParams.get('token');
+        const hash = url.searchParams.get('token_hash') || url.searchParams.get('token') || '';
+        const emailParam = url.searchParams.get('email') || '';
         const type = (url.searchParams.get('type') as any) || 'recovery';
 
-        if (tokenHash) {
+        if (emailParam) {
+          setAccountEmail(emailParam);
+        }
+        if (hash) {
+          setTokenHash(hash);
           const { error } = await supabase.auth.verifyOtp({
-            token_hash: tokenHash,
+            token_hash: hash,
             type: type === 'recovery' ? 'recovery' : 'email',
           });
           if (error) {
@@ -34,6 +41,26 @@ export default function ResetPasswordPage() {
             console.log('[Recovery Session]: Token verified successfully');
           }
         }
+
+        // Also check hash fragment (#access_token=...)
+        if (window.location.hash) {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          if (accessToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+            console.log('[Recovery Session]: Session established from URL hash');
+          }
+        }
+
+        // Try getting current authenticated user email
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user?.email && !emailParam) {
+          setAccountEmail(userData.user.email);
+        }
       } catch (err) {
         console.error('[Recovery Error]:', err);
       }
@@ -41,10 +68,11 @@ export default function ResetPasswordPage() {
 
     handleRecoverySession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        // Active recovery session established
-        console.log('[Auth] Password recovery session active');
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        if (session?.user?.email) {
+          setAccountEmail(session.user.email);
+        }
       }
     });
 
@@ -72,12 +100,34 @@ export default function ResetPasswordPage() {
     setErrorMsg('');
 
     try {
+      // 1. First attempt update via robust backend API (updates Supabase Admin + Clerk simultaneously)
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: accountEmail,
+          password,
+          tokenHash,
+        }),
+      });
+
+      const apiData = await res.json().catch(() => null);
+
+      if (res.ok && apiData?.success) {
+        setIsSuccess(true);
+        setTimeout(() => {
+          router.push('/login');
+        }, 2200);
+        return;
+      }
+
+      // 2. Fallback to client-side Supabase session update
       const { data, error } = await supabase.auth.updateUser({
         password: password,
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw new Error(apiData?.error || error.message);
       }
 
       setIsSuccess(true);
@@ -94,16 +144,13 @@ export default function ResetPasswordPage() {
           { type: 'MEMOREPLY_AUTH_PAYLOAD', payload: authPayload },
           window.location.origin
         );
-        if (document.body) {
-          document.body.setAttribute('data-memoreply-auth', JSON.stringify(authPayload));
-        }
       }
 
       setTimeout(() => {
-        router.push('/dashboard');
-      }, 2500);
+        router.push('/login');
+      }, 2200);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to update password. Link may have expired.');
+      setErrorMsg(err.message || 'Unable to update password. Please request a new recovery link.');
     } finally {
       setIsLoading(false);
     }
@@ -172,6 +219,24 @@ export default function ResetPasswordPage() {
                   <span>{errorMsg}</span>
                 </div>
               )}
+
+              {/* Account Email Field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-300 block">
+                  Account Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    value={accountEmail}
+                    onChange={(e) => setAccountEmail(e.target.value)}
+                    placeholder="seller@agency.com"
+                    required
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
+                  />
+                </div>
+              </div>
 
               {/* New Password Field */}
               <div className="space-y-1.5">
