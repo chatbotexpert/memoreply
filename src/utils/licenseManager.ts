@@ -37,7 +37,7 @@ export const LICENSE_STORAGE_KEYS = {
 } as const;
 
 export const DEFAULT_FREE_REPLY_LIMIT = 50; // 50 free context AI replies per month
-export const UPGRADE_URL = 'https://memoreply.com/pricing';
+export const UPGRADE_URL = 'https://www.memoreply.com/pricing';
 
 /**
  * Retrieve current count of free replies used from chrome.storage.local
@@ -76,7 +76,7 @@ export async function incrementFreeReplyCount(token?: string): Promise<{ newCoun
   // Asynchronously notify backend to update user metadata count
   if (token) {
     try {
-      fetch('https://memoreply.com/api/auth/license-check', {
+      fetch('https://www.memoreply.com/api/auth/license-check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ export async function verifyLicenseWithSupabase(token: string): Promise<Subscrip
   }
 
   try {
-    const response = await fetch('https://memoreply.com/api/auth/license-check', {
+    const response = await fetch('https://www.memoreply.com/api/auth/license-check', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -310,7 +310,7 @@ export async function loginDirectlyInExtension(
 
   // 1. First, attempt login via Web API (which checks Clerk and Supabase)
   try {
-    const apiRes = await fetch('https://memoreply.com/api/auth/extension-login', {
+    const apiRes = await fetch('https://www.memoreply.com/api/auth/extension-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),

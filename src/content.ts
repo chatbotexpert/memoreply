@@ -53,7 +53,7 @@ if (isAuthHost) {
         maxFreeReplies: isPaid ? 999999 : 50,
         repliesUsed: 0,
         isExhausted: false,
-        upgradeUrl: 'https://memoreply.com/pricing',
+        upgradeUrl: 'https://www.memoreply.com/pricing',
       },
       verifiedAt: Date.now(),
     };
