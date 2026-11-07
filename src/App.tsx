@@ -154,6 +154,7 @@ export default function App() {
   const [authViewTab, setAuthViewTab] = useState<'signin' | 'license' | 'web'>('signin');
   const [extLoginEmail, setExtLoginEmail] = useState<string>('');
   const [extLoginPassword, setExtLoginPassword] = useState<string>('');
+  const [savedEmails, setSavedEmails] = useState<string[]>([]);
   const [isExtLoggingIn, setIsExtLoggingIn] = useState<boolean>(false);
   const [extLoginError, setExtLoginError] = useState<string>('');
 
@@ -236,8 +237,18 @@ export default function App() {
         'memoreply_license_status',
         'memoreply_logged_out',
         'memoreply_custom_tones',
+        'memoreply_saved_emails',
+        'memoreply_last_email',
       ],
       (res: Record<string, any>) => {
+        if (Array.isArray(res.memoreply_saved_emails) && res.memoreply_saved_emails.length > 0) {
+          setSavedEmails(res.memoreply_saved_emails);
+        } else if (res.memoreply_last_email) {
+          setSavedEmails([res.memoreply_last_email]);
+        }
+        if (res.memoreply_last_email) {
+          setExtLoginEmail((prev) => prev || String(res.memoreply_last_email));
+        }
         // If user explicitly logged out, ensure clean state
         if (res.memoreply_logged_out === true) {
           setAuthSession(null);
@@ -455,6 +466,16 @@ export default function App() {
       });
       setLicenseStatus(result.status);
       setActiveStoredKey(result.session.licenseKey);
+
+      // Save email for quick 1-click select on next login
+      const cleanEmail = extLoginEmail.trim();
+      const updatedList = Array.from(new Set([cleanEmail, ...savedEmails])).slice(0, 5);
+      setSavedEmails(updatedList);
+      chrome.storage.local.set({
+        memoreply_last_email: cleanEmail,
+        memoreply_saved_emails: updatedList,
+      });
+
       showToast(`Welcome! Signed in as ${result.session.email}`, 'success');
       setExtLoginEmail('');
       setExtLoginPassword('');
@@ -1610,9 +1631,17 @@ export default function App() {
                     Agency Work Email
                   </label>
                   <input
+                    id="ext-login-email"
+                    name="email"
                     type="email"
+                    autoComplete="username email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    list="memoreply-email-suggestions"
                     value={extLoginEmail}
                     onChange={(e) => setExtLoginEmail(e.target.value)}
+                    onInput={(e) => setExtLoginEmail((e.target as HTMLInputElement).value)}
                     placeholder="seller@agency.com"
                     required
                     style={{
@@ -1627,6 +1656,41 @@ export default function App() {
                       outline: 'none',
                     }}
                   />
+                  <datalist id="memoreply-email-suggestions">
+                    {savedEmails.map((em) => (
+                      <option key={em} value={em} />
+                    ))}
+                  </datalist>
+
+                  {/* 1-Click Recent Email Chips */}
+                  {savedEmails.length > 0 && !extLoginEmail && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                      {savedEmails.map((em) => (
+                        <button
+                          key={em}
+                          type="button"
+                          onClick={() => setExtLoginEmail(em)}
+                          title="Click to auto-fill"
+                          style={{
+                            background: '#27272a',
+                            border: '1px solid #3f3f46',
+                            borderRadius: 6,
+                            padding: '3px 8px',
+                            color: '#10b981',
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                          }}
+                        >
+                          <span>⚡</span>
+                          <span>{em}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1646,9 +1710,13 @@ export default function App() {
                     </a>
                   </div>
                   <input
+                    id="ext-login-password"
+                    name="password"
                     type="password"
+                    autoComplete="current-password"
                     value={extLoginPassword}
                     onChange={(e) => setExtLoginPassword(e.target.value)}
+                    onInput={(e) => setExtLoginPassword((e.target as HTMLInputElement).value)}
                     placeholder="••••••••••••"
                     required
                     style={{
