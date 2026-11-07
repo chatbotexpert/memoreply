@@ -288,7 +288,8 @@ export async function activateWithLicenseKey(licenseKey: string): Promise<Subscr
 }
 
 /**
- * Direct In-Extension Login via Supabase Auth & Demo Accounts
+ * Direct In-Extension Login via Supabase Auth
+ * Enforces strict credentials check — requires valid email and password.
  */
 export async function loginDirectlyInExtension(
   email: string,
@@ -296,68 +297,14 @@ export async function loginDirectlyInExtension(
 ): Promise<{ success: boolean; session: any; status: SubscriptionLicenseStatus }> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail) {
-    throw new Error('Please enter your work email.');
+    throw new Error('Please enter your registered work email.');
   }
 
-  // 1. Instant Demo Access Handler
-  const isDemo =
-    !password ||
-    password === '••••••••••••' ||
-    cleanEmail.includes('agency@hashturn.com') ||
-    cleanEmail.includes('freelancer@alexmiller.io') ||
-    cleanEmail.includes('seller@hashturn.com') ||
-    cleanEmail.includes('demo@');
-
-  if (isDemo) {
-    const isAgency = cleanEmail.includes('agency') || cleanEmail.includes('seller');
-    const plan = isAgency ? 'Agency Pro' : 'Freelancer';
-    const licenseKey = `MR-${plan.toUpperCase().replace(/\s+/g, '')}-ACTIVE-SEC`;
-
-    const sessionObj = {
-      token: `demo_ext_jwt_${Date.now()}`,
-      refreshToken: '',
-      userId: `usr_demo_${Date.now()}`,
-      email: cleanEmail,
-      name: cleanEmail.split('@')[0].toUpperCase(),
-      plan,
-      licenseKey,
-      authenticatedAt: Date.now(),
-    };
-
-    const statusObj: SubscriptionLicenseStatus = {
-      valid: true,
-      userId: sessionObj.userId,
-      email: sessionObj.email,
-      name: sessionObj.name,
-      plan,
-      isLicensed: true,
-      tier: 'PAID',
-      limits: {
-        maxFreeReplies: 999999,
-        repliesUsed: 0,
-        isExhausted: false,
-        upgradeUrl: UPGRADE_URL,
-      },
-      verifiedAt: Date.now(),
-    };
-
-    await new Promise<void>((resolve) => {
-      chrome.storage.local.remove(['memoreply_logged_out'], () => {
-        chrome.storage.local.set(
-          {
-            [LICENSE_STORAGE_KEYS.AUTH_SESSION]: sessionObj,
-            [LICENSE_STORAGE_KEYS.LICENSE_STATUS]: statusObj,
-            memoreply_license_key: licenseKey,
-          },
-          () => resolve()
-        );
-      });
-    });
-
-    return { success: true, session: sessionObj, status: statusObj };
+  if (!password || !password.trim()) {
+    throw new Error('Please enter your account password.');
   }
 
-  // 2. Real Authenticate with Supabase Auth API
+  // Real Authenticate with Supabase Auth API
   const supabaseUrl = 'https://eewlqgzjxomhvveetrft.supabase.co';
   const supabaseAnonKey = 'sb_publishable_kDm42e9Og9Vp_brZA_CjBg_8IRHNJAB';
 
@@ -369,7 +316,7 @@ export async function loginDirectlyInExtension(
     },
     body: JSON.stringify({
       email: cleanEmail,
-      password,
+      password: password.trim(),
     }),
   });
 
@@ -378,7 +325,7 @@ export async function loginDirectlyInExtension(
   if (!res.ok) {
     const errMsg = data.error_description || data.msg || data.error || 'Invalid login credentials.';
     if (errMsg.toLowerCase().includes('email not confirmed')) {
-      throw new Error('Email not confirmed. Check inbox or use 1-click Demo below.');
+      throw new Error('Email not confirmed. Please check your inbox for the confirmation link.');
     }
     throw new Error(errMsg);
   }
@@ -440,8 +387,8 @@ export async function loginDirectlyInExtension(
  * 2. User is on Free tier and their free reply quota is exhausted.
  */
 export function isCoreFeatureLocked(license: SubscriptionLicenseStatus | null): boolean {
-  if (!license || !license.valid) {
-    return true; // Mandatory Auth Gate
+  if (!license || !license.valid || !license.userId) {
+    return true; // Mandatory Auth Gate: No valid authenticated session
   }
   if (license.tier === 'FREE' && license.limits.isExhausted) {
     return true; // Free Tier Limit Exhausted Gate

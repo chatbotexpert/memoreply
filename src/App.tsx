@@ -248,6 +248,26 @@ export default function App() {
         }
 
         const sess = res.memoreply_auth_session;
+        // Strict mandatory auth: purge any legacy demo tokens or mock bypasses
+        const isLegacyDemo =
+          sess?.token?.startsWith('demo_ext_jwt_') ||
+          sess?.token?.startsWith('demo_') ||
+          sess?.userId?.startsWith('usr_demo_') ||
+          sess?.email?.includes('alexmiller.io');
+
+        if (isLegacyDemo) {
+          chrome.storage.local.remove([
+            'memoreply_auth_session',
+            'memoreply_license_status',
+            'memoreply_license_key',
+          ]);
+          setAuthSession(null);
+          setLicenseStatus(null);
+          setActiveStoredKey('');
+          setIsCheckingAuth(false);
+          return;
+        }
+
         if (sess && typeof sess === 'object' && (sess.token || sess.licenseKey)) {
           setAuthSession({
             token: String(sess.token || sess.licenseKey),
@@ -295,7 +315,13 @@ export default function App() {
       }
       if (changes.memoreply_auth_session) {
         const newVal = changes.memoreply_auth_session.newValue as Record<string, any> | undefined;
-        if (newVal && typeof newVal === 'object' && (newVal.token || newVal.licenseKey)) {
+        const isLegacyDemo =
+          newVal?.token?.startsWith('demo_ext_jwt_') ||
+          newVal?.token?.startsWith('demo_') ||
+          newVal?.userId?.startsWith('usr_demo_') ||
+          newVal?.email?.includes('alexmiller.io');
+
+        if (newVal && typeof newVal === 'object' && (newVal.token || newVal.licenseKey) && !isLegacyDemo) {
           setAuthSession({
             token: String(newVal.token || newVal.licenseKey),
             email: String(newVal.email || ''),
@@ -404,11 +430,14 @@ export default function App() {
     }
   };
 
-  const handleInExtensionSignIn = async (e?: React.FormEvent, overrideEmail?: string) => {
+  const handleInExtensionSignIn = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const emailToUse = overrideEmail || extLoginEmail;
-    if (!emailToUse.trim()) {
-      setExtLoginError('Please enter your work email.');
+    if (!extLoginEmail.trim()) {
+      setExtLoginError('Please enter your registered work email.');
+      return;
+    }
+    if (!extLoginPassword.trim()) {
+      setExtLoginError('Please enter your account password.');
       return;
     }
     setIsExtLoggingIn(true);
@@ -417,7 +446,7 @@ export default function App() {
       try {
         await chrome.storage.local.remove(['memoreply_logged_out']);
       } catch {}
-      const result = await loginDirectlyInExtension(emailToUse, overrideEmail ? '' : extLoginPassword);
+      const result = await loginDirectlyInExtension(extLoginEmail.trim(), extLoginPassword.trim());
       setAuthSession({
         token: result.session.token,
         email: result.session.email,
@@ -1621,6 +1650,7 @@ export default function App() {
                     value={extLoginPassword}
                     onChange={(e) => setExtLoginPassword(e.target.value)}
                     placeholder="••••••••••••"
+                    required
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -1660,55 +1690,6 @@ export default function App() {
                   <span>→</span>
                 </button>
               </form>
-
-              {/* Instant 1-Click Demo Section */}
-              <div style={{ borderTop: '1px solid #27272a', paddingTop: 10, marginTop: 2 }}>
-                <span style={{ fontSize: 10, color: '#71717a', display: 'block', textAlign: 'center', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  1-Click Instant Demo Access
-                </span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => handleInExtensionSignIn(undefined, 'agency@hashturn.com')}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 6,
-                      background: '#18181b',
-                      border: '1px solid #27272a',
-                      color: '#a1a1aa',
-                      fontSize: 11,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <span>🔑</span>
-                    <span>Agency Pro</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleInExtensionSignIn(undefined, 'freelancer@alexmiller.io')}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 6,
-                      background: '#18181b',
-                      border: '1px solid #27272a',
-                      color: '#a1a1aa',
-                      fontSize: 11,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <span>⚡</span>
-                    <span>Freelancer</span>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 

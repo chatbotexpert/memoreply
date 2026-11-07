@@ -43,11 +43,10 @@ export async function POST(req: NextRequest) {
 
     let authUser: { id: string; email?: string; user_metadata?: Record<string, any> } | null = null;
 
-    // 1. Check if token is a direct agency license key or demo token
+    // 1. Check if token is a direct agency license key
     if (
       token.startsWith('MR-') ||
       token.startsWith('license_manual_') ||
-      token.startsWith('demo_') ||
       token.startsWith('sess_MR-')
     ) {
       const cleanKey = token.replace('license_manual_', '').replace('sess_', '');
